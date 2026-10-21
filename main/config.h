@@ -17,10 +17,12 @@
 
 #define SETTINGS_MAGIC 0xf1a30001
 
-#ifdef CONFIG_FL_WIFI_MODE_AP
-    #define DEFAULT_WIFI_MODE WIFI_MODE_AP
+#if CONFIG_FL_WIFI_MODE_PERIODIC
+    #define DEFAULT_WIFI_MODE WIFI_CLIENT_PERIODIC
+#elif CONFIG_FL_WIFI_MODE_ALWAYS_ON
+    #define DEFAULT_WIFI_MODE WIFI_CLIENT_ALWAYS_ON
 #else
-    #define DEFAULT_WIFI_MODE WIFI_MODE_STA
+    #define DEFAULT_WIFI_MODE WIFI_CLIENT_OFF
 #endif
 
 #if CONFIG_FL_WIFI_DHCP
@@ -29,7 +31,6 @@
     #define DEFAULT_WIFI_DHCP false
 #endif
 
-#define DEFAULT_WIFI_AP_MAXCONN 5
 
 #if CONFIG_FL_LED_TYPE_SK6812
     #define DEFAULT_LED_TYPE LED_TYPE_SK6812
@@ -150,6 +151,19 @@
 #else
     #define SURFACE_TASK_CORE APP_CPU_NUM
 #endif
+
+////////////////////////////////////////////////////////////////////////////////
+/// WiFi
+
+#define WIFI_HOSTNAME "firelamp"
+#define WIFI_CLIENT_TASK_STACK_SIZE 4096
+#define WIFI_CLIENT_TASK_PRIORITY 3
+#define WIFI_RECONNECT_MIN_MS 2000
+#define WIFI_RECONNECT_MAX_MS 60000
+#define WIFI_FIRST_SESSION_DELAY_MS 5000  // periodic mode: first session after boot or settings change
+#define WIFI_SESSION_CONNECT_MS 30000     // periodic mode: connection timeout
+#define WIFI_SESSION_RETRY_MS (10 * 60 * 1000) // periodic mode: retry after a failed session
+#define WIFI_SNTP_WAIT_MS 15000
 
 ////////////////////////////////////////////////////////////////////////////////
 /// Webserver

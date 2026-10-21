@@ -27,55 +27,45 @@ menu "*** FireLamp configuration ***"
 			and a single core).
 
 	menu "Default WiFi configuration"
-		
-		choice WIFI_MODE_C
+
+		choice FL_WIFI_MODE_C
 			prompt "Default WiFi mode"
-			default FL_WIFI_MODE_AP
+			default FL_WIFI_MODE_OFF
+			help
+				WiFi is optional: the lamp is controlled over BLE. WiFi settings
+				are normally made from the phone app. The lamp only connects to a
+				home network as a client (station).
 
-			config FL_WIFI_MODE_AP
-				bool "Access point"
+			config FL_WIFI_MODE_OFF
+				bool "Off"
 
-			config FL_WIFI_MODE_STA
-				bool "Station"
+			config FL_WIFI_MODE_PERIODIC
+				bool "Periodic: connect every N hours for time sync, then disconnect"
 
+			config FL_WIFI_MODE_ALWAYS_ON
+				bool "Always on: stay connected, HTTP API available"
 		endchoice
 
-		menu "Access point mode"
-		
-			config FL_WIFI_AP_SSID
-				string "SSID"
-				default "FireLamp"
-				
-			config FL_WIFI_AP_PASSWD
-				string "Password"
-				default ""
-	
-			config FL_WIFI_AP_CHANNEL
-				int "Channel"
-				range 0 13
-				default 6
+		config FL_WIFI_PERIOD
+			int "Connection period for the periodic mode, hours"
+			range 1 24
+			default 1
 
-		endmenu
+		config FL_WIFI_SSID
+			string "Network name (SSID)"
+			default ""
 
-		menu "Station mode"
-		
-			config FL_WIFI_STA_SSID
-				string "SSID"
-				default "MyHomeWIFI"
-				
-			config FL_WIFI_STA_PASSWD
-				string "Password"
-				default "MyPassword"
-	
-		endmenu
+		config FL_WIFI_PASSWORD
+			string "Password"
+			default ""
 
 		config FL_WIFI_DHCP
 			bool "Enable DHCP"
 			default y
-			
+
 		config FL_WIFI_IP
-			string "IP address"
-			default "192.168.1.1"
+			string "Static IP address (used when DHCP is off)"
+			default "192.168.1.100"
 
 		config FL_WIFI_NETMASK
 			string "Netmask"
@@ -84,13 +74,17 @@ menu "*** FireLamp configuration ***"
 		config FL_WIFI_GATEWAY
 			string "Gateway"
 			default "192.168.1.1"
-			
+
 		config FL_WIFI_DNS
 			string "DNS server"
 			default "192.168.1.1"
-			
+
+		config FL_SNTP_SERVER
+			string "SNTP server"
+			default "pool.ntp.org"
+
 	endmenu
-	
+
 	menu "Hardware configuration"
 
 		menu "LED matrix"

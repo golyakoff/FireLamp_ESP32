@@ -7,8 +7,8 @@ Bluetooth Low Energy. Based on [EvLamp](https://github.com/UncleRus/EvLamp) by R
 
 > **Status: work in progress.** The EvLamp core is ported to a single matrix and builds for both
 > targets; settings storage (NVS or external EEPROM), buttons/touch, time (optional DS3231 RTC),
-> schedules, demo mode and BLE control with firmware update from the phone are done.
-> The WiFi client modes and internet OTA are not implemented yet.
+> schedules, demo mode, BLE control with firmware update from the phone and the optional
+> WiFi client are done. Internet OTA is not implemented yet.
 
 ## Hardware
 
@@ -62,6 +62,16 @@ schedules, demo mode, LED and WiFi settings, firmware update.
 Plays the included effects one after another: sequentially or in random order, each for a set
 duration plus an optional random addition. Effects can be excluded. It is a mode, not an effect:
 turned on and off via the lamp state (BLE or HTTP API) and resumed after reboot.
+
+## WiFi (optional)
+
+The lamp works without WiFi. When configured (from the app over BLE, or in menuconfig), it
+connects to a home network as a client:
+
+- **periodic**: every N hours (1..24) connects, syncs time by SNTP and disconnects;
+- **always on**: stays connected; the [HTTP API](API.md) is available.
+
+There is no access point mode: the network is configured over BLE.
 
 ## Settings storage
 
@@ -141,7 +151,8 @@ The bootloader is written at `0x1000` on ESP32 and at `0x0` on ESP32-C3.
 
 ## HTTP API
 
-The JSON API of EvLamp is kept (the web UI is removed), see [API.md](API.md).
+The JSON API of EvLamp is kept (the web UI is removed) and available in the "always on" WiFi
+mode, see [API.md](API.md).
 LED settings now describe a single matrix: `width`, `height`, `type`
 (0 = WS2812, 1 = SK6812, 2 = WS2811), `color_order` (0 = GRB, 1 = RGB), `rotation`, `mirror`,
 `current_limit`.

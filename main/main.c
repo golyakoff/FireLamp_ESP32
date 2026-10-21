@@ -211,7 +211,10 @@ static void main_loop(void *arg)
                 break;
 
             case EVENT_NETWORK_UP:
-                ESP_LOGI(TAG, "Network is up, restarting HTTPD...");
+                // HTTP API only in the "always on" mode, periodic sessions are short
+                if (sys_settings.wifi.mode != WIFI_CLIENT_ALWAYS_ON)
+                    break;
+                ESP_LOGI(TAG, "Network is up, starting HTTPD...");
                 err = webserver_restart();
                 if (err != ESP_OK)
                     ESP_LOGW(TAG, "Error starting HTTPD: %d (%s)", err, esp_err_to_name(err));
@@ -219,6 +222,7 @@ static void main_loop(void *arg)
 
             case EVENT_NETWORK_DOWN:
                 ESP_LOGI(TAG, "Network is down");
+                webserver_stop();
                 break;
 
             default:

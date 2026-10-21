@@ -290,7 +290,17 @@ Behaviour:
 ## 0x0009 WiFi settings
 
 WiFi is optional and off by default; the lamp connects only as a client (station) to a home
-network. Behaviour of the modes is implemented in stage 6, the format is fixed now.
+network. Modes:
+
+- off;
+- periodic: 5 s after boot or a settings change, and then every `period` hours, the lamp connects,
+  syncs time by SNTP (stage 7: checks for a firmware update) and disconnects; a failed attempt
+  is retried in 10 minutes;
+- always on: stays connected, reconnects automatically, keeps time synced, the HTTP API is
+  available.
+
+Settings are applied right away. During a BLE firmware upload WiFi is paused.
+A static IP address can be configured via the HTTP API only (DHCP by default).
 
 **Write**:
 
@@ -310,7 +320,7 @@ stored) or `0xFF` (a password is stored), followed by no bytes.
 
 | Offset | Type  | Field |
 |--------|-------|-------|
-| 0      | u8    | State: `0` - off, `1` - connecting, `2` - connected, `3` - error (wrong password, network not found) |
+| 0      | u8    | State: `0` - off (also between sessions of the periodic mode), `1` - connecting, `2` - connected, `3` - error (wrong password, network not found; kept until the next attempt) |
 | 1      | u8[4] | IPv4 address, zeros if not connected |
 | 5      | i8    | RSSI, dBm, 0 if not connected |
 

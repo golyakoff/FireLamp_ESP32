@@ -37,3 +37,12 @@ esp_err_t webserver_restart()
 
     return ESP_OK;
 }
+
+void webserver_stop()
+{
+    if (!server)
+        return;
+    httpd_stop(server);
+    server = NULL;
+    ESP_LOGI(TAG, "HTTPD stopped");
+}

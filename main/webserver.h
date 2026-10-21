@@ -6,4 +6,6 @@
 
 esp_err_t webserver_restart();
 
+void webserver_stop();
+
 #endif /* EVLAMP_WEBSERVER_H_ */

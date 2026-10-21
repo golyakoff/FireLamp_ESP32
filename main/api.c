@@ -1,5 +1,6 @@
 #include "api.h"
 #include <string.h>
+#include <cJSON.h>
 #include <lwip/ip_addr.h>
 #include <esp_ota_ops.h>
 #include "settings.h"
@@ -8,6 +9,7 @@
 #include "systime.h"
 #include "scheduler.h"
 #include "demo.h"
+#include "wifi.h"
 
 static esp_err_t respond_json(httpd_req_t *req, cJSON *resp)
 {
@@ -142,29 +144,31 @@ static const httpd_uri_t route_get_settings_reset = {
 
 ////////////////////////////////////////////////////////////////////////////////
 
+static bool number_parse(cJSON *json, const char *name, uint8_t *val);
+
 static esp_err_t get_settings_wifi(httpd_req_t *req)
 {
     cJSON *res = cJSON_CreateObject();
     cJSON_AddNumberToObject(res, "mode", sys_settings.wifi.mode);
+    cJSON_AddNumberToObject(res, "period", sys_settings.wifi.period);
+    cJSON_AddStringToObject(res, "ssid", sys_settings.wifi.ssid);
+    // the password is never returned
+    cJSON_AddBoolToObject(res, "password_set", sys_settings.wifi.password[0] != 0);
+    cJSON_AddBoolToObject(res, "dhcp", sys_settings.wifi.dhcp);
+    cJSON_AddStringToObject(res, "ip", sys_settings.wifi.ip);
+    cJSON_AddStringToObject(res, "netmask", sys_settings.wifi.netmask);
+    cJSON_AddStringToObject(res, "gateway", sys_settings.wifi.gateway);
+    cJSON_AddStringToObject(res, "dns", sys_settings.wifi.dns);
 
-    cJSON *ip = cJSON_CreateObject();
-    cJSON_AddItemToObject(res, "ip", ip);
-    cJSON_AddBoolToObject(ip, "dhcp", sys_settings.wifi.ip.dhcp);
-    cJSON_AddStringToObject(ip, "ip", sys_settings.wifi.ip.ip);
-    cJSON_AddStringToObject(ip, "netmask", sys_settings.wifi.ip.netmask);
-    cJSON_AddStringToObject(ip, "gateway", sys_settings.wifi.ip.gateway);
-    cJSON_AddStringToObject(ip, "dns", sys_settings.wifi.ip.dns);
-
-    cJSON *ap = cJSON_CreateObject();
-    cJSON_AddItemToObject(res, "ap", ap);
-    cJSON_AddStringToObject(ap, "ssid", (char *)sys_settings.wifi.ap.ssid);
-    cJSON_AddNumberToObject(ap, "channel", sys_settings.wifi.ap.channel);
-    cJSON_AddStringToObject(ap, "password", (char *)sys_settings.wifi.ap.password);
-
-    cJSON *sta = cJSON_CreateObject();
-    cJSON_AddItemToObject(res, "sta", sta);
-    cJSON_AddStringToObject(sta, "ssid", (char *)sys_settings.wifi.sta.ssid);
-    cJSON_AddStringToObject(sta, "password", (char *)sys_settings.wifi.sta.password);
+    wifi_status_t st;
+    wifi_get_status(&st);
+    cJSON *status = cJSON_CreateObject();
+    cJSON_AddNumberToObject(status, "state", st.state);
+    char ip[16];
+    snprintf(ip, sizeof(ip), "%d.%d.%d.%d", st.ip[0], st.ip[1], st.ip[2], st.ip[3]);
+    cJSON_AddStringToObject(status, "ip", ip);
+    cJSON_AddNumberToObject(status, "rssi", st.rssi);
+    cJSON_AddItemToObject(res, "status", status);
 
     return respond_json(req, res);
 }
@@ -175,7 +179,23 @@ static const httpd_uri_t route_get_settings_wifi = {
     .handler = get_settings_wifi
 };
 
-////////////////////////////////////////////////////////////////////////////////
+static bool string_parse(cJSON *json, const char *name, char *out, size_t max_len, bool allow_empty)
+{
+    cJSON *item = cJSON_GetObjectItem(json, name);
+    if (!item)
+        return true;
+    const char *v = cJSON_GetStringValue(item);
+    if (!v || strlen(v) > max_len || (!allow_empty && !v[0]))
+        return false;
+    strcpy(out, v);
+    return true;
+}
+
+static bool ip_valid(const char *s)
+{
+    ip4_addr_t a;
+    return ip4addr_aton(s, &a);
+}
 
 static esp_err_t post_settings_wifi(httpd_req_t *req)
 {
@@ -186,176 +206,53 @@ static esp_err_t post_settings_wifi(httpd_req_t *req)
     if (err != ESP_OK)
         goto exit;
 
-    cJSON *mode_item = cJSON_GetObjectItem(json, "mode");
-    if (!cJSON_IsNumber(mode_item))
+    // work on a copy: nothing is changed if anything is invalid
+    typeof(sys_settings.wifi) w = sys_settings.wifi;
+    err = ESP_ERR_INVALID_ARG;
+
+    uint8_t mode = w.mode, period = w.period;
+    cJSON *dhcp = cJSON_GetObjectItem(json, "dhcp");
+    if (!number_parse(json, "mode", &mode) || mode >= WIFI_CLIENT_MODE_MAX
+            || !number_parse(json, "period", &period) || period < 1 || period > WIFI_PERIOD_MAX
+            || (dhcp && !cJSON_IsBool(dhcp)))
     {
-        msg = "Item `mode` not found or invalid";
-        err = ESP_ERR_INVALID_ARG;
+        msg = "Invalid `mode`, `period` or `dhcp`";
+        goto exit;
+    }
+    w.mode = mode;
+    w.period = period;
+    if (dhcp)
+        w.dhcp = cJSON_IsTrue(dhcp);
+
+    if (!string_parse(json, "ssid", w.ssid, WIFI_SSID_MAX_LEN, true)
+            || !string_parse(json, "password", w.password, WIFI_PASSWORD_MAX_LEN, true))
+    {
+        msg = "Invalid `ssid` or `password`";
+        goto exit;
+    }
+    if (!string_parse(json, "ip", w.ip, 15, false) || !string_parse(json, "netmask", w.netmask, 15, false)
+            || !string_parse(json, "gateway", w.gateway, 15, false) || !string_parse(json, "dns", w.dns, 15, false)
+            || (!w.dhcp && (!ip_valid(w.ip) || !ip_valid(w.netmask) || !ip_valid(w.gateway) || !ip_valid(w.dns))))
+    {
+        msg = "Invalid static IP settings";
+        goto exit;
+    }
+    if (w.mode != WIFI_CLIENT_OFF && !w.ssid[0])
+    {
+        msg = "SSID is required";
         goto exit;
     }
 
-    cJSON *ip = cJSON_GetObjectItem(json, "ip");
-    if (!ip)
-    {
-        msg = "Object `ip` not found or invalid";
-        err = ESP_ERR_INVALID_ARG;
-        goto exit;
-    }
-    cJSON *ip_dhcp_item = cJSON_GetObjectItem(ip, "dhcp");
-    if (!cJSON_IsBool(ip_dhcp_item))
-    {
-        msg = "Object `ip.dhcp` not found or invalid";
-        err = ESP_ERR_INVALID_ARG;
-        goto exit;
-    }
-    cJSON *ip_ip_item = cJSON_GetObjectItem(ip, "ip");
-    if (!cJSON_IsString(ip_ip_item) || ipaddr_addr(cJSON_GetStringValue(ip_ip_item)) == IPADDR_NONE)
-    {
-        msg = "Item `ip.ip` not found, invalid or not an IP address";
-        err = ESP_ERR_INVALID_ARG;
-        goto exit;
-    }
-    cJSON *ip_netmask_item = cJSON_GetObjectItem(ip, "netmask");
-    if (!cJSON_IsString(ip_netmask_item) || ipaddr_addr(cJSON_GetStringValue(ip_netmask_item)) == IPADDR_NONE)
-    {
-        msg = "Item `ip.netmask` not found, invalid or not an IP address";
-        err = ESP_ERR_INVALID_ARG;
-        goto exit;
-    }
-    cJSON *ip_gateway_item = cJSON_GetObjectItem(ip, "gateway");
-    if (!cJSON_IsString(ip_gateway_item) || ipaddr_addr(cJSON_GetStringValue(ip_gateway_item)) == IPADDR_NONE)
-    {
-        msg = "Item `ip.gateway` not found, invalid or not an IP address";
-        err = ESP_ERR_INVALID_ARG;
-        goto exit;
-    }
-    cJSON *ip_dns_item = cJSON_GetObjectItem(ip, "dns");
-    if (!cJSON_IsString(ip_dns_item) || ipaddr_addr(cJSON_GetStringValue(ip_dns_item)) == IPADDR_NONE)
-    {
-        msg = "Item `ip.dns` not found, invalid or not an IP address";
-        err = ESP_ERR_INVALID_ARG;
-        goto exit;
-    }
-
-    cJSON *ap = cJSON_GetObjectItem(json, "ap");
-    if (!ap)
-    {
-        msg = "Object `ap` not found or invalid";
-        err = ESP_ERR_INVALID_ARG;
-        goto exit;
-    }
-    cJSON *ap_ssid_item = cJSON_GetObjectItem(ap, "ssid");
-    if (!cJSON_IsString(ap_ssid_item))
-    {
-        msg = "Item `ap.ssid` not found or invalid";
-        err = ESP_ERR_INVALID_ARG;
-        goto exit;
-    }
-    cJSON *ap_channel_item = cJSON_GetObjectItem(ap, "channel");
-    if (!cJSON_IsNumber(ap_channel_item))
-    {
-        msg = "Item `ap.channel` not found or invalid";
-        err = ESP_ERR_INVALID_ARG;
-        goto exit;
-    }
-    cJSON *ap_password_item = cJSON_GetObjectItem(ap, "password");
-    if (!cJSON_IsString(ap_password_item))
-    {
-        msg = "Item `ap.password` not found or invalid";
-        err = ESP_ERR_INVALID_ARG;
-        goto exit;
-    }
-
-    cJSON *sta = cJSON_GetObjectItem(json, "sta");
-    if (!sta)
-    {
-        msg = "Object `sta` not found or invalid";
-        err = ESP_ERR_INVALID_ARG;
-        goto exit;
-    }
-    cJSON *sta_ssid_item = cJSON_GetObjectItem(sta, "ssid");
-    if (!cJSON_IsString(sta_ssid_item))
-    {
-        msg = "Item `sta.ssid` not found or invalid";
-        err = ESP_ERR_INVALID_ARG;
-        goto exit;
-    }
-    cJSON *sta_password_item = cJSON_GetObjectItem(sta, "password");
-    if (!cJSON_IsString(sta_password_item))
-    {
-        msg = "Item `sta.password` not found or invalid";
-        err = ESP_ERR_INVALID_ARG;
-        goto exit;
-    }
-
-    uint8_t mode = (uint8_t)cJSON_GetNumberValue(mode_item);
-    if (mode != WIFI_MODE_AP && mode != WIFI_MODE_STA)
-    {
-        msg = "Invalid mode value";
-        err = ESP_ERR_INVALID_ARG;
-        goto exit;
-    }
-    const char *ap_ssid = cJSON_GetStringValue(ap_ssid_item);
-    size_t len = strlen(ap_ssid);
-    if (!len || len >= sizeof(sys_settings.wifi.ap.ssid))
-    {
-        msg = "Invalid ap.ssid";
-        err = ESP_ERR_INVALID_ARG;
-        goto exit;
-    }
-    uint8_t ap_channel = (uint8_t)cJSON_GetNumberValue(ap_channel_item);
-    if (ap_channel > 32)
-    {
-        msg = "Invalid ap.channel";
-        err = ESP_ERR_INVALID_ARG;
-        goto exit;
-    }
-    const char *ap_password = cJSON_GetStringValue(ap_password_item);
-    len = strlen(ap_password);
-    if (len >= sizeof(sys_settings.wifi.ap.password))
-    {
-        msg = "ap.password too long";
-        err = ESP_ERR_INVALID_ARG;
-        goto exit;
-    }
-    const char *sta_ssid = cJSON_GetStringValue(sta_ssid_item);
-    len = strlen(sta_ssid);
-    if (!len || len >= sizeof(sys_settings.wifi.sta.ssid))
-    {
-        msg = "Invalid sta.ssid";
-        err = ESP_ERR_INVALID_ARG;
-        goto exit;
-    }
-    const char *sta_password = cJSON_GetStringValue(sta_password_item);
-    len = strlen(sta_password);
-    if (len >= sizeof(sys_settings.wifi.sta.password))
-    {
-        msg = "sta.password too long";
-        err = ESP_ERR_INVALID_ARG;
-        goto exit;
-    }
-
-    sys_settings.wifi.mode = mode;
-    memset(&sys_settings.wifi.ip, 0, sizeof(sys_settings.wifi.ip));
-    sys_settings.wifi.ip.dhcp = cJSON_IsTrue(ip_dhcp_item);
-    strncpy(sys_settings.wifi.ip.ip, cJSON_GetStringValue(ip_ip_item), sizeof(sys_settings.wifi.ip.ip) - 1);
-    strncpy(sys_settings.wifi.ip.netmask, cJSON_GetStringValue(ip_netmask_item), sizeof(sys_settings.wifi.ip.netmask) - 1);
-    strncpy(sys_settings.wifi.ip.gateway, cJSON_GetStringValue(ip_gateway_item), sizeof(sys_settings.wifi.ip.gateway) - 1);
-    strncpy(sys_settings.wifi.ip.dns, cJSON_GetStringValue(ip_dns_item), sizeof(sys_settings.wifi.ip.dns) - 1);
-    sys_settings.wifi.ap.channel = ap_channel;
-    memset(sys_settings.wifi.ap.ssid, 0, sizeof(sys_settings.wifi.ap.ssid));
-    memset(sys_settings.wifi.ap.password, 0, sizeof(sys_settings.wifi.ap.password));
-    memset(sys_settings.wifi.sta.ssid, 0, sizeof(sys_settings.wifi.sta.ssid));
-    memset(sys_settings.wifi.sta.password, 0, sizeof(sys_settings.wifi.sta.password));
-    strncpy((char *)sys_settings.wifi.ap.ssid, ap_ssid, sizeof(sys_settings.wifi.ap.ssid) - 1);
-    strncpy((char *)sys_settings.wifi.ap.password, ap_password, sizeof(sys_settings.wifi.ap.password) - 1);
-    strncpy((char *)sys_settings.wifi.sta.ssid, sta_ssid, sizeof(sys_settings.wifi.sta.ssid) - 1);
-    strncpy((char *)sys_settings.wifi.sta.password, sta_password, sizeof(sys_settings.wifi.sta.password) - 1);
-
+    sys_settings.wifi = w;
     err = sys_settings_save();
-    msg = err != ESP_OK
-            ? "Error saving system settings"
-            : "Settings saved, reboot to apply";
+    if (err != ESP_OK)
+    {
+        msg = "Error saving system settings";
+        goto exit;
+    }
+    // the connection this request came through may be dropped right after the response
+    wifi_apply_settings();
+    msg = "WiFi settings applied";
 
 exit:
     if (json) cJSON_Delete(json);

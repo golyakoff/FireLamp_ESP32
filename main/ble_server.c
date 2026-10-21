@@ -19,6 +19,7 @@
 #include "storage.h"
 #include "ota.h"
 #include "bus.h"
+#include "wifi.h"
 
 #define PROTOCOL_VERSION 1
 
@@ -75,7 +76,7 @@ static const ble_uuid128_t service_uuid = FL_UUID(0x0000);
 static uint16_t h_state, h_param, h_wifi_status, h_ota_control;
 static uint16_t conn = BLE_HS_CONN_HANDLE_NONE;
 static bool authorized = false;
-static bool sub_state, sub_param, sub_ota;
+static bool sub_state, sub_param, sub_ota, sub_wifi;
 static uint8_t own_addr_type;
 static char device_name[BLE_NAME_MAX_LEN + 1];
 
@@ -215,8 +216,21 @@ static void on_param_changed(size_t effect, size_t param)
     notify(h_param, sub_param, &b);
 }
 
+static void build_wifi_status(buf_t *b);
+
+static void on_wifi_status()
+{
+    buf_t b = { 0 };
+    build_wifi_status(&b);
+    notify(h_wifi_status, sub_wifi, &b);
+}
+
 static void on_ota_status(ota_state_t state, ota_error_t err, uint32_t received, uint32_t total)
 {
+    // WiFi is paused during the upload
+    if (state == OTA_STATE_IDLE || state == OTA_STATE_ERROR)
+        wifi_pause(false);
+
     buf_t b = { 0 };
     put_u8(&b, state);
     put_u8(&b, err);
@@ -545,18 +559,18 @@ static int chr_wifi_settings(struct ble_gatt_access_ctxt *ctxt, reader_t *r)
     if (ctxt->op == BLE_GATT_ACCESS_OP_READ_CHR)
     {
         buf_t b = { 0 };
-        put_u8(&b, sys_settings.wifi_client.mode);
-        put_u8(&b, sys_settings.wifi_client.period);
-        put_str8(&b, sys_settings.wifi_client.ssid);
+        put_u8(&b, sys_settings.wifi.mode);
+        put_u8(&b, sys_settings.wifi.period);
+        put_str8(&b, sys_settings.wifi.ssid);
         // the password is never returned
-        put_u8(&b, sys_settings.wifi_client.password[0] ? PASSWORD_KEEP : 0);
+        put_u8(&b, sys_settings.wifi.password[0] ? PASSWORD_KEEP : 0);
         return reply(ctxt, &b);
     }
 
     uint8_t mode = get_u8(r), period = get_u8(r);
-    char ssid[sizeof(sys_settings.wifi_client.ssid)];
+    char ssid[sizeof(sys_settings.wifi.ssid)];
     get_str8(r, ssid, sizeof(ssid) - 1);
-    char password[sizeof(sys_settings.wifi_client.password)];
+    char password[sizeof(sys_settings.wifi.password)];
     bool keep = r->pos < r->len && r->data[r->pos] == PASSWORD_KEEP;
     if (keep)
         r->pos++;
@@ -564,27 +578,37 @@ static int chr_wifi_settings(struct ble_gatt_access_ctxt *ctxt, reader_t *r)
         get_str8(r, password, sizeof(password) - 1);
     if (r->error || r->pos != r->len)
         return BLE_ATT_ERR_INVALID_ATTR_VALUE_LEN;
-    if (mode >= WIFI_CLIENT_MODE_MAX || period < 1 || period > 24 || (mode != WIFI_CLIENT_OFF && !ssid[0]))
+    if (mode >= WIFI_CLIENT_MODE_MAX || period < 1 || period > WIFI_PERIOD_MAX || (mode != WIFI_CLIENT_OFF && !ssid[0]))
         return BLE_ATT_ERR_VALUE_NOT_ALLOWED;
 
-    sys_settings.wifi_client.mode = mode;
-    sys_settings.wifi_client.period = period;
-    strcpy(sys_settings.wifi_client.ssid, ssid);
+    sys_settings.wifi.mode = mode;
+    sys_settings.wifi.period = period;
+    strcpy(sys_settings.wifi.ssid, ssid);
     if (!keep)
-        strcpy(sys_settings.wifi_client.password, password);
+        strcpy(sys_settings.wifi.password, password);
     ESP_LOGI(TAG, "WiFi client settings: mode %d, period %d h, SSID '%s'", mode, period, ssid);
-    return sys_settings_save() == ESP_OK ? 0 : BLE_ATT_ERR_UNLIKELY;
+    if (sys_settings_save() != ESP_OK)
+        return BLE_ATT_ERR_UNLIKELY;
+    wifi_apply_settings();
+    return 0;
+}
+
+static void build_wifi_status(buf_t *b)
+{
+    wifi_status_t st;
+    wifi_get_status(&st);
+    put_u8(b, st.state);
+    for (size_t i = 0; i < 4; i++)
+        put_u8(b, st.ip[i]);
+    put_u8(b, (uint8_t)st.rssi);
 }
 
 static int chr_wifi_status(struct ble_gatt_access_ctxt *ctxt)
 {
     if (ctxt->op != BLE_GATT_ACCESS_OP_READ_CHR)
         return BLE_ATT_ERR_REQ_NOT_SUPPORTED;
-    // WiFi client is implemented in stage 6
     buf_t b = { 0 };
-    put_u8(&b, 0);
-    put_u32(&b, 0);
-    put_u8(&b, 0);
+    build_wifi_status(&b);
     return reply(ctxt, &b);
 }
 
@@ -719,6 +743,7 @@ static int chr_ota_control(struct ble_gatt_access_ctxt *ctxt, reader_t *r)
             demo_stop();
             scheduler_cancel_dawn();
             surface_stop();
+            wifi_pause(true);
             request_ota_conn_params();
             ota_begin(size, with_sha ? sha : NULL);
             return 0;
@@ -909,7 +934,7 @@ static int gap_event(struct ble_gap_event *event, void *arg)
             }
             conn = event->connect.conn_handle;
             authorized = false;
-            sub_state = sub_param = sub_ota = false;
+            sub_state = sub_param = sub_ota = sub_wifi = false;
             effect_cursor = 0;
             ESP_LOGI(TAG, "BLE: connected");
             esp_timer_start_once(auth_timer, BLE_AUTH_TIMEOUT_S * 1000000ULL);
@@ -955,6 +980,8 @@ static int gap_event(struct ble_gap_event *event, void *arg)
                 sub_param = event->subscribe.cur_notify;
             else if (event->subscribe.attr_handle == h_ota_control)
                 sub_ota = event->subscribe.cur_notify;
+            else if (event->subscribe.attr_handle == h_wifi_status)
+                sub_wifi = event->subscribe.cur_notify;
             break;
 
         case BLE_GAP_EVENT_MTU:
@@ -1088,6 +1115,7 @@ esp_err_t ble_server_init()
 
     surface_set_state_cb(on_state_changed);
     effect_set_param_cb(on_param_changed);
+    wifi_set_status_cb(on_wifi_status);
 
     // new phones can pair right after power on
     ble_server_open_pairing_window();

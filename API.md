@@ -1,6 +1,8 @@
 # API
 
 FireLamp provides a simple API based on HTTP GET and POST requests containing JSON data.
+It is available when WiFi is in the "always on" mode (see [WiFi settings](#set-wifi-settings));
+the main control channel is BLE, see [docs/BLE_PROTOCOL.md](docs/BLE_PROTOCOL.md).
 
 ---
 
@@ -60,6 +62,9 @@ FireLamp provides a simple API based on HTTP GET and POST requests containing JS
 
 ## Get current WiFi settings
 
+The lamp connects to a home network as a client only. WiFi is optional (the lamp is controlled
+over BLE); this API is available in the "always on" mode.
+
 ### Request
 
 **GET** `/api/settings/wifi`
@@ -68,50 +73,19 @@ FireLamp provides a simple API based on HTTP GET and POST requests containing JS
 
 ```jsonc
 {
-  "mode": <Integer, WiFi mode. 1 - Station, 2 - Access point>,
-  "ip": {
-    /* IP settings for both AP and station modes */
-    "dhcp": <Boolean, DHCP client enable in station mode>,
-    "ip": <String, IP address. In station mode only makes sense if DHCP client is disabled>,
-    "netmask": <String, Network mask. In station mode only makes sense if DHCP client is disabled>,
-    "gateway": <String, Gateway IP address. In station mode only makes sense if DHCP client is disabled>,
-    "dns": <String, IP-address of DNS server. In station mode only makes sense if DHCP client is disabled, 
-          in AP mode used as fallback DNS server'>
-  },
-  "ap": {
-    /* Access Point settings, only makes sense in AP mode */
-    "ssid": <String, SSID of Access Point>,
-    "channel": <Integer, Channel number>,
-    "password": <String, Access Point WPA2 password. If empty, Access point will be in open mode>,
-  },
-  "sta": {
-    /* Station settings, only makes sense in station mode */
-    "ssid": <String, Contains the SSID of the network being connected to in station mode>,
-    "password": <String, WPA2 password>,
-  }
-}
-```
-
-**Example**
-
-```json
-{
-  "mode": 1,
-  "ip": {
-    "dhcp": true,
-    "ip": "192.168.1.1",
-    "netmask": "255.255.255.0",
-    "gateway": "192.168.1.1",
-    "dns": "192.168.1.1"
-  },
-  "ap": {
-    "ssid": "FireLamp",
-    "channel": 6,
-    "password": ""
-  },
-  "sta": {
-    "ssid": "MyHomeWiFi",
-    "password": "SuperSecret"
+  "mode": <Integer, 0 - off, 1 - periodic (connect every `period` hours for time sync, then disconnect), 2 - always on>,
+  "period": <Integer, hours, 1..24, for the periodic mode>,
+  "ssid": <String, network name>,
+  "password_set": <Boolean, a password is stored; the password itself is never returned>,
+  "dhcp": <Boolean, get IP address from DHCP>,
+  "ip": <String, static IP address, used when DHCP is off>,
+  "netmask": <String>,
+  "gateway": <String>,
+  "dns": <String>,
+  "status": {
+    "state": <Integer, 0 - off, 1 - connecting, 2 - connected, 3 - error (wrong password, network not found)>,
+    "ip": <String, current IP address, "0.0.0.0" if not connected>,
+    "rssi": <Integer, signal level, dBm>
   }
 }
 ```
@@ -120,34 +94,32 @@ FireLamp provides a simple API based on HTTP GET and POST requests containing JS
 
 ## Set WiFi settings
 
+All fields are optional, missing ones keep their values. Nothing is changed if anything is
+invalid. The settings are applied right away, so the connection the request came through may be
+dropped after the response.
+
 ### Request
 
 **POST** `/api/settings/wifi`
 
 ```jsonc
 {
-  "mode": <Integer, WiFi mode. 1 - Station, 2 - Access point>,
-  "ip": {
-    /* IP settings for both AP and station modes */
-    "dhcp": <Boolean, DHCP client enable in station mode>,
-    "ip": <String, IP address. In station mode only makes sense if DHCP client is disabled>,
-    "netmask": <String, Network mask. In station mode only makes sense if DHCP client is disabled>,
-    "gateway": <String, Gateway IP address. In station mode only makes sense if DHCP client is disabled>,
-    "dns": <String, IP-address of DNS server. In station mode only makes sense if DHCP client is disabled, 
-          in AP mode used as fallback DNS server'>
-  },
-  "ap": {
-    /* Access Point settings, only makes sense in AP mode */
-    "ssid": <String, SSID of Access Point>,
-    "channel": <Integer, Channel number>,
-    "password": <String, Access Point WPA2 password. If empty, Access point will be in open mode>,
-  },
-  "sta": {
-    /* Station settings, only makes sense in station mode */
-    "ssid": <String, Contains the SSID of the network being connected to in station mode>,
-    "password": <String, WPA2 password>,
-  }
+  "mode": <Integer>,
+  "period": <Integer>,
+  "ssid": <String, up to 32 bytes, required unless mode is 0>,
+  "password": <String, up to 64 bytes, empty for an open network>,
+  "dhcp": <Boolean>,
+  "ip": <String>,
+  "netmask": <String>,
+  "gateway": <String>,
+  "dns": <String>
 }
+```
+
+**Example**
+
+```json
+{ "mode": 2, "ssid": "MyHomeWiFi", "password": "SuperSecret" }
 ```
 
 ### Response
