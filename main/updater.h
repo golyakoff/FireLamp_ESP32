@@ -15,10 +15,12 @@
  * {
  *   "version": "0.7.0",
  *   "builds": {
- *     "esp32":   { "url": "https://...bin", "size": 1234567, "sha256": "<64 hex chars>" },
- *     "esp32c3": { ... }
+ *     "esp32-default":   { "url": "https://...bin", "size": 1234567, "sha256": "<64 hex chars>" },
+ *     "esp32c3-default": { ... }
  *   }
  * }
+ * Build key: CONFIG_IDF_TARGET "-" CONFIG_FL_BUILD_VARIANT. A lamp whose build is not in
+ * the manifest is reported as up to date.
  */
 
 typedef enum {

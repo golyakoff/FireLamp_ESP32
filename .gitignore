@@ -8,3 +8,5 @@ sdkconfig.old
 .idea/
 *.swp
 test/host/build/
+release/
+release_notes.md

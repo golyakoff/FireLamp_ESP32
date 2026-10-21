@@ -15,6 +15,9 @@
 
 #define MANIFEST_MAX_SIZE 4096
 
+// builds are selected by chip and hardware configuration, e.g. "esp32c3-default"
+#define BUILD_KEY CONFIG_IDF_TARGET "-" CONFIG_FL_BUILD_VARIANT
+
 static update_info_t info = { 0 };
 static updater_cb_t info_cb = NULL;
 static volatile bool check_requested = false, install_requested = false;
@@ -121,21 +124,35 @@ static esp_err_t check(bool report)
     res = ESP_ERR_INVALID_RESPONSE;
     json = cJSON_Parse(buf);
     const char *version = cJSON_GetStringValue(cJSON_GetObjectItem(json, "version"));
-    cJSON *build = cJSON_GetObjectItem(cJSON_GetObjectItem(json, "builds"), CONFIG_IDF_TARGET);
+    if (!version || !version_num(version))
+    {
+        ESP_LOGW(TAG, "Updater: invalid manifest");
+        goto exit;
+    }
+    strncpy(info.version, version, sizeof(info.version) - 1);
+    info.checked_at = time(NULL);
+
+    cJSON *build = cJSON_GetObjectItem(cJSON_GetObjectItem(json, "builds"), BUILD_KEY);
+    if (!build)
+    {
+        // a custom hardware configuration: official releases are not for this lamp
+        ESP_LOGI(TAG, "Updater: release %s has no build " BUILD_KEY, version);
+        set_state(UPDATE_UP_TO_DATE);
+        res = ESP_OK;
+        goto exit;
+    }
     const char *build_url = cJSON_GetStringValue(cJSON_GetObjectItem(build, "url"));
     cJSON *build_size = cJSON_GetObjectItem(build, "size");
-    if (!version || !version_num(version) || !build_url || strlen(build_url) >= sizeof(url)
-            || strncmp(build_url, "https://", 8) || !cJSON_IsNumber(build_size) || cJSON_GetNumberValue(build_size) < 1)
+    if (!build_url || strlen(build_url) >= sizeof(url) || strncmp(build_url, "https://", 8)
+            || !cJSON_IsNumber(build_size) || cJSON_GetNumberValue(build_size) < 1)
     {
-        ESP_LOGW(TAG, "Updater: invalid manifest or no build for " CONFIG_IDF_TARGET);
+        ESP_LOGW(TAG, "Updater: invalid build " BUILD_KEY " in manifest");
         goto exit;
     }
 
     strcpy(url, build_url);
     size = (uint32_t)cJSON_GetNumberValue(build_size);
     sha_valid = parse_hex(cJSON_GetStringValue(cJSON_GetObjectItem(build, "sha256")), sha, sizeof(sha));
-    strncpy(info.version, version, sizeof(info.version) - 1);
-    info.checked_at = time(NULL);
 
     const char *current = esp_app_get_description()->version;
     bool newer = version_num(version) > version_num(current);

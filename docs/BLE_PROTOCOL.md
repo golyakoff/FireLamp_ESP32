@@ -99,6 +99,7 @@ Read only, constant for the connection.
 | 8      | u8     | Controls: `0` - one button, `1` - four buttons, `2` - touch pad |
 | 9      | str8   | Firmware version, e.g. `0.5.0` |
 | ...    | str8   | Build date and time, e.g. `Oct 21 2026 12:00:00` |
+| ...    | str8   | Build variant, `default` for official releases (hardware configuration, see README) |
 
 Features bitmask:
 
@@ -109,7 +110,8 @@ Features bitmask:
 | 2   | WiFi supported |
 | 3   | Internet firmware update supported |
 
-The app picks the OTA firmware file by chip (offset 1) and flash size (offset 2).
+The app picks the OTA firmware file by chip (offset 1) and build variant: official releases
+contain the `default` variant only; do not offer them to a lamp with another variant.
 
 ---
 

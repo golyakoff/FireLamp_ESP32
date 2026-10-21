@@ -1,0 +1,37 @@
+name: Build
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  host-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Run host unit tests
+        run: make -C test/host
+
+  firmware:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [esp32, esp32c3]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Build firmware for ${{ matrix.target }}
+        uses: espressif/esp-idf-ci-action@v1
+        with:
+          esp_idf_version: v5.5.6
+          target: ${{ matrix.target }}
+          command: >-
+            idf.py -B build-${{ matrix.target }}
+            -DSDKCONFIG=build-${{ matrix.target }}/sdkconfig
+            -DIDF_TARGET=${{ matrix.target }} build

@@ -17,6 +17,17 @@ menu "*** FireLamp configuration ***"
 		range 1 255
 		default 255
 
+	config FL_BUILD_VARIANT
+		string "Build variant name"
+		default "default"
+		help
+			Name of this hardware configuration (buttons, RTC, EEPROM, LED type...).
+			Official releases are built with the default configuration as
+			variant "default". The internet update installs only a build of the
+			same chip and variant, so a lamp built with its own configuration
+			never gets a release made for different hardware. Use your own
+			name (a-z, 0-9, '_') for a custom configuration.
+
 	config FL_EFFECTS_BENCHMARK
 		bool "Benchmark all effects at boot"
 		default n

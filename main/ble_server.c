@@ -288,6 +288,7 @@ static int chr_device_info(struct ble_gatt_access_ctxt *ctxt)
     put_u8(&b, controls);
     put_str8(&b, app->version);
     put_str8(&b, date);
+    put_str8(&b, CONFIG_FL_BUILD_VARIANT);
     return reply(ctxt, &b);
 }
 

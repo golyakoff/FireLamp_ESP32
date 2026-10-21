@@ -7,8 +7,8 @@ Bluetooth Low Energy. Based on [EvLamp](https://github.com/UncleRus/EvLamp) by R
 
 > **Status: work in progress.** The EvLamp core is ported to a single matrix and builds for both
 > targets; settings storage (NVS or external EEPROM), buttons/touch, time (optional DS3231 RTC),
-> schedules, demo mode, BLE control, the optional WiFi client and firmware update from the
-> phone or from the internet are done. CI and the release process are next.
+> schedules, demo mode, BLE control, the optional WiFi client, firmware update from the phone
+> or from the internet, CI and releases are done. Not yet tested on real hardware.
 
 ## Hardware
 
@@ -147,6 +147,29 @@ gestures) is covered by unit tests that run on the PC:
 ```bash
 make -C test/host
 ```
+
+## Releases
+
+Every push builds the firmware for both chips and runs the host tests
+([.github/workflows/build.yml](.github/workflows/build.yml)).
+
+To make a release, bump `version.txt`, add the notes to [CHANGELOG.md](CHANGELOG.md), commit and
+push a tag `v<version>` (it must match `version.txt`). The release workflow builds both chips and
+publishes per chip: separate flash images, a merged image, a Windows `.bat` and a zip, plus
+`manifest.json` for the internet update ([tools/make_release.sh](tools/make_release.sh) also
+writes the release page text). The release can be checked locally:
+
+```bash
+tools/make_release.sh v$(cat version.txt)   # after building both targets, needs esptool >= 5
+```
+
+### Build variant
+
+Releases are built with the default configuration (menuconfig defaults) as build variant
+`default`. The internet update installs only a build of the same chip and variant: a lamp built
+with its own configuration (buttons, RTC, EEPROM...) should get its own variant name
+(menuconfig → `*** FireLamp configuration ***` → `Build variant name`), then official releases are
+never installed on it. The variant is also reported over BLE (Device info).
 
 ## Flash layout (4 MB)
 
