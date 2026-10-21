@@ -1,6 +1,5 @@
 #include "ds3231.h"
 
-#if CONFIG_FL_RTC_DS3231
 #include <string.h>
 #include "i2c_bus.h"
 
@@ -49,7 +48,7 @@ esp_err_t ds3231_init()
 
     if (i2c_master_probe(i2c_bus_get(), DS3231_ADDR, I2C_TIMEOUT_MS) != ESP_OK)
     {
-        ESP_LOGW(TAG, "DS3231 not found");
+        ESP_LOGI(TAG, "No DS3231 RTC");
         return ESP_ERR_NOT_FOUND;
     }
 
@@ -121,5 +120,3 @@ esp_err_t ds3231_set_time(time_t utc)
 
     return ESP_OK;
 }
-
-#endif /* CONFIG_FL_RTC_DS3231 */

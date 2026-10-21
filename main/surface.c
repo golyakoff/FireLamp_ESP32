@@ -29,7 +29,8 @@ static const led_model_t led_models[LED_TYPE_MAX] = {
     [LED_TYPE_WS2811] = LED_MODEL_WS2811,
 };
 
-// The LEDs are connected like a snake, starting from the bottom left corner.
+// The LEDs are connected row by row starting from the bottom left corner: like a snake
+// (serpentine) or every row from the left (progressive). Other layouts are rotation + mirror.
 // Framebuffer y = 0 is the bottom row.
 static void build_led_map()
 {
@@ -60,7 +61,8 @@ static void build_led_map()
             if (sys_settings.leds.mirror)
                 px = w - 1 - px;
 
-            led_map[y * fb_width + x] = py * w + (py % 2 ? w - px - 1 : px);
+            bool reversed = sys_settings.hw.wiring == MATRIX_WIRING_SERPENTINE && py % 2;
+            led_map[y * fb_width + x] = py * w + (reversed ? w - px - 1 : px);
         }
 }
 

@@ -28,6 +28,7 @@ the main control channel is BLE, see [docs/BLE_PROTOCOL.md](docs/BLE_PROTOCOL.md
 - [Get demo mode settings](#get-demo-mode-settings)
 - [Set demo mode settings](#set-demo-mode-settings)
 - [Firmware update](#firmware-update)
+- [Hardware settings](#hardware-settings)
 
 ---
 
@@ -152,7 +153,8 @@ dropped after the response.
   "rotation": <Integer, surface rotation. 0 - none, 1 - 90, 2 - 180, 3 - 270 degrees>,
   "mirror": <Boolean, mirror surface horizontally>,
   "current_limit": <Integer, Approximate limit of current consumed by all LEDs in milliamps.
-                   The larger this value, the higher the maximum brightness.>
+                   The larger this value, the higher the maximum brightness.>,
+  "wiring": <Integer, 0 - serpentine (rows go back and forth), 1 - progressive (every row starts at the same side)>
 }
 ```
 
@@ -193,11 +195,12 @@ Settings are applied after reboot.
   "rotation": <Integer, surface rotation. 0 - none, 1 - 90, 2 - 180, 3 - 270 degrees>,
   "mirror": <Boolean, mirror surface horizontally>,
   "current_limit": <Integer, Approximate limit of current consumed by all LEDs in milliamps.
-                   The larger this value, the higher the maximum brightness.>
+                   The larger this value, the higher the maximum brightness.>,
+  "wiring": <Integer, 0 - serpentine (rows go back and forth), 1 - progressive (every row starts at the same side)>
 }
 ```
 
-`color_order` and `mirror` are optional, current values are kept when they are omitted.
+`color_order`, `mirror` and `wiring` are optional, current values are kept when they are omitted.
 
 ### Response
 
@@ -669,6 +672,50 @@ request.
 ```
 
 The lamp reboots after a successful installation.
+
+### Response
+
+```jsonc
+{
+  "result": <Integer, Result code. 0 - no errors>,
+  "name": <String, Name of the result code, "ESP_OK" for result code 0>,
+  "message": <String, Error message if result code != 0>
+}
+```
+
+---
+
+## Hardware settings
+
+The control elements connected to the fixed pins. The DS3231 RTC and the AT24Cxx EEPROM are
+detected automatically.
+
+### Request
+
+**GET** `/api/settings/hardware`
+
+### Response
+
+```jsonc
+{
+  "input_mode": <Integer, 0 - one button, 1 - four buttons, 2 - touch pad (ESP32 only)>,
+  "input_mode_active": <Integer, controls in use now (input_mode is applied after reboot)>,
+  "input_modes": [ <Integer, supported values> ],
+  "button_level": <Integer, 1 - TTP223 or a button to +3.3V (active high), 0 - a button to GND (active low)>
+}
+```
+
+### Request
+
+**POST** `/api/settings/hardware`
+
+```jsonc
+{ "input_mode": <Integer>, "button_level": <Integer> }
+```
+
+Both fields are optional.
+
+Applied after reboot.
 
 ### Response
 

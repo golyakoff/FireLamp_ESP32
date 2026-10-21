@@ -1,6 +1,5 @@
 #include "i2c_bus.h"
 
-#if CONFIG_FL_I2C_USED
 
 #ifdef CONFIG_FL_I2C_INTERNAL_PULLUP
     #define I2C_INTERNAL_PULLUP true
@@ -35,5 +34,3 @@ i2c_master_bus_handle_t i2c_bus_get()
 {
     return bus;
 }
-
-#endif /* CONFIG_FL_I2C_USED */

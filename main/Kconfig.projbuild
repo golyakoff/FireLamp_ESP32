@@ -200,16 +200,21 @@ menu "*** FireLamp configuration ***"
 		menu "Controls"
 
 			choice FL_INPUT_MODE_C
-				prompt "Control elements"
+				prompt "Default control elements"
 				default FL_INPUT_ONE_BUTTON
 				help
+					Only the default: the control elements are a setting that can be
+					changed from the app (Hardware settings). The pins of all buttons
+					are fixed below.
+
 					One button (or touch pad):
 					  lamp off: click - turn on, hold 10 s - reset all settings;
 					  lamp on: click - next effect, double click - turn off,
 					  triple click - previous effect, hold - change brightness
-					  (direction alternates with every hold).
+					  (direction alternates with every hold);
+					  5 clicks - BLE pairing window.
 					Four buttons (as in EvLamp):
-					  Main: click - next effect, hold - turn on/off;
+					  Main: click - next effect, hold - turn on/off, 5 clicks - pairing;
 					  Up/Down: brightness, hold to repeat;
 					  Reset: hold 3 s - reset all settings.
 
@@ -225,59 +230,51 @@ menu "*** FireLamp configuration ***"
 			endchoice
 
 			config FL_BUTTON_LEVEL
-				int "Button logic level for 'pressed' state"
-				depends on !FL_INPUT_TOUCH
+				int "Default logic level of Main/Up/Down buttons for 'pressed' state"
 				range 0 1
 				default 1
 				help
-					TTP223 touch module output is active high: use 1.
-
-			config FL_BUTTON_PULLUPDOWN
-				bool "Enable internal pullup/pulldown resistor"
-				depends on !FL_INPUT_TOUCH
-				default y
+					Only the default, it is a setting in the app (Hardware settings).
+					1 - TTP223 touch module (active high) or a button to +3.3V,
+					0 - a button to GND. The internal pull resistor is always enabled
+					towards the opposite level.
 
 			config FL_BUTTON_MAIN_GPIO
 				int "'Main' button GPIO pin"
-				depends on !FL_INPUT_TOUCH
 				range 0 39 if IDF_TARGET_ESP32
 				range 0 21 if IDF_TARGET_ESP32C3
 				default 4 if IDF_TARGET_ESP32C3
 				default 25
 
 			config FL_BUTTON_UP_GPIO
-				int "'Up' button GPIO pin"
-				depends on FL_INPUT_FOUR_BUTTONS
+				int "'Up' button GPIO pin (four buttons)"
 				range 0 39 if IDF_TARGET_ESP32
 				range 0 21 if IDF_TARGET_ESP32C3
 				default 6 if IDF_TARGET_ESP32C3
 				default 26
 
 			config FL_BUTTON_DOWN_GPIO
-				int "'Down' button GPIO pin"
-				depends on FL_INPUT_FOUR_BUTTONS
+				int "'Down' button GPIO pin (four buttons)"
 				range 0 39 if IDF_TARGET_ESP32
 				range 0 21 if IDF_TARGET_ESP32C3
 				default 7 if IDF_TARGET_ESP32C3
 				default 27
 
 			config FL_BUTTON_RESET_GPIO
-				int "'Reset' button GPIO pin"
-				depends on FL_INPUT_FOUR_BUTTONS
+				int "'Reset' button GPIO pin (four buttons)"
 				range 0 39 if IDF_TARGET_ESP32
 				range 0 21 if IDF_TARGET_ESP32C3
 				default 9 if IDF_TARGET_ESP32C3
 				default 0
 
 			config FL_BUTTON_RESET_LEVEL
-				int "Logic level of reset button for 'pressed' state"
-				depends on FL_INPUT_FOUR_BUTTONS
+				int "Logic level of reset button for 'pressed' state (BOOT button: 0)"
 				range 0 1
 				default 0
 
 			config FL_TOUCH_CHANNEL
 				int "Touch pad channel"
-				depends on FL_INPUT_TOUCH
+				depends on IDF_TARGET_ESP32
 				range 0 9
 				default 0
 				help
@@ -288,7 +285,7 @@ menu "*** FireLamp configuration ***"
 
 			config FL_TOUCH_THRESHOLD_PERCENT
 				int "Touch threshold, % of the untouched value"
-				depends on FL_INPUT_TOUCH
+				depends on IDF_TARGET_ESP32
 				range 1 50
 				default 3
 				help
@@ -299,8 +296,7 @@ menu "*** FireLamp configuration ***"
 
 		endmenu
 
-		menu "I2C bus"
-			depends on FL_I2C_USED
+		menu "I2C bus (DS3231 RTC, AT24Cxx EEPROM)"
 
 			config FL_I2C_SDA_GPIO
 				int "SDA GPIO"
@@ -323,26 +319,25 @@ menu "*** FireLamp configuration ***"
 
 			config FL_I2C_INTERNAL_PULLUP
 				bool "Enable internal pullups"
-				default n
+				default y
 				help
-					Internal pullups are weak (~45 kOhm), use external 4.7 kOhm
-					resistors (most modules already have them).
+					Keeps the bus lines defined when nothing is connected, so probing
+					an empty bus at boot is quick. Modules usually have their own
+					4.7 kOhm pullups as well.
+
+			config FL_EEPROM_ADDR
+				hex "EEPROM I2C address"
+				range 0x50 0x57
+				default 0x50
+				help
+					An AT24C32..AT24C512 EEPROM found at this address at boot keeps the
+					settings instead of the internal flash. 0x50..0x57 depending on
+					A0..A2 pins. Note: the AT24C32 on common DS3231 modules is usually
+					at 0x57.
 
 		endmenu
 
-		config FL_I2C_USED
-			bool
-
 		menu "Time"
-
-			config FL_RTC_DS3231
-				bool "DS3231 real time clock"
-				default n
-				select FL_I2C_USED
-				help
-					Keeps time while the lamp is unpowered. Optional: when it is
-					disabled or not found, time comes from the phone (BLE) or the
-					internet (SNTP), schedules start working once it is set.
 
 			config FL_TZ_DEFAULT
 				string "Default time zone (POSIX TZ string)"
@@ -354,50 +349,6 @@ menu "*** FireLamp configuration ***"
 
 		endmenu
 
-		menu "Settings storage"
-
-			choice FL_STORAGE_C
-				prompt "Settings storage"
-				default FL_STORAGE_NVS
-
-				config FL_STORAGE_NVS
-					bool "Internal flash (NVS)"
-
-				config FL_STORAGE_EEPROM
-					bool "External AT24Cxx EEPROM (I2C)"
-					select FL_I2C_USED
-					help
-						Settings survive full flash erase and module replacement.
-						If the EEPROM is not found at boot, the lamp falls back to NVS.
-			endchoice
-
-			choice FL_EEPROM_TYPE_C
-				prompt "EEPROM chip"
-				depends on FL_STORAGE_EEPROM
-				default FL_EEPROM_AT24C32
-
-				config FL_EEPROM_AT24C32
-					bool "AT24C32 (4 KB)"
-				config FL_EEPROM_AT24C64
-					bool "AT24C64 (8 KB)"
-				config FL_EEPROM_AT24C128
-					bool "AT24C128 (16 KB)"
-				config FL_EEPROM_AT24C256
-					bool "AT24C256 (32 KB)"
-				config FL_EEPROM_AT24C512
-					bool "AT24C512 (64 KB)"
-			endchoice
-
-			config FL_EEPROM_ADDR
-				hex "EEPROM I2C address"
-				depends on FL_STORAGE_EEPROM
-				range 0x50 0x57
-				default 0x50
-				help
-					0x50..0x57 depending on A0..A2 pins. Note: the AT24C32 on
-					common DS3231 modules is usually at 0x57.
-
-		endmenu
 
 
 	endmenu

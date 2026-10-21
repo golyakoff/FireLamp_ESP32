@@ -162,10 +162,11 @@ cat > "$NOTES" <<EOF
 | Chip | First install over USB | Update from the phone (BLE) |
 |---|---|---|
 ${TABLE_ROWS}
-These builds use the default hardware configuration: one 16x16 WS2812 matrix, one button,
-settings in the internal flash, no RTC (pins and options are listed in the README).
-A lamp with a different configuration needs its own build; the internet update never installs
-these files on it (see "Build variant" in the README).
+One build per chip fits every lamp with the reference pinout (see the README): the DS3231 RTC
+and the EEPROM are detected automatically, the control elements (one button, four buttons,
+touch pad), the buttons type and the matrix (size, type, orientation, wiring) are set from the app.
+A board with other pins needs its own build; the internet update never installs these files
+on it (see "Build variant" in the README).
 
 Already running FireLamp? Update from the app: over BLE, or "install update" when the lamp has
 WiFi. Settings are kept.

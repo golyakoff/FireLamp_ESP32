@@ -1,17 +1,10 @@
 #include "input.h"
 #include <esp_timer.h>
+#include <driver/gpio.h>
 #include "bus.h"
 
-#if CONFIG_FL_INPUT_TOUCH
+#if SOC_TOUCH_SENSOR_SUPPORTED
 #include <driver/touch_sens.h>
-#else
-#include <driver/gpio.h>
-
-#ifdef CONFIG_FL_BUTTON_PULLUPDOWN
-    #define BUTTON_PULL true
-#else
-    #define BUTTON_PULL false
-#endif
 #endif
 
 typedef struct
@@ -34,16 +27,19 @@ typedef struct
 
 static button_t buttons[INPUT_BTN_MAX] = { 0 };
 
-////////////////////////////////////////////////////////////////////////////////
-/// Sources
+static input_mode_t mode = INPUT_MODE_ONE_BUTTON;
+static size_t count = 1; // buttons in use
 
-#if CONFIG_FL_INPUT_TOUCH
+////////////////////////////////////////////////////////////////////////////////
+/// Touch pad
+
+#if SOC_TOUCH_SENSOR_SUPPORTED
 
 static touch_sensor_handle_t touch = NULL;
 static touch_channel_handle_t touch_chan = NULL;
 static uint32_t touch_baseline = 0;
 
-static esp_err_t source_init()
+static esp_err_t touch_init()
 {
     touch_sensor_sample_config_t sample_cfg[TOUCH_SAMPLE_CFG_NUM] = {
         TOUCH_SENSOR_V1_DEFAULT_SAMPLE_CONFIG(5.0, TOUCH_VOLT_LIM_L_0V5, TOUCH_VOLT_LIM_H_1V7)
@@ -78,7 +74,7 @@ static esp_err_t source_init()
     return ESP_OK;
 }
 
-static bool source_read(button_t *btn)
+static bool touch_read()
 {
     uint32_t val = 0;
     if (touch_channel_read_data(touch_chan, TOUCH_CHAN_DATA_TYPE_SMOOTH, &val) != ESP_OK)
@@ -94,31 +90,39 @@ static bool source_read(button_t *btn)
     return touched;
 }
 
-#else
+#endif
+
+////////////////////////////////////////////////////////////////////////////////
+/// Sources
 
 static esp_err_t source_init()
 {
-    for (size_t i = 0; i < INPUT_BTN_MAX; i++)
+#if SOC_TOUCH_SENSOR_SUPPORTED
+    if (mode == INPUT_MODE_TOUCH)
+        return touch_init();
+#endif
+    for (size_t i = 0; i < count; i++)
     {
         gpio_config_t cfg = {
             .pin_bit_mask = BIT64(buttons[i].gpio),
             .mode = GPIO_MODE_INPUT,
-            .pull_up_en = BUTTON_PULL && buttons[i].pressed_level == 0,
-            .pull_down_en = BUTTON_PULL && buttons[i].pressed_level == 1,
+            .pull_up_en = buttons[i].pressed_level == 0,
+            .pull_down_en = buttons[i].pressed_level == 1,
             .intr_type = GPIO_INTR_DISABLE,
         };
         CHECK_LOGE(gpio_config(&cfg), "Could not configure button GPIO %d", buttons[i].gpio);
     }
-
     return ESP_OK;
 }
 
 static bool source_read(button_t *btn)
 {
+#if SOC_TOUCH_SENSOR_SUPPORTED
+    if (mode == INPUT_MODE_TOUCH)
+        return touch_read();
+#endif
     return gpio_get_level(btn->gpio) == btn->pressed_level;
 }
-
-#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -208,32 +212,35 @@ static void input_task(void *arg)
     while (1)
     {
         int64_t now = esp_timer_get_time();
-        for (size_t i = 0; i < INPUT_BTN_MAX; i++)
+        for (size_t i = 0; i < count; i++)
             process(i, now);
         vTaskDelayUntil(&last_wake, pdMS_TO_TICKS(INPUT_POLL_MS));
     }
 }
 
-esp_err_t input_init()
+esp_err_t input_init(input_mode_t m, uint8_t level)
 {
-#if CONFIG_FL_INPUT_FOUR_BUTTONS
+    mode = m;
+#if !SOC_TOUCH_SENSOR_SUPPORTED
+    if (mode == INPUT_MODE_TOUCH)
+        mode = INPUT_MODE_ONE_BUTTON;
+#endif
+    count = mode == INPUT_MODE_FOUR_BUTTONS ? INPUT_BTN_MAX : 1;
+
+    // Main waits for multi-click (pairing gesture and one button gestures),
+    // other buttons react immediately as in EvLamp
     buttons[INPUT_BTN_MAIN].gpio = CONFIG_FL_BUTTON_MAIN_GPIO;
-    buttons[INPUT_BTN_MAIN].pressed_level = CONFIG_FL_BUTTON_LEVEL;
+    buttons[INPUT_BTN_MAIN].pressed_level = level ? 1 : 0;
+    buttons[INPUT_BTN_MAIN].multi_click = true;
     buttons[INPUT_BTN_RESET].gpio = CONFIG_FL_BUTTON_RESET_GPIO;
     buttons[INPUT_BTN_RESET].pressed_level = CONFIG_FL_BUTTON_RESET_LEVEL;
     buttons[INPUT_BTN_UP].gpio = CONFIG_FL_BUTTON_UP_GPIO;
-    buttons[INPUT_BTN_UP].pressed_level = CONFIG_FL_BUTTON_LEVEL;
+    buttons[INPUT_BTN_UP].pressed_level = level ? 1 : 0;
     buttons[INPUT_BTN_DOWN].gpio = CONFIG_FL_BUTTON_DOWN_GPIO;
-    buttons[INPUT_BTN_DOWN].pressed_level = CONFIG_FL_BUTTON_LEVEL;
-    // Main waits for multi-click (pairing gesture), other buttons react immediately
-    buttons[INPUT_BTN_MAIN].multi_click = true;
-#elif CONFIG_FL_INPUT_ONE_BUTTON
-    buttons[INPUT_BTN_MAIN].gpio = CONFIG_FL_BUTTON_MAIN_GPIO;
-    buttons[INPUT_BTN_MAIN].pressed_level = CONFIG_FL_BUTTON_LEVEL;
-    buttons[INPUT_BTN_MAIN].multi_click = true;
-#else
-    buttons[INPUT_BTN_MAIN].multi_click = true;
-#endif
+    buttons[INPUT_BTN_DOWN].pressed_level = level ? 1 : 0;
+
+    ESP_LOGI(TAG, "Controls: %s, buttons active %s", mode == INPUT_MODE_FOUR_BUTTONS ? "four buttons"
+            : mode == INPUT_MODE_TOUCH ? "touch pad" : "one button", level ? "high" : "low");
 
     CHECK(source_init());
 
@@ -244,4 +251,9 @@ esp_err_t input_init()
     }
 
     return ESP_OK;
+}
+
+input_mode_t input_get_mode()
+{
+    return mode;
 }

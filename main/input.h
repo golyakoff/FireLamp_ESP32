@@ -3,13 +3,20 @@
 
 #include "common.h"
 
+// Control elements; codes are used in the BLE protocol and the HTTP API
+typedef enum {
+    INPUT_MODE_ONE_BUTTON = 0, // one button or TTP223 touch module
+    INPUT_MODE_FOUR_BUTTONS,   // Main, Reset, Up, Down
+    INPUT_MODE_TOUCH,          // ESP32 built-in touch pad
+
+    INPUT_MODE_MAX
+} input_mode_t;
+
 enum {
     INPUT_BTN_MAIN = 0,
-#if CONFIG_FL_INPUT_FOUR_BUTTONS
     INPUT_BTN_RESET,
     INPUT_BTN_UP,
     INPUT_BTN_DOWN,
-#endif
 
     INPUT_BTN_MAX
 };
@@ -25,13 +32,23 @@ typedef struct
 } input_event_t;
 
 /**
- * Start polling buttons (or touch pad). Generates bus events:
+ * Start polling buttons (or touch pad), pins are fixed in menuconfig. Generates bus events:
  *  - EVENT_BUTTON_CLICKED: after release, once the multi-click timeout has passed
  *    (immediately for buttons without multi-click)
  *  - EVENT_BUTTON_HOLD_START: the button has been held for INPUT_HOLD_MS
  *  - EVENT_BUTTON_HOLD: every INPUT_HOLD_REPEAT_MS while held
  *  - EVENT_BUTTON_HOLD_END: released after holding
  */
-esp_err_t input_init();
+/**
+ * @param mode Control elements
+ * @param button_level Pressed level of Main/Up/Down buttons: 1 - active high (TTP223),
+ *                     0 - active low (button to GND); the pull resistor goes to the opposite level
+ */
+esp_err_t input_init(input_mode_t mode, uint8_t button_level);
+
+/**
+ * Control elements in use (the touch pad falls back to one button on chips without it)
+ */
+input_mode_t input_get_mode();
 
 #endif /* EVLAMP_INPUT_H_ */

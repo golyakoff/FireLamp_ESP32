@@ -2,6 +2,7 @@
 #define EVLAMP_SETTINGS_H_
 
 #include "common.h"
+#include "input.h"
 
 typedef enum {
     MATRIX_ROTATION_0 = 0,
@@ -24,6 +25,18 @@ typedef enum {
 
     LED_COLOR_ORDER_MAX
 } led_color_order_t;
+
+typedef enum {
+    MATRIX_WIRING_SERPENTINE = 0, // rows go back and forth
+    MATRIX_WIRING_PROGRESSIVE,    // every row starts at the same side
+
+    MATRIX_WIRING_MAX
+} matrix_wiring_t;
+
+/**
+ * Control elements supported by this chip
+ */
+bool input_mode_supported(uint8_t mode);
 
 #define BLE_NAME_MAX_LEN 20
 
@@ -73,7 +86,13 @@ typedef struct
 
     // Append new fields only at the end of the structure: a shorter record stored by an older
     // firmware is loaded and the missing fields get default values (see sys_settings_load()).
-    // When appending, set SYS_SETTINGS_MIN_SIZE in settings.c to the offset of the first new field.
+    // SYS_SETTINGS_MIN_SIZE in settings.c is the size of the first version 2 record.
+
+    struct {
+        uint8_t input_mode;     // input_mode_t, applied after reboot
+        uint8_t wiring;         // matrix_wiring_t, applied after reboot
+        uint8_t button_level;   // pressed level of Main/Up/Down: 1 - TTP223 or button to +3.3V, 0 - button to GND
+    } hw;
 } system_settings_t;
 
 extern system_settings_t sys_settings;

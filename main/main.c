@@ -31,9 +31,7 @@ static void open_pairing_window()
     surface_flash(rgb_from_values(0, 0, 96), PAIRING_BLINK_MS);
 }
 
-#if CONFIG_FL_INPUT_FOUR_BUTTONS
-
-static void process_button_event(event_t *e)
+static void process_four_buttons(event_t *e)
 {
     const input_event_t *ie = (const input_event_t *)e->data;
     bool playing = surface_is_playing();
@@ -81,9 +79,8 @@ static void process_button_event(event_t *e)
     }
 }
 
-#else // one button or touch pad
-
-static void process_button_event(event_t *e)
+// one button or touch pad
+static void process_one_button(event_t *e)
 {
     const input_event_t *ie = (const input_event_t *)e->data;
     bool playing = surface_is_playing();
@@ -138,7 +135,13 @@ static void process_button_event(event_t *e)
     }
 }
 
-#endif
+static void process_button_event(event_t *e)
+{
+    if (input_get_mode() == INPUT_MODE_FOUR_BUTTONS)
+        process_four_buttons(e);
+    else
+        process_one_button(e);
+}
 
 static void process_schedule_event(event_t *e)
 {
@@ -257,7 +260,7 @@ void app_main()
     ESP_ERROR_CHECK(demo_init());
 
     // Initialize input
-    ESP_ERROR_CHECK(input_init());
+    ESP_ERROR_CHECK(input_init(sys_settings.hw.input_mode, sys_settings.hw.button_level));
 
     // Start scheduler
     ESP_ERROR_CHECK(scheduler_init());

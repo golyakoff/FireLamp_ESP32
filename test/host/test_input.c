@@ -30,7 +30,7 @@ static const char *name(event_type_t t)
 
 int main(void)
 {
-    input_init();
+    input_init(INPUT_MODE_ONE_BUTTON, 1);
 
     // single click
     reset(); press(100); run_ms(500);

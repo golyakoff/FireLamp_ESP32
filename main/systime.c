@@ -36,7 +36,6 @@ esp_err_t systime_init()
 {
     apply_tz();
 
-#if CONFIG_FL_RTC_DS3231
     rtc_present = ds3231_init() == ESP_OK;
     if (rtc_present)
     {
@@ -54,8 +53,7 @@ esp_err_t systime_init()
             ESP_LOGW(TAG, "Could not read RTC: %d (%s)", res, esp_err_to_name(res));
     }
     else
-        ESP_LOGW(TAG, "RTC is not available, waiting for time sync");
-#endif
+        ESP_LOGI(TAG, "No RTC, waiting for time sync");
 
     return ESP_OK;
 }
@@ -94,14 +92,12 @@ esp_err_t systime_set(time_t utc, time_source_t src)
     set_system_time(utc);
     source = src;
 
-#if CONFIG_FL_RTC_DS3231
     if (rtc_present && src != TIME_SOURCE_RTC)
     {
         esp_err_t res = ds3231_set_time(utc);
         if (res != ESP_OK)
             ESP_LOGW(TAG, "Could not set RTC time: %d (%s)", res, esp_err_to_name(res));
     }
-#endif
 
     log_time("Time set");
 
@@ -127,7 +123,6 @@ const char *systime_get_tz()
 
 esp_err_t systime_sync_from_rtc()
 {
-#if CONFIG_FL_RTC_DS3231
     if (!rtc_present)
         return ESP_ERR_NOT_SUPPORTED;
 
@@ -144,7 +139,4 @@ esp_err_t systime_sync_from_rtc()
         source = TIME_SOURCE_RTC;
 
     return ESP_OK;
-#else
-    return ESP_ERR_NOT_SUPPORTED;
-#endif
 }

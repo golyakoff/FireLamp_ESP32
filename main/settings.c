@@ -34,10 +34,24 @@ static const system_settings_t sys_defaults = {
         .gateway  = CONFIG_FL_WIFI_GATEWAY,
         .dns      = CONFIG_FL_WIFI_DNS,
     },
+    .hw = {
+        .input_mode = DEFAULT_INPUT_MODE,
+        .wiring     = MATRIX_WIRING_SERPENTINE,
+        .button_level = CONFIG_FL_BUTTON_LEVEL,
+    },
 };
 
-// The size of the first version 2 record. Records of later firmware versions may be longer.
-#define SYS_SETTINGS_MIN_SIZE sizeof(system_settings_t)
+// The size of the first version 2 record (stage 6). Later firmware versions append fields.
+#define SYS_SETTINGS_MIN_SIZE offsetof(system_settings_t, hw)
+
+bool input_mode_supported(uint8_t mode)
+{
+#if SOC_TOUCH_SENSOR_SUPPORTED
+    return mode < INPUT_MODE_MAX;
+#else
+    return mode < INPUT_MODE_MAX && mode != INPUT_MODE_TOUCH;
+#endif
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 /// Migration from version 1 (firmware stages 4-5): EvLamp WiFi AP/STA settings
@@ -208,6 +222,12 @@ esp_err_t sys_settings_load()
         // defaults for the fields missing in a record of an older firmware
         memcpy(&sys_settings, &sys_defaults, sizeof(system_settings_t));
         memcpy(&sys_settings, buf, size);
+        if (!input_mode_supported(sys_settings.hw.input_mode))
+            sys_settings.hw.input_mode = DEFAULT_INPUT_MODE;
+        if (sys_settings.hw.wiring >= MATRIX_WIRING_MAX)
+            sys_settings.hw.wiring = MATRIX_WIRING_SERPENTINE;
+        if (sys_settings.hw.button_level > 1)
+            sys_settings.hw.button_level = CONFIG_FL_BUTTON_LEVEL;
         if (size == sizeof(system_settings_t))
             return ESP_OK;
         ESP_LOGW(TAG, "System settings upgraded from %d to %d bytes", size, sizeof(system_settings_t));

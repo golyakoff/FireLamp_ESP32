@@ -4,9 +4,7 @@
 #include <esp_system.h>
 #include <nvs_flash.h>
 #include <nvs.h>
-#if CONFIG_FL_STORAGE_EEPROM
 #include "eeprom.h"
-#endif
 
 typedef struct __attribute__((packed))
 {
@@ -125,8 +123,6 @@ static esp_err_t nvs_save(storage_record_t rec, const void *data, size_t size)
 
 ////////////////////////////////////////////////////////////////////////////////
 /// EEPROM backend
-
-#if CONFIG_FL_STORAGE_EEPROM
 
 typedef struct
 {
@@ -247,7 +243,27 @@ static esp_err_t eeprom_save(storage_record_t rec, const void *data, size_t size
     return ESP_OK;
 }
 
-#endif
+
+
+// An EEPROM added to a lamp that kept its settings in NVS: take them over,
+// record by record, so nothing is lost. Records already in the EEPROM win.
+static void copy_nvs_to_eeprom()
+{
+    uint8_t *buf = malloc(STORAGE_SYSTEM_MAX_SIZE);
+    if (!buf)
+        return;
+    for (size_t r = 0; r < STORAGE_RECORD_MAX; r++)
+    {
+        if (eeprom_load(r, NULL, NULL) != ESP_ERR_NOT_FOUND)
+            continue;
+        size_t size = records[r].max_size;
+        if (size > STORAGE_SYSTEM_MAX_SIZE || nvs_load(r, buf, &size) != ESP_OK)
+            continue;
+        if (eeprom_save(r, buf, size) == ESP_OK)
+            ESP_LOGW(TAG, "Settings '%s' moved from NVS to EEPROM", records[r].name);
+    }
+    free(buf);
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 /// Deferred saving
@@ -286,11 +302,10 @@ esp_err_t storage_init()
     if (!lock)
         return ESP_ERR_NO_MEM;
 
-#if CONFIG_FL_STORAGE_EEPROM
+    // an EEPROM on the I2C bus takes over the settings
     use_eeprom = eeprom_init() == ESP_OK && eeprom_layout_init() == ESP_OK;
-    if (!use_eeprom)
-        ESP_LOGW(TAG, "EEPROM is not available, using NVS for settings");
-#endif
+    if (use_eeprom)
+        copy_nvs_to_eeprom();
     ESP_LOGI(TAG, "Settings storage: %s", storage_backend_name());
 
     if (xTaskCreate(saver_task_fn, "storage", STORAGE_TASK_STACK_SIZE, NULL, STORAGE_TASK_PRIORITY, &saver_task) != pdPASS)
@@ -313,11 +328,7 @@ esp_err_t storage_load(storage_record_t rec, void *data, size_t *size)
     CHECK_ARG(rec < STORAGE_RECORD_MAX && data && size);
 
     xSemaphoreTake(lock, portMAX_DELAY);
-#if CONFIG_FL_STORAGE_EEPROM
     esp_err_t res = use_eeprom ? eeprom_load(rec, data, size) : nvs_load(rec, data, size);
-#else
-    esp_err_t res = nvs_load(rec, data, size);
-#endif
     xSemaphoreGive(lock);
 
     if (res != ESP_OK)
@@ -331,11 +342,7 @@ esp_err_t storage_save(storage_record_t rec, const void *data, size_t size)
     CHECK_ARG(rec < STORAGE_RECORD_MAX && data && size <= records[rec].max_size);
 
     xSemaphoreTake(lock, portMAX_DELAY);
-#if CONFIG_FL_STORAGE_EEPROM
     esp_err_t res = use_eeprom ? eeprom_save(rec, data, size) : nvs_save(rec, data, size);
-#else
-    esp_err_t res = nvs_save(rec, data, size);
-#endif
     xSemaphoreGive(lock);
 
     if (res != ESP_OK)

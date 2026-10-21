@@ -1,26 +1,13 @@
 #include "eeprom.h"
 
-#if CONFIG_FL_STORAGE_EEPROM
 #include <string.h>
 #include <esp_timer.h>
 #include "i2c_bus.h"
 
-#if CONFIG_FL_EEPROM_AT24C512
-    #define EEPROM_SIZE (64 * 1024)
-    #define EEPROM_PAGE 128
-#elif CONFIG_FL_EEPROM_AT24C256
-    #define EEPROM_SIZE (32 * 1024)
-    #define EEPROM_PAGE 64
-#elif CONFIG_FL_EEPROM_AT24C128
-    #define EEPROM_SIZE (16 * 1024)
-    #define EEPROM_PAGE 64
-#elif CONFIG_FL_EEPROM_AT24C64
-    #define EEPROM_SIZE (8 * 1024)
-    #define EEPROM_PAGE 32
-#else
-    #define EEPROM_SIZE (4 * 1024)
-    #define EEPROM_PAGE 32
-#endif
+// Used the same way for any AT24C32..AT24C512: the settings take less than 4 KB, and 32 byte
+// page writes are valid for all of them (bigger chips just have bigger pages)
+#define EEPROM_SIZE (4 * 1024)
+#define EEPROM_PAGE 32
 
 #define I2C_TIMEOUT_MS     50
 #define WRITE_CYCLE_MAX_US 20000 // datasheet: 5..10 ms
@@ -49,7 +36,7 @@ esp_err_t eeprom_init()
 
     if (i2c_master_probe(i2c_bus_get(), CONFIG_FL_EEPROM_ADDR, I2C_TIMEOUT_MS) != ESP_OK)
     {
-        ESP_LOGW(TAG, "EEPROM not found at address 0x%02x", CONFIG_FL_EEPROM_ADDR);
+        ESP_LOGI(TAG, "No EEPROM at address 0x%02x", CONFIG_FL_EEPROM_ADDR);
         return ESP_ERR_NOT_FOUND;
     }
 
@@ -61,8 +48,7 @@ esp_err_t eeprom_init()
     CHECK_LOGE(i2c_master_bus_add_device(i2c_bus_get(), &cfg, &dev),
             "Could not add EEPROM device");
 
-    ESP_LOGI(TAG, "EEPROM found at 0x%02x, %d bytes, page %d bytes",
-            CONFIG_FL_EEPROM_ADDR, EEPROM_SIZE, EEPROM_PAGE);
+    ESP_LOGI(TAG, "EEPROM found at 0x%02x", CONFIG_FL_EEPROM_ADDR);
 
     return ESP_OK;
 }
@@ -112,5 +98,3 @@ esp_err_t eeprom_write(size_t addr, const void *data, size_t len)
 
     return ESP_OK;
 }
-
-#endif /* CONFIG_FL_STORAGE_EEPROM */

@@ -11,6 +11,7 @@
 #include "demo.h"
 #include "wifi.h"
 #include "updater.h"
+#include "input.h"
 
 static esp_err_t respond_json(httpd_req_t *req, cJSON *resp)
 {
@@ -278,6 +279,7 @@ static esp_err_t get_settings_leds(httpd_req_t *req)
     cJSON_AddNumberToObject(res, "rotation", sys_settings.leds.rotation);
     cJSON_AddBoolToObject(res, "mirror", sys_settings.leds.mirror);
     cJSON_AddNumberToObject(res, "current_limit", sys_settings.leds.current_limit);
+    cJSON_AddNumberToObject(res, "wiring", sys_settings.hw.wiring);
 
     return respond_json(req, res);
 }
@@ -349,6 +351,14 @@ static esp_err_t post_settings_leds(httpd_req_t *req)
         err = ESP_ERR_INVALID_ARG;
         goto exit;
     }
+    cJSON *wiring_item = cJSON_GetObjectItem(json, "wiring");
+    if (wiring_item && (!cJSON_IsNumber(wiring_item) || cJSON_GetNumberValue(wiring_item) < 0
+            || cJSON_GetNumberValue(wiring_item) >= MATRIX_WIRING_MAX))
+    {
+        msg = "Field `wiring` is invalid";
+        err = ESP_ERR_INVALID_ARG;
+        goto exit;
+    }
 
     size_t width = (size_t)cJSON_GetNumberValue(width_item);
     size_t height = (size_t)cJSON_GetNumberValue(height_item);
@@ -408,6 +418,8 @@ static esp_err_t post_settings_leds(httpd_req_t *req)
     sys_settings.leds.rotation = rotation;
     if (mirror_item)
         sys_settings.leds.mirror = cJSON_IsTrue(mirror_item);
+    if (wiring_item)
+        sys_settings.hw.wiring = (uint8_t)cJSON_GetNumberValue(wiring_item);
     sys_settings.leds.current_limit = limit;
 
     err = sys_settings_save();
@@ -1107,6 +1119,61 @@ static const httpd_uri_t route_post_update = {
 
 ////////////////////////////////////////////////////////////////////////////////
 
+static esp_err_t get_settings_hardware(httpd_req_t *req)
+{
+    cJSON *res = cJSON_CreateObject();
+    cJSON_AddNumberToObject(res, "input_mode", sys_settings.hw.input_mode);
+    cJSON_AddNumberToObject(res, "input_mode_active", input_get_mode());
+    cJSON *supported = cJSON_CreateArray();
+    for (uint8_t m = 0; m < INPUT_MODE_MAX; m++)
+        if (input_mode_supported(m))
+            cJSON_AddItemToArray(supported, cJSON_CreateNumber(m));
+    cJSON_AddItemToObject(res, "input_modes", supported);
+    cJSON_AddNumberToObject(res, "button_level", sys_settings.hw.button_level);
+    return respond_json(req, res);
+}
+
+static const httpd_uri_t route_get_settings_hardware = {
+    .uri = "/api/settings/hardware",
+    .method = HTTP_GET,
+    .handler = get_settings_hardware
+};
+
+static esp_err_t post_settings_hardware(httpd_req_t *req)
+{
+    const char *msg = NULL;
+    cJSON *json = NULL;
+
+    esp_err_t err = parse_post_json(req, &msg, &json);
+    if (err != ESP_OK)
+        goto exit;
+
+    uint8_t mode = sys_settings.hw.input_mode, level = sys_settings.hw.button_level;
+    if (!number_parse(json, "input_mode", &mode) || !input_mode_supported(mode)
+            || !number_parse(json, "button_level", &level) || level > 1)
+    {
+        err = ESP_ERR_INVALID_ARG;
+        msg = "Invalid or unsupported `input_mode` or `button_level`";
+        goto exit;
+    }
+    sys_settings.hw.input_mode = mode;
+    sys_settings.hw.button_level = level;
+    err = sys_settings_save();
+    msg = err != ESP_OK ? "Error saving system settings" : "Settings saved, reboot to apply";
+
+exit:
+    if (json) cJSON_Delete(json);
+    return respond_api(req, err, msg);
+}
+
+static const httpd_uri_t route_post_settings_hardware = {
+    .uri = "/api/settings/hardware",
+    .method = HTTP_POST,
+    .handler = post_settings_hardware
+};
+
+////////////////////////////////////////////////////////////////////////////////
+
 esp_err_t api_init(httpd_handle_t server)
 {
     CHECK(httpd_register_uri_handler(server, &route_get_info));
@@ -1130,6 +1197,8 @@ esp_err_t api_init(httpd_handle_t server)
     CHECK(httpd_register_uri_handler(server, &route_post_demo));
     CHECK(httpd_register_uri_handler(server, &route_get_update));
     CHECK(httpd_register_uri_handler(server, &route_post_update));
+    CHECK(httpd_register_uri_handler(server, &route_get_settings_hardware));
+    CHECK(httpd_register_uri_handler(server, &route_post_settings_hardware));
 
     return ESP_OK;
 }

@@ -78,6 +78,7 @@ Service: `F1A70000-B390-49C3-8770-A1DFC323D1AF`
 | 0x0010 | [OTA control](#0x0010-ota-control)               | W, N    |
 | 0x0011 | [OTA data](#0x0011-ota-data)                     | W       |
 | 0x0012 | [Update info](#0x0012-update-info)               | R, N    |
+| 0x0013 | [Hardware settings](#0x0013-hardware-settings)   | R, W    |
 
 R - read, W - write with response, N - notify (the app enables it via the CCCD descriptor).
 
@@ -96,7 +97,7 @@ Read only, constant for the connection.
 | 5      | u8     | Matrix width |
 | 6      | u8     | Matrix height |
 | 7      | u8     | Number of effects |
-| 8      | u8     | Controls: `0` - one button, `1` - four buttons, `2` - touch pad |
+| 8      | u8     | Controls in use: `0` - one button, `1` - four buttons, `2` - touch pad (see [Hardware settings](#0x0013-hardware-settings)) |
 | 9      | str8   | Firmware version, e.g. `0.5.0` |
 | ...    | str8   | Build date and time, e.g. `Oct 21 2026 12:00:00` |
 | ...    | str8   | Build variant, `default` for official releases (hardware configuration, see README) |
@@ -105,8 +106,8 @@ Features bitmask:
 
 | Bit | Meaning |
 |-----|---------|
-| 0   | DS3231 RTC present (found at boot) |
-| 1   | Settings are stored in external EEPROM (otherwise internal flash) |
+| 0   | DS3231 RTC found on the I2C bus at boot |
+| 1   | AT24Cxx EEPROM found on the I2C bus at boot, the settings are stored in it (otherwise in the internal flash) |
 | 2   | WiFi supported |
 | 3   | Internet firmware update supported |
 
@@ -276,7 +277,7 @@ Behaviour:
 
 ## 0x0008 LED settings
 
-8 bytes. Applied after reboot (send [Command](#0x000c-command) `0x01`).
+9 bytes. Applied after reboot (send [Command](#0x000c-command) `0x01`).
 
 | Offset | Type | Field |
 |--------|------|-------|
@@ -287,6 +288,11 @@ Behaviour:
 | 4      | u8   | Rotation: `0` - none, `1` - 90°, `2` - 180°, `3` - 270° |
 | 5      | u8   | Mirror horizontally: `0` / `1` |
 | 6      | u16  | Current limit for all LEDs, mA |
+| 8      | u8   | Wiring: `0` - serpentine (rows go back and forth), `1` - progressive (every row starts at the same side) |
+
+The first LED is at the bottom left corner, the strip goes along the rows. Other layouts are
+described with rotation and mirror: e.g. a matrix wired by columns is rotated by 90°, a matrix
+starting at the bottom right corner is mirrored.
 
 ---
 
@@ -455,3 +461,26 @@ every `period` hours; always on: after connecting and then every `period` hours)
 
 The current version is in [Device info](#0x0001-device-info). The app can offer the update when
 the state is `3` and install it with command `0x07`.
+
+---
+
+## 0x0013 Hardware settings
+
+The pins are fixed in the firmware (see the README for the reference pinout of each chip);
+the control elements connected to them are a setting. Applied after reboot (send
+[Command](#0x000c-command) `0x01`).
+
+**Read**: 3 bytes
+
+| Offset | Type | Field |
+|--------|------|-------|
+| 0      | u8   | Controls: `0` - one button (or TTP223 module), `1` - four buttons (Main, Up, Down, Reset), `2` - ESP32 touch pad |
+| 1      | u8   | Supported controls bitmask: bit N - controls `N` are supported by this chip (no touch pad on ESP32-C3) |
+| 2      | u8   | Buttons type (Main, Up, Down): `1` - active high: TTP223 touch module or a button to +3.3 V, `0` - active low: a button to GND. The internal pull resistor is enabled towards the opposite level |
+
+**Write**: 2 bytes - controls and buttons type (offsets 0 and 2 of the read value). An
+unsupported value is rejected (`0x13`). The Reset button (four buttons mode) is always active
+low: it is the BOOT button in the reference pinout.
+
+The DS3231 RTC and the AT24Cxx EEPROM need no settings: they are detected on the I2C bus at
+boot, see [Device info](#0x0001-device-info) features.

@@ -4,11 +4,12 @@
 #include "common.h"
 
 /**
- * AT24C32..AT24C512 I2C EEPROM driver (16 bit memory addressing)
+ * AT24C32..AT24C512 I2C EEPROM driver (16 bit memory addressing).
+ * Only the first 4 KB are used, so any of these chips works the same way.
  */
 
 /**
- * Probe and initialize EEPROM chip configured in menuconfig.
+ * Probe and initialize EEPROM at CONFIG_FL_EEPROM_ADDR.
  * Returns ESP_ERR_NOT_FOUND if the chip does not respond.
  */
 esp_err_t eeprom_init();

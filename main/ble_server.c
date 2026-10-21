@@ -21,6 +21,7 @@
 #include "bus.h"
 #include "wifi.h"
 #include "updater.h"
+#include "input.h"
 
 #define PROTOCOL_VERSION 1
 
@@ -46,6 +47,7 @@ enum {
     CHR_OTA_CONTROL   = 0x0010,
     CHR_OTA_DATA      = 0x0011,
     CHR_UPDATE_INFO   = 0x0012,
+    CHR_HARDWARE      = 0x0013,
 };
 
 enum {
@@ -266,13 +268,7 @@ static int chr_device_info(struct ble_gatt_access_ctxt *ctxt)
     uint8_t chip = 0;
 #endif
 
-#if CONFIG_FL_INPUT_FOUR_BUTTONS
-    uint8_t controls = 1;
-#elif CONFIG_FL_INPUT_TOUCH
-    uint8_t controls = 2;
-#else
-    uint8_t controls = 0;
-#endif
+    uint8_t controls = input_get_mode();
 
     char date[40];
     snprintf(date, sizeof(date), "%s %s", app->date, app->time);
@@ -531,18 +527,20 @@ static int chr_led_settings(struct ble_gatt_access_ctxt *ctxt, reader_t *r)
         put_u8(&b, sys_settings.leds.rotation);
         put_u8(&b, sys_settings.leds.mirror);
         put_u16(&b, sys_settings.leds.current_limit > 0xffff ? 0xffff : sys_settings.leds.current_limit);
+        put_u8(&b, sys_settings.hw.wiring);
         return reply(ctxt, &b);
     }
 
     uint8_t width = get_u8(r), height = get_u8(r), type = get_u8(r), order = get_u8(r);
     uint8_t rotation = get_u8(r), mirror = get_u8(r);
     uint16_t limit = get_u16(r);
+    uint8_t wiring = get_u8(r);
     if (r->error || r->pos != r->len)
         return BLE_ATT_ERR_INVALID_ATTR_VALUE_LEN;
 
     if (width < MIN_MATRIX_SIZE || width > MAX_MATRIX_SIZE || height < MIN_MATRIX_SIZE || height > MAX_MATRIX_SIZE
             || width * height > MAX_MATRIX_LEDS || type >= LED_TYPE_MAX || order >= LED_COLOR_ORDER_MAX
-            || rotation > MATRIX_ROTATION_270 || mirror > 1
+            || rotation > MATRIX_ROTATION_270 || mirror > 1 || wiring >= MATRIX_WIRING_MAX
             || limit < width * height * CONFIG_FL_SINGLE_LED_CURRENT_MA / 50)
         return BLE_ATT_ERR_VALUE_NOT_ALLOWED;
 
@@ -553,6 +551,34 @@ static int chr_led_settings(struct ble_gatt_access_ctxt *ctxt, reader_t *r)
     sys_settings.leds.rotation = rotation;
     sys_settings.leds.mirror = mirror;
     sys_settings.leds.current_limit = limit;
+    sys_settings.hw.wiring = wiring;
+    return sys_settings_save() == ESP_OK ? 0 : BLE_ATT_ERR_UNLIKELY;
+}
+
+static int chr_hardware(struct ble_gatt_access_ctxt *ctxt, reader_t *r)
+{
+    if (ctxt->op == BLE_GATT_ACCESS_OP_READ_CHR)
+    {
+        uint8_t supported = 0;
+        for (uint8_t m = 0; m < INPUT_MODE_MAX; m++)
+            if (input_mode_supported(m))
+                supported |= BIT(m);
+        buf_t b = { 0 };
+        put_u8(&b, sys_settings.hw.input_mode);
+        put_u8(&b, supported);
+        put_u8(&b, sys_settings.hw.button_level);
+        return reply(ctxt, &b);
+    }
+
+    uint8_t mode = get_u8(r);
+    uint8_t level = get_u8(r);
+    if (r->error || r->pos != r->len)
+        return BLE_ATT_ERR_INVALID_ATTR_VALUE_LEN;
+    if (!input_mode_supported(mode) || level > 1)
+        return BLE_ATT_ERR_VALUE_NOT_ALLOWED;
+    sys_settings.hw.input_mode = mode;
+    sys_settings.hw.button_level = level;
+    ESP_LOGI(TAG, "Controls set to %d, buttons active %s, applied after reboot", mode, level ? "high" : "low");
     return sys_settings_save() == ESP_OK ? 0 : BLE_ATT_ERR_UNLIKELY;
 }
 
@@ -837,6 +863,7 @@ static int access_cb(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt
         case CHR_OTA_CONTROL:   return chr_ota_control(ctxt, &r);
         case CHR_OTA_DATA:      return chr_ota_data(ctxt, &r);
         case CHR_UPDATE_INFO:   return chr_update_info(ctxt);
+        case CHR_HARDWARE:      return chr_hardware(ctxt, &r);
         default:                return BLE_ATT_ERR_UNLIKELY;
     }
 }
@@ -873,6 +900,7 @@ static const struct ble_gatt_svc_def services[] = {
             CHR_H(CHR_OTA_CONTROL, W | N, &h_ota_control),
             CHR(CHR_OTA_DATA, W),
             CHR_H(CHR_UPDATE_INFO, R | N, &h_update),
+            CHR(CHR_HARDWARE, R | W),
             { 0 }
         },
     },
