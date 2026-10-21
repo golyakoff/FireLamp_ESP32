@@ -57,6 +57,21 @@ esp_err_t ota_end();
 
 void ota_abort();
 
+/**
+ * Abort with an error reported to the status callback (internet download failed etc)
+ */
+void ota_fail(ota_error_t err);
+
+/**
+ * Wait until the partition is erased and data can be written (after ota_begin())
+ */
+esp_err_t ota_wait_ready(uint32_t timeout_ms);
+
+/**
+ * Report a state to the status callback (internet update: checking, no update)
+ */
+void ota_report(ota_state_t state, ota_error_t err);
+
 bool ota_in_progress();
 
 #endif /* EVLAMP_OTA_H_ */

@@ -77,6 +77,7 @@ Service: `F1A70000-B390-49C3-8770-A1DFC323D1AF`
 | 0x000E | [Demo effects](#0x000e-demo-effects)             | W       |
 | 0x0010 | [OTA control](#0x0010-ota-control)               | W, N    |
 | 0x0011 | [OTA data](#0x0011-ota-data)                     | W       |
+| 0x0012 | [Update info](#0x0012-update-info)               | R, N    |
 
 R - read, W - write with response, N - notify (the app enables it via the CCCD descriptor).
 
@@ -344,7 +345,8 @@ Write; the first byte is the command:
 | 0x03 | Factory reset: all settings to defaults, forget bonded phones, reboot |
 | 0x04 | Next effect (in the demo mode: switch now, the demo continues) |
 | 0x05 | Previous effect (same) |
-| 0x06 | Check for a firmware update on the internet now and install it (needs WiFi, stage 7); progress is reported via [OTA control](#0x0010-ota-control) notifications |
+| 0x06 | Check for a firmware update on the internet now; the result comes in [Update info](#0x0012-update-info). Needs WiFi configured (otherwise `0x13`); in the periodic WiFi mode the lamp connects right away |
+| 0x07 | Install the firmware update from the internet, if a newer version is released; progress comes in [OTA control](#0x0010-ota-control) notifications. Needs WiFi configured (otherwise `0x13`) |
 
 ---
 
@@ -391,9 +393,11 @@ not start properly the bootloader rolls back to the previous one:
 1. **From the phone over BLE** (works without WiFi): the app downloads the release `.bin` for the
    lamp's chip and flash size (see [Device info](#0x0001-device-info)) and uploads it as
    described below.
-2. **From the internet over WiFi** (stage 7): the lamp downloads the firmware itself, on schedule
-   in the periodic WiFi mode or on [Command](#0x000c-command) `0x06`. The status notifications
-   below are sent in this case too, so the app shows the progress the same way.
+2. **From the internet over WiFi**: the lamp checks the latest GitHub release on every WiFi
+   session (see [Update info](#0x0012-update-info)) but installs it **only** on
+   [Command](#0x000c-command) `0x07`. The status notifications below are sent in this case too
+   (states `4` checking, `5` no update, error `8` download failed), so the app shows the progress
+   the same way.
 
 **Write** (BLE upload only):
 
@@ -430,3 +434,22 @@ supervision timeout (lessons from Matrix Clock OTA).
 
 Write: next chunk of the firmware file, up to `MTU - 3` bytes. Only accepted between OTA start
 and end.
+
+---
+
+## 0x0012 Update info
+
+Result of the last internet update check. The lamp checks on every WiFi session (periodic mode:
+every `period` hours; always on: after connecting and then every `period` hours) and on
+[Command](#0x000c-command) `0x06`.
+
+**Read / notify**:
+
+| Type | Field |
+|------|-------|
+| u8   | State: `0` - not checked since boot, `1` - checking, `2` - up to date, `3` - update available, `4` - check failed |
+| str8 | Latest released version (empty if never checked) |
+| u32  | Time of the last successful check, UTC seconds, `0` if unknown |
+
+The current version is in [Device info](#0x0001-device-info). The app can offer the update when
+the state is `3` and install it with command `0x07`.

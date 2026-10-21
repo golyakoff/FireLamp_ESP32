@@ -17,6 +17,7 @@ idf_component_register(
 		demo.c
 		ota.c
 		ble_server.c
+		updater.c
 		wifi.c
 		bus.c
 		effect.c

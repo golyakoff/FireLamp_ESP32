@@ -45,6 +45,12 @@ void wifi_pause(bool pause);
 void wifi_get_status(wifi_status_t *status);
 
 /**
+ * Something needs the internet (update check / install): in the periodic mode start a session
+ * now, in the always-on mode run it as soon as connected
+ */
+void wifi_request_session();
+
+/**
  * Callback called when the WiFi state changes. Called from different tasks, must be fast.
  */
 void wifi_set_status_cb(wifi_status_cb_t cb);

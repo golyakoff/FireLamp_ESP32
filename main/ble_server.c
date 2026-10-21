@@ -20,6 +20,7 @@
 #include "ota.h"
 #include "bus.h"
 #include "wifi.h"
+#include "updater.h"
 
 #define PROTOCOL_VERSION 1
 
@@ -44,6 +45,7 @@ enum {
     CHR_DEMO_EFFECTS  = 0x000e,
     CHR_OTA_CONTROL   = 0x0010,
     CHR_OTA_DATA      = 0x0011,
+    CHR_UPDATE_INFO   = 0x0012,
 };
 
 enum {
@@ -61,6 +63,7 @@ enum {
     CMD_NEXT_EFFECT   = 0x04,
     CMD_PREV_EFFECT   = 0x05,
     CMD_CHECK_UPDATE  = 0x06,
+    CMD_INSTALL_UPDATE = 0x07,
 };
 
 enum {
@@ -73,10 +76,10 @@ enum {
 
 static const ble_uuid128_t service_uuid = FL_UUID(0x0000);
 
-static uint16_t h_state, h_param, h_wifi_status, h_ota_control;
+static uint16_t h_state, h_param, h_wifi_status, h_ota_control, h_update;
 static uint16_t conn = BLE_HS_CONN_HANDLE_NONE;
 static bool authorized = false;
-static bool sub_state, sub_param, sub_ota, sub_wifi;
+static bool sub_state, sub_param, sub_ota, sub_wifi, sub_update;
 static uint8_t own_addr_type;
 static char device_name[BLE_NAME_MAX_LEN + 1];
 
@@ -251,7 +254,7 @@ static int chr_device_info(struct ble_gatt_access_ctxt *ctxt)
     esp_flash_get_size(NULL, &flash);
     const esp_app_desc_t *app = esp_app_get_description();
 
-    uint16_t features = BIT(2); // WiFi
+    uint16_t features = BIT(2) | BIT(3); // WiFi, internet update
     if (systime_has_rtc())
         features |= BIT(0);
     if (!strcmp(storage_backend_name(), "EEPROM"))
@@ -657,8 +660,10 @@ static int chr_command(struct ble_gatt_access_ctxt *ctxt, reader_t *r)
             demo_next_effect(cmd == CMD_NEXT_EFFECT ? 1 : -1);
             return 0;
         case CMD_CHECK_UPDATE:
-            // internet update is implemented in stage 7
-            return BLE_ATT_ERR_REQ_NOT_SUPPORTED;
+            // WiFi must be configured
+            return updater_request_check() == ESP_OK ? 0 : BLE_ATT_ERR_VALUE_NOT_ALLOWED;
+        case CMD_INSTALL_UPDATE:
+            return updater_request_install() == ESP_OK ? 0 : BLE_ATT_ERR_VALUE_NOT_ALLOWED;
         default:
             return BLE_ATT_ERR_VALUE_NOT_ALLOWED;
     }
@@ -696,6 +701,31 @@ static int chr_demo_effects(struct ble_gatt_access_ctxt *ctxt, reader_t *r)
     if (e < 0 || include > 1)
         return BLE_ATT_ERR_VALUE_NOT_ALLOWED;
     return demo_set_included(e, include) == ESP_OK ? 0 : BLE_ATT_ERR_VALUE_NOT_ALLOWED;
+}
+
+static void build_update_info(buf_t *b)
+{
+    update_info_t i;
+    updater_get_info(&i);
+    put_u8(b, i.state);
+    put_str8(b, i.version);
+    put_u32(b, i.checked_at);
+}
+
+static int chr_update_info(struct ble_gatt_access_ctxt *ctxt)
+{
+    if (ctxt->op != BLE_GATT_ACCESS_OP_READ_CHR)
+        return BLE_ATT_ERR_REQ_NOT_SUPPORTED;
+    buf_t b = { 0 };
+    build_update_info(&b);
+    return reply(ctxt, &b);
+}
+
+static void on_update_info()
+{
+    buf_t b = { 0 };
+    build_update_info(&b);
+    notify(h_update, sub_update, &b);
 }
 
 static void request_ota_conn_params()
@@ -805,6 +835,7 @@ static int access_cb(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt
         case CHR_DEMO_EFFECTS:  return chr_demo_effects(ctxt, &r);
         case CHR_OTA_CONTROL:   return chr_ota_control(ctxt, &r);
         case CHR_OTA_DATA:      return chr_ota_data(ctxt, &r);
+        case CHR_UPDATE_INFO:   return chr_update_info(ctxt);
         default:                return BLE_ATT_ERR_UNLIKELY;
     }
 }
@@ -840,6 +871,7 @@ static const struct ble_gatt_svc_def services[] = {
             CHR(CHR_DEMO_EFFECTS, W),
             CHR_H(CHR_OTA_CONTROL, W | N, &h_ota_control),
             CHR(CHR_OTA_DATA, W),
+            CHR_H(CHR_UPDATE_INFO, R | N, &h_update),
             { 0 }
         },
     },
@@ -934,7 +966,7 @@ static int gap_event(struct ble_gap_event *event, void *arg)
             }
             conn = event->connect.conn_handle;
             authorized = false;
-            sub_state = sub_param = sub_ota = sub_wifi = false;
+            sub_state = sub_param = sub_ota = sub_wifi = sub_update = false;
             effect_cursor = 0;
             ESP_LOGI(TAG, "BLE: connected");
             esp_timer_start_once(auth_timer, BLE_AUTH_TIMEOUT_S * 1000000ULL);
@@ -982,6 +1014,8 @@ static int gap_event(struct ble_gap_event *event, void *arg)
                 sub_ota = event->subscribe.cur_notify;
             else if (event->subscribe.attr_handle == h_wifi_status)
                 sub_wifi = event->subscribe.cur_notify;
+            else if (event->subscribe.attr_handle == h_update)
+                sub_update = event->subscribe.cur_notify;
             break;
 
         case BLE_GAP_EVENT_MTU:
@@ -1116,6 +1150,7 @@ esp_err_t ble_server_init()
     surface_set_state_cb(on_state_changed);
     effect_set_param_cb(on_param_changed);
     wifi_set_status_cb(on_wifi_status);
+    updater_set_cb(on_update_info);
 
     // new phones can pair right after power on
     ble_server_open_pairing_window();

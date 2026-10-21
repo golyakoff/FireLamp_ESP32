@@ -83,6 +83,14 @@ menu "*** FireLamp configuration ***"
 			string "SNTP server"
 			default "pool.ntp.org"
 
+		config FL_OTA_MANIFEST_URL
+			string "Firmware update manifest URL"
+			default "https://github.com/golyakoff/FireLamp_ESP32/releases/latest/download/manifest.json"
+			help
+				JSON manifest of the latest release, see main/updater.h.
+				The lamp checks it on every WiFi session; updates are installed
+				on request from the app only.
+
 	endmenu
 
 	menu "Hardware configuration"

@@ -8,10 +8,12 @@
 #include "settings.h"
 #include "systime.h"
 #include "bus.h"
+#include "updater.h"
 
 #define BIT_GOT_IP       BIT(0)
 #define BIT_DISCONNECTED BIT(1)
 #define BIT_REQUEST      BIT(2) // settings changed, pause/resume
+#define BIT_JOB          BIT(3) // updater needs the internet
 
 static esp_netif_t *iface = NULL;
 static EventGroupHandle_t events = NULL;
@@ -186,6 +188,7 @@ static EventBits_t wait(EventBits_t bits, uint32_t timeout_ms)
 static bool run_always_on()
 {
     uint32_t backoff = WIFI_RECONNECT_MIN_MS;
+    int64_t next_check = 0; // update check right after the first connection
     esp_err_t res = start();
     if (res != ESP_OK)
     {
@@ -196,7 +199,23 @@ static bool run_always_on()
     }
     while (current_mode() == WIFI_CLIENT_ALWAYS_ON)
     {
-        EventBits_t b = wait(BIT_GOT_IP | BIT_DISCONNECTED | BIT_REQUEST, UINT32_MAX);
+        uint32_t timeout = UINT32_MAX;
+        if (ip_addr)
+        {
+            int64_t now = esp_timer_get_time();
+            bool due = now >= next_check;
+            if (due || updater_pending())
+            {
+                xEventGroupClearBits(events, BIT_JOB);
+                updater_run(due);
+                if (due)
+                    next_check = esp_timer_get_time() + sys_settings.wifi.period * 3600000000LL;
+                continue;
+            }
+            timeout = (next_check - now) / 1000 + 1;
+        }
+
+        EventBits_t b = wait(BIT_GOT_IP | BIT_DISCONNECTED | BIT_REQUEST | BIT_JOB, timeout);
         if (b & BIT_REQUEST)
             break;
         if (b & BIT_GOT_IP)
@@ -247,7 +266,8 @@ static bool run_session()
         sntp_start();
         if (esp_netif_sntp_sync_wait(pdMS_TO_TICKS(WIFI_SNTP_WAIT_MS)) != ESP_OK)
             ESP_LOGW(TAG, "WiFi: time sync timeout");
-        // TODO stage 7: check for firmware update here
+        xEventGroupClearBits(events, BIT_JOB);
+        updater_run(true);
     }
 
     wifi_state_t result = state;
@@ -284,8 +304,11 @@ static void wifi_task(void *arg)
                     ESP_LOGI(TAG, "WiFi: next session in %llu min", delay_ms / 60000);
                     break;
                 }
-                // a settings change starts a new session soon
-                if (wait(BIT_REQUEST, (next_session - now) / 1000 + 1) & BIT_REQUEST)
+                // a settings change starts a new session soon, an update request right away
+                EventBits_t b = wait(BIT_REQUEST | BIT_JOB, (next_session - now) / 1000 + 1);
+                if (b & BIT_JOB)
+                    next_session = 0;
+                else if (b & BIT_REQUEST)
                     next_session = esp_timer_get_time() + WIFI_FIRST_SESSION_DELAY_MS * 1000LL;
                 break;
             }
@@ -335,6 +358,12 @@ void wifi_apply_settings()
 {
     if (events)
         xEventGroupSetBits(events, BIT_REQUEST);
+}
+
+void wifi_request_session()
+{
+    if (events)
+        xEventGroupSetBits(events, BIT_JOB);
 }
 
 void wifi_pause(bool pause)

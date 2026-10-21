@@ -156,7 +156,7 @@
 /// WiFi
 
 #define WIFI_HOSTNAME "firelamp"
-#define WIFI_CLIENT_TASK_STACK_SIZE 4096
+#define WIFI_CLIENT_TASK_STACK_SIZE 8192 // TLS handshake and JSON parsing of the update check
 #define WIFI_CLIENT_TASK_PRIORITY 3
 #define WIFI_RECONNECT_MIN_MS 2000
 #define WIFI_RECONNECT_MAX_MS 60000
@@ -164,6 +164,14 @@
 #define WIFI_SESSION_CONNECT_MS 30000     // periodic mode: connection timeout
 #define WIFI_SESSION_RETRY_MS (10 * 60 * 1000) // periodic mode: retry after a failed session
 #define WIFI_SNTP_WAIT_MS 15000
+
+////////////////////////////////////////////////////////////////////////////////
+/// Internet update
+
+#define UPDATER_MAX_REDIRECTS 5
+#define UPDATER_HTTP_TIMEOUT_MS 15000
+#define UPDATER_HTTP_BUFFER_SIZE 4096   // GitHub redirect headers are long
+#define UPDATER_ERASE_TIMEOUT_MS 30000
 
 ////////////////////////////////////////////////////////////////////////////////
 /// Webserver

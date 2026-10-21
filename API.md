@@ -27,6 +27,7 @@ the main control channel is BLE, see [docs/BLE_PROTOCOL.md](docs/BLE_PROTOCOL.md
 - [Set schedule](#set-schedule)
 - [Get demo mode settings](#get-demo-mode-settings)
 - [Set demo mode settings](#set-demo-mode-settings)
+- [Firmware update](#firmware-update)
 
 ---
 
@@ -626,6 +627,48 @@ Every effect for 2 minutes plus up to 1 minute, without GIF images:
 ```json
 { "duration": 120, "random": 60, "include": { "gif": false } }
 ```
+
+### Response
+
+```jsonc
+{
+  "result": <Integer, Result code. 0 - no errors>,
+  "name": <String, Name of the result code, "ESP_OK" for result code 0>,
+  "message": <String, Error message if result code != 0>
+}
+```
+
+---
+
+## Firmware update
+
+The lamp checks the latest GitHub release on every WiFi session; it installs an update only on
+request.
+
+### Request
+
+**GET** `/api/update`
+
+### Response
+
+```jsonc
+{
+  "current": <String, current firmware version>,
+  "state": <String, "unknown" | "checking" | "up_to_date" | "available" | "check_failed">,
+  "available": <String, latest released version, empty if never checked>,
+  "checked_at": <Integer, time of the last successful check, UTC seconds>
+}
+```
+
+### Request
+
+**POST** `/api/update`
+
+```jsonc
+{ "action": <String, "check" - check now, "install" - install the update if a newer version is released> }
+```
+
+The lamp reboots after a successful installation.
 
 ### Response
 

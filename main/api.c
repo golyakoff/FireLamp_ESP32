@@ -10,6 +10,7 @@
 #include "scheduler.h"
 #include "demo.h"
 #include "wifi.h"
+#include "updater.h"
 
 static esp_err_t respond_json(httpd_req_t *req, cJSON *resp)
 {
@@ -1047,6 +1048,65 @@ static const httpd_uri_t route_post_demo = {
 
 ////////////////////////////////////////////////////////////////////////////////
 
+static esp_err_t get_update(httpd_req_t *req)
+{
+    update_info_t i;
+    updater_get_info(&i);
+    const char *states[] = { "unknown", "checking", "up_to_date", "available", "check_failed" };
+
+    cJSON *res = cJSON_CreateObject();
+    cJSON_AddStringToObject(res, "current", esp_app_get_description()->version);
+    cJSON_AddStringToObject(res, "state", i.state < 5 ? states[i.state] : "unknown");
+    cJSON_AddStringToObject(res, "available", i.version);
+    cJSON_AddNumberToObject(res, "checked_at", i.checked_at);
+    return respond_json(req, res);
+}
+
+static const httpd_uri_t route_get_update = {
+    .uri = "/api/update",
+    .method = HTTP_GET,
+    .handler = get_update
+};
+
+static esp_err_t post_update(httpd_req_t *req)
+{
+    const char *msg = NULL;
+    cJSON *json = NULL;
+
+    esp_err_t err = parse_post_json(req, &msg, &json);
+    if (err != ESP_OK)
+        goto exit;
+
+    const char *action = cJSON_GetStringValue(cJSON_GetObjectItem(json, "action"));
+    if (action && !strcmp(action, "check"))
+    {
+        err = updater_request_check();
+        msg = err == ESP_OK ? "Checking for update" : "WiFi is not configured";
+    }
+    else if (action && !strcmp(action, "install"))
+    {
+        err = updater_request_install();
+        msg = err == ESP_OK ? "Installing update if available, the lamp reboots after it" : "Update is not possible now";
+    }
+    else
+    {
+        err = ESP_ERR_INVALID_ARG;
+        msg = "`action` must be \"check\" or \"install\"";
+    }
+
+exit:
+    if (json) cJSON_Delete(json);
+    return respond_api(req, err, msg);
+}
+
+static const httpd_uri_t route_post_update = {
+    .uri = "/api/update",
+    .method = HTTP_POST,
+    .handler = post_update
+};
+
+////////////////////////////////////////////////////////////////////////////////
+
 esp_err_t api_init(httpd_handle_t server)
 {
     CHECK(httpd_register_uri_handler(server, &route_get_info));
@@ -1068,6 +1128,8 @@ esp_err_t api_init(httpd_handle_t server)
     CHECK(httpd_register_uri_handler(server, &route_post_schedule));
     CHECK(httpd_register_uri_handler(server, &route_get_demo));
     CHECK(httpd_register_uri_handler(server, &route_post_demo));
+    CHECK(httpd_register_uri_handler(server, &route_get_update));
+    CHECK(httpd_register_uri_handler(server, &route_post_update));
 
     return ESP_OK;
 }

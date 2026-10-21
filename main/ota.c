@@ -20,6 +20,9 @@ typedef struct
 } item_t;
 
 static QueueHandle_t queue = NULL;
+static EventGroupHandle_t flags = NULL;
+static SemaphoreHandle_t send_lock = NULL;
+#define FLAG_READY BIT(0)
 static ota_status_cb_t status_cb = NULL;
 static volatile bool started = false; // between ota_begin() and the end of the update
 
@@ -73,6 +76,7 @@ static void process(const item_t *item)
                 return;
             }
             writing = true;
+            xEventGroupSetBits(flags, FLAG_READY);
             mbedtls_sha256_init(&sha);
             mbedtls_sha256_starts(&sha, 0);
             ESP_LOGI(TAG, "OTA: receiving");
@@ -150,15 +154,19 @@ static void process(const item_t *item)
         }
 
         case ITEM_ABORT:
+        {
+            // data[0]: error code to report, OTA_ERR_NONE for a plain abort
+            ota_error_t err = item->len ? item->data[0] : OTA_ERR_NONE;
             if (writing)
                 esp_ota_abort(handle);
             if (writing || started)
                 mbedtls_sha256_free(&sha);
             writing = false;
             started = false;
-            ESP_LOGW(TAG, "OTA aborted");
-            status(OTA_STATE_IDLE, OTA_ERR_NONE);
+            ESP_LOGW(TAG, "OTA aborted, error %d", err);
+            status(err ? OTA_STATE_ERROR : OTA_STATE_IDLE, err);
             break;
+        }
     }
 }
 
@@ -179,19 +187,25 @@ static void writer_task(void *arg)
 
 static esp_err_t send(item_type_t type, const void *data, size_t len)
 {
-    static item_t item; // callers are serialized by the BLE host task
+    // BLE host task and the WiFi task (internet update) may call this
+    static item_t item;
+    xSemaphoreTake(send_lock, portMAX_DELAY);
     item.type = type;
     item.len = len;
     if (len)
         memcpy(item.data, data, len);
-    return xQueueSend(queue, &item, pdMS_TO_TICKS(OTA_QUEUE_TIMEOUT_MS)) == pdTRUE ? ESP_OK : ESP_ERR_TIMEOUT;
+    esp_err_t res = xQueueSend(queue, &item, pdMS_TO_TICKS(OTA_QUEUE_TIMEOUT_MS)) == pdTRUE ? ESP_OK : ESP_ERR_TIMEOUT;
+    xSemaphoreGive(send_lock);
+    return res;
 }
 
 esp_err_t ota_init(ota_status_cb_t cb)
 {
     status_cb = cb;
     queue = xQueueCreate(OTA_QUEUE_LEN, sizeof(item_t));
-    if (!queue)
+    flags = xEventGroupCreate();
+    send_lock = xSemaphoreCreateMutex();
+    if (!queue || !flags || !send_lock)
         return ESP_ERR_NO_MEM;
     if (xTaskCreate(writer_task, "ota", OTA_TASK_STACK_SIZE, NULL, OTA_TASK_PRIORITY, NULL) != pdPASS)
         return ESP_ERR_NO_MEM;
@@ -209,6 +223,7 @@ esp_err_t ota_begin(uint32_t size, const uint8_t *sha256)
     CHECK_ARG(size);
 
     started = true;
+    xEventGroupClearBits(flags, FLAG_READY);
     total = size;
     received = reported = 0;
     check_sha = sha256 != NULL;
@@ -238,6 +253,29 @@ void ota_abort()
 {
     if (started)
         send(ITEM_ABORT, NULL, 0);
+}
+
+void ota_fail(ota_error_t err)
+{
+    if (!started)
+    {
+        ota_report(OTA_STATE_ERROR, err);
+        return;
+    }
+    uint8_t e = err;
+    send(ITEM_ABORT, &e, 1);
+}
+
+esp_err_t ota_wait_ready(uint32_t timeout_ms)
+{
+    EventBits_t b = xEventGroupWaitBits(flags, FLAG_READY, pdFALSE, pdTRUE, pdMS_TO_TICKS(timeout_ms));
+    return b & FLAG_READY ? ESP_OK : ESP_ERR_TIMEOUT;
+}
+
+void ota_report(ota_state_t state, ota_error_t err)
+{
+    if (status_cb)
+        status_cb(state, err, received, total);
 }
 
 bool ota_in_progress()
