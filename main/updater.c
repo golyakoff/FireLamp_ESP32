@@ -5,6 +5,7 @@
 #include <esp_http_client.h>
 #include <esp_crt_bundle.h>
 #include <esp_app_desc.h>
+#include <esp_heap_caps.h>
 #include <cJSON.h>
 #include "ota.h"
 #include "settings.h"
@@ -60,7 +61,17 @@ static esp_err_t http_open(esp_http_client_handle_t client, int64_t *content_len
 {
     for (int i = 0; i < UPDATER_MAX_REDIRECTS; i++)
     {
-        CHECK(esp_http_client_open(client, 0));
+        // TLS needs a few tens of KB of heap, partly in one block
+        ESP_LOGI(TAG, "Updater: free heap %u, largest block %u, minimum ever %u",
+                heap_caps_get_free_size(MALLOC_CAP_8BIT),
+                heap_caps_get_largest_free_block(MALLOC_CAP_8BIT),
+                heap_caps_get_minimum_free_size(MALLOC_CAP_8BIT));
+        esp_err_t res = esp_http_client_open(client, 0);
+        if (res != ESP_OK)
+        {
+            ESP_LOGW(TAG, "Updater: could not connect: %d (%s)", res, esp_err_to_name(res));
+            return res;
+        }
         *content_length = esp_http_client_fetch_headers(client);
         int status = esp_http_client_get_status_code(client);
         if (status == 200)
@@ -262,6 +273,18 @@ esp_err_t updater_request_install()
 bool updater_pending()
 {
     return check_requested || install_requested;
+}
+
+void updater_fail_pending()
+{
+    bool install = install_requested;
+    if (!check_requested && !install)
+        return;
+    check_requested = install_requested = false;
+    ESP_LOGW(TAG, "Updater: no WiFi connection");
+    set_state(UPDATE_CHECK_FAILED);
+    if (install)
+        ota_report(OTA_STATE_ERROR, OTA_ERR_DOWNLOAD);
 }
 
 void updater_run(bool regular_check)

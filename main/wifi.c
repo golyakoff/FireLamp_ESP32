@@ -270,6 +270,9 @@ static bool run_session()
         updater_run(true);
     }
 
+    if (!ok)
+        updater_fail_pending();
+
     wifi_state_t result = state;
     stop();
     // keep the error visible until the next session

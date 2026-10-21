@@ -70,4 +70,10 @@ void updater_run(bool regular_check);
  */
 bool updater_pending();
 
+/**
+ * Called by the WiFi task when it could not connect: fails the pending requests,
+ * so the app does not wait for an answer that never comes
+ */
+void updater_fail_pending();
+
 #endif /* EVLAMP_UPDATER_H_ */
