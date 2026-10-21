@@ -1,3 +1,7 @@
+Release 0.1.6
+
+- [x] BLE: "Service Changed" is indicated to bonded phones after every boot, so a phone sees characteristics added by a firmware update (Android caches the attribute table of a bonded lamp)
+
 Release 0.1.5
 
 - [x] BLE: WiFi network scan for choosing the SSID in the app (command `0x08`, characteristic `0x0014` WiFi networks, read page by page), works in any WiFi mode

@@ -1212,6 +1212,11 @@ static void on_sync()
     ble_hs_util_ensure_addr(0);
     ble_hs_id_infer_auto(0, &own_addr_type);
     load_bonded();
+    // Bonded phones cache the attribute table, and a firmware update may add characteristics.
+    // NimBLE keeps this "Service Changed" for every bonded phone and indicates it on the next
+    // connection, so the phone discovers the services again. Done on every boot: cheap, and
+    // works for any update path (BLE, internet, USB).
+    ble_svc_gatt_changed(0x0001, 0xffff);
     start_advertising();
     ESP_LOGI(TAG, "BLE: advertising as '%s'", device_name);
 }
