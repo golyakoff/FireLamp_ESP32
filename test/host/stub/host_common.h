@@ -51,7 +51,7 @@ static inline BaseType_t xTaskCreate(void *f, const char *n, int s, void *a, int
 #define xTaskGetTickCount() 0
 #define vTaskDelayUntil(a, b) (void)0
 #define vTaskDelay(x) (void)0
-// project config
+// project config: keep in sync with main/config.h
 #define SETTINGS_MAGIC 0xf1a30001
 #define STORAGE_SAVE_DELAY_MS 3000
 #define STORAGE_TASK_STACK_SIZE 4096
@@ -61,7 +61,7 @@ static inline BaseType_t xTaskCreate(void *f, const char *n, int s, void *a, int
 #define INPUT_POLL_MS 10
 #define INPUT_DEBOUNCE_SAMPLES 3
 #define INPUT_CLICK_TIMEOUT_MS 350
-#define INPUT_MAX_CLICKS 3
+#define INPUT_MAX_CLICKS 5
 #define INPUT_HOLD_MS 600
 #define INPUT_HOLD_REPEAT_MS 50
 #define BUS_EVENT_DATA_SIZE 64

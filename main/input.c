@@ -225,7 +225,8 @@ esp_err_t input_init()
     buttons[INPUT_BTN_UP].pressed_level = CONFIG_FL_BUTTON_LEVEL;
     buttons[INPUT_BTN_DOWN].gpio = CONFIG_FL_BUTTON_DOWN_GPIO;
     buttons[INPUT_BTN_DOWN].pressed_level = CONFIG_FL_BUTTON_LEVEL;
-    // every button reacts immediately, as in EvLamp
+    // Main waits for multi-click (pairing gesture), other buttons react immediately
+    buttons[INPUT_BTN_MAIN].multi_click = true;
 #elif CONFIG_FL_INPUT_ONE_BUTTON
     buttons[INPUT_BTN_MAIN].gpio = CONFIG_FL_BUTTON_MAIN_GPIO;
     buttons[INPUT_BTN_MAIN].pressed_level = CONFIG_FL_BUTTON_LEVEL;

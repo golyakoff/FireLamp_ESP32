@@ -17,6 +17,11 @@ static uint8_t max_brightness = 255;
 static size_t num_leds, fb_width, fb_height;
 static framebuffer_t framebuffer;
 static EventGroupHandle_t state;
+// Serializes control from different tasks: main loop, BLE, HTTP API
+static SemaphoreHandle_t lock = NULL;
+static surface_state_cb_t state_cb = NULL;
+static volatile int64_t flash_until = 0;
+static rgb_t flash_color;
 
 static const led_model_t led_models[LED_TYPE_MAX] = {
     [LED_TYPE_WS2812] = LED_MODEL_WS2812,
@@ -103,11 +108,19 @@ static esp_err_t render_frame(framebuffer_t *fb, void *arg)
         strip_busy = false;
     }
 
-    uint8_t brightness = scale8_video(vol_settings.brightness, max_brightness);
-    for (size_t i = 0; i < num_leds; i++)
+    if (esp_timer_get_time() < flash_until)
     {
-        rgb_t c = rgb_scale_video(fb->data[i], brightness);
-        CHECK(led_strip_set_pixel(strip, led_map[i], c.r, c.g, c.b));
+        for (size_t i = 0; i < num_leds; i++)
+            CHECK(led_strip_set_pixel(strip, i, flash_color.r, flash_color.g, flash_color.b));
+    }
+    else
+    {
+        uint8_t brightness = scale8_video(vol_settings.brightness, max_brightness);
+        for (size_t i = 0; i < num_leds; i++)
+        {
+            rgb_t c = rgb_scale_video(fb->data[i], brightness);
+            CHECK(led_strip_set_pixel(strip, led_map[i], c.r, c.g, c.b));
+        }
     }
 
     CHECK(led_strip_refresh_async(strip));
@@ -202,6 +215,10 @@ static void surface_task(void *arg)
 
 esp_err_t surface_init()
 {
+    lock = xSemaphoreCreateRecursiveMutex();
+    if (!lock)
+        return ESP_ERR_NO_MEM;
+
     state = xEventGroupCreate();
     if (!state)
     {
@@ -246,7 +263,7 @@ esp_err_t surface_init()
     xEventGroupWaitBits(state, BIT_READY, pdFALSE, pdTRUE, portMAX_DELAY);
 
     if (vol_settings.effect >= effects_count)
-        vol_settings.effect = CONFIG_FL_EFFECT_DEFAULT;
+        vol_settings.effect = 0;
     return surface_set_effect(vol_settings.effect);
 }
 
@@ -255,7 +272,7 @@ bool surface_is_playing()
     return xEventGroupGetBits(state) & BIT_PLAYING;
 }
 
-esp_err_t surface_prepare_effect(size_t effect)
+static esp_err_t surface_prepare_effect_unlocked(size_t effect)
 {
     if (!effects[effect].prepare)
         return ESP_OK;
@@ -267,7 +284,7 @@ esp_err_t surface_prepare_effect(size_t effect)
     return ESP_OK;
 }
 
-esp_err_t surface_pause()
+static esp_err_t surface_pause_unlocked()
 {
     if (!surface_is_playing())
         return ESP_OK;
@@ -280,7 +297,7 @@ esp_err_t surface_pause()
     return ESP_OK;
 }
 
-esp_err_t surface_stop()
+static esp_err_t surface_stop_unlocked()
 {
     CHECK(surface_pause());
 
@@ -291,38 +308,47 @@ esp_err_t surface_stop()
     CHECK(fb_render(&framebuffer, NULL));
 
     ESP_LOGI(TAG, "Animation stopped");
+    surface_state_changed();
 
     return ESP_OK;
 }
 
-esp_err_t surface_play()
+static esp_err_t surface_play_unlocked()
 {
     if (surface_is_playing())
         return ESP_OK;
 
     xEventGroupSetBits(state, BIT_PLAYING);
     ESP_LOGI(TAG, "Animation started");
+    surface_state_changed();
 
     return ESP_OK;
 }
 
-esp_err_t surface_set_effect(size_t num)
+static esp_err_t surface_set_effect_ex_unlocked(size_t num, bool save)
 {
     CHECK_ARG(num < effects_count);
 
     CHECK(surface_stop());
 
     vol_settings.effect = num;
-    vol_settings_save();
+    if (save)
+        vol_settings_save();
 
     if (effects[num].prepare)
         CHECK(effects[num].prepare(&framebuffer));
 
     CHECK(surface_play());
 
-    ESP_LOGI(TAG, "Switched to effect '%s' (%d)", effects[num].name, num);
+    ESP_LOGI(TAG, "Switched to effect %s '%s' (%d)", effects[num].code, effects[num].name, num);
+    surface_state_changed();
 
     return ESP_OK;
+}
+
+esp_err_t surface_set_effect(size_t num)
+{
+    return surface_set_effect_ex(num, true);
 }
 
 esp_err_t surface_next_effect()
@@ -341,12 +367,18 @@ esp_err_t surface_prev_effect()
 
 esp_err_t surface_set_brightness_ex(uint8_t val, bool save)
 {
+    if (val < BRIGHTNESS_MIN)
+        val = BRIGHTNESS_MIN;
+    if (val == vol_settings.brightness)
+        return ESP_OK;
+
     // no pause needed: the renderer reads brightness on every frame
     vol_settings.brightness = val;
     if (save)
         vol_settings_save();
 
     ESP_LOGD(TAG, "Brightness set to %d", val);
+    surface_state_changed();
 
     return ESP_OK;
 }
@@ -361,14 +393,14 @@ esp_err_t surface_increment_brightness(int16_t val)
     int16_t b = (int16_t)(vol_settings.brightness + val);
     if (b < BRIGHTNESS_MIN) b = BRIGHTNESS_MIN;
     else if (b > 255) b = 255;
-    if (b == vol_settings.brightness)
-        return ESP_OK;
     return surface_set_brightness(b);
 }
 
-esp_err_t surface_set_fps(uint8_t val)
+static esp_err_t surface_set_fps_unlocked(uint8_t val)
 {
     CHECK_ARG(val > 0 && val <= FPS_MAX);
+    if (val == vol_settings.fps)
+        return ESP_OK;
 
     CHECK(surface_pause());
 
@@ -378,6 +410,92 @@ esp_err_t surface_set_fps(uint8_t val)
     ESP_LOGI(TAG, "FPS set to %d", val);
 
     CHECK(surface_play());
+    surface_state_changed();
 
     return ESP_OK;
+}
+
+void surface_set_state_cb(surface_state_cb_t cb)
+{
+    state_cb = cb;
+}
+
+void surface_state_changed()
+{
+    if (state_cb)
+        state_cb();
+}
+
+esp_err_t surface_flash(rgb_t color, uint32_t ms)
+{
+    flash_color = color;
+    if (surface_is_playing())
+    {
+        // the renderer shows the color instead of frames until the time is over
+        flash_until = esp_timer_get_time() + ms * 1000LL;
+        return ESP_OK;
+    }
+
+    // lamp is off: the surface task sleeps, drive the strip directly
+    if (strip_busy)
+    {
+        CHECK(led_strip_refresh_async_done(strip));
+        strip_busy = false;
+    }
+    for (size_t i = 0; i < num_leds; i++)
+        CHECK(led_strip_set_pixel(strip, i, color.r, color.g, color.b));
+    CHECK(led_strip_refresh(strip));
+    vTaskDelay(pdMS_TO_TICKS(ms));
+    return led_strip_clear(strip);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+/// Locked public wrappers
+
+esp_err_t surface_prepare_effect(size_t effect)
+{
+    xSemaphoreTakeRecursive(lock, portMAX_DELAY);
+    esp_err_t res = surface_prepare_effect_unlocked(effect);
+    xSemaphoreGiveRecursive(lock);
+    return res;
+}
+
+esp_err_t surface_pause()
+{
+    xSemaphoreTakeRecursive(lock, portMAX_DELAY);
+    esp_err_t res = surface_pause_unlocked();
+    xSemaphoreGiveRecursive(lock);
+    return res;
+}
+
+esp_err_t surface_stop()
+{
+    xSemaphoreTakeRecursive(lock, portMAX_DELAY);
+    esp_err_t res = surface_stop_unlocked();
+    xSemaphoreGiveRecursive(lock);
+    return res;
+}
+
+esp_err_t surface_play()
+{
+    xSemaphoreTakeRecursive(lock, portMAX_DELAY);
+    esp_err_t res = surface_play_unlocked();
+    xSemaphoreGiveRecursive(lock);
+    return res;
+}
+
+esp_err_t surface_set_effect_ex(size_t num, bool save)
+{
+    xSemaphoreTakeRecursive(lock, portMAX_DELAY);
+    esp_err_t res = surface_set_effect_ex_unlocked(num, save);
+    xSemaphoreGiveRecursive(lock);
+    return res;
+}
+
+esp_err_t surface_set_fps(uint8_t val)
+{
+    xSemaphoreTakeRecursive(lock, portMAX_DELAY);
+    esp_err_t res = surface_set_fps_unlocked(val);
+    xSemaphoreGiveRecursive(lock);
+    return res;
 }

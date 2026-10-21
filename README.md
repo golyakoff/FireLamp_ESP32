@@ -6,8 +6,9 @@ Bluetooth Low Energy. Based on [EvLamp](https://github.com/UncleRus/EvLamp) by R
 [Matrix_Clock_ESP32](https://github.com/golyakoff/Matrix_Clock_ESP32).
 
 > **Status: work in progress.** The EvLamp core is ported to a single matrix and builds for both
-> targets; settings storage (NVS or external EEPROM), buttons/touch, time (optional DS3231 RTC)
-> and schedules are done. BLE control and internet OTA are not implemented yet.
+> targets; settings storage (NVS or external EEPROM), buttons/touch, time (optional DS3231 RTC),
+> schedules, demo mode and BLE control with firmware update from the phone are done.
+> The WiFi client modes and internet OTA are not implemented yet.
 
 ## Hardware
 
@@ -35,9 +36,32 @@ One button / touch pad:
 | on   | double click | turn off |
 | on   | triple click | previous effect |
 | on   | hold | change brightness; direction alternates with every hold |
+| any  | 5 clicks | open the BLE pairing window for 2 minutes (short blue blink) |
 
-Four buttons (as in EvLamp): **Main** - click: next effect, hold 1.5 s: turn on/off;
-**Up/Down** - brightness, hold to repeat; **Reset** - hold 3 s: reset all settings.
+Four buttons (as in EvLamp): **Main** - click: next effect, 5 clicks: BLE pairing window,
+hold 1.5 s: turn on/off; **Up/Down** - brightness, hold to repeat; **Reset** - hold 3 s:
+reset all settings.
+
+In the demo mode next/previous effect switch to the next included effect and the demo goes on.
+
+## BLE control
+
+The lamp is controlled from the phone app over Bluetooth Low Energy, see
+[docs/BLE_PROTOCOL.md](docs/BLE_PROTOCOL.md): lamp state, effects and their parameters, time,
+schedules, demo mode, LED and WiFi settings, firmware update.
+
+- Effects and parameters are identified by text codes (`fire`, `plasma_waves`, `speed`, ...),
+  so app and firmware versions do not depend on the order of effects.
+- Only paired phones can control the lamp. A new phone can pair during 2 minutes after power on
+  or after 5 clicks of the main button; up to 4 phones are remembered.
+- Firmware update from the phone: the app uploads the release `.bin`; the update is verified
+  (optionally with SHA-256) and rolled back automatically if the new firmware does not start.
+
+## Demo mode
+
+Plays the included effects one after another: sequentially or in random order, each for a set
+duration plus an optional random addition. Effects can be excluded. It is a mode, not an effect:
+turned on and off via the lamp state (BLE or HTTP API) and resumed after reboot.
 
 ## Settings storage
 

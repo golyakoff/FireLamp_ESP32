@@ -22,10 +22,10 @@
 #define P_HEIGHT 3
 
 EFFECT_PARAMS(polar_lights, 4) = {
-    DECL_PARAM_RANGE(P_SPEED, "Speed", 1, 255, 127),
-    DECL_PARAM_RANGE(P_SCALE, "Scale", 1, 255, 60),
-    DECL_PARAM_RANGE(P_PALETTE, "Palette", 0, 1, 0),
-    DECL_PARAM_RANGE(P_HEIGHT, "Height adjustment", 1, 255, 50),
+    DECL_PARAM_RANGE(P_SPEED, "speed", "Speed", 1, 255, 127),
+    DECL_PARAM_RANGE(P_SCALE, "scale", "Scale", 1, 255, 60),
+    DECL_PARAM_RANGE(P_PALETTE, "palette", "Palette", 0, 1, 0),
+    DECL_PARAM_RANGE(P_HEIGHT, "height", "Height adjustment", 1, 255, 50),
 };
 
 #define PALETTE_SIZE 4

@@ -7,6 +7,7 @@
 #include "surface.h"
 #include "systime.h"
 #include "scheduler.h"
+#include "demo.h"
 
 static esp_err_t respond_json(httpd_req_t *req, cJSON *resp)
 {
@@ -39,6 +40,7 @@ static cJSON *effect_params_json(size_t effect)
     {
         cJSON *p = cJSON_CreateObject();
         cJSON_AddItemToArray(params, p);
+        cJSON_AddStringToObject(p, "code", effects[effect].params[c].code);
         cJSON_AddStringToObject(p, "name", effects[effect].params[c].name);
         cJSON_AddNumberToObject(p, "min", effects[effect].params[c].min);
         cJSON_AddNumberToObject(p, "max", effects[effect].params[c].max);
@@ -551,7 +553,9 @@ static esp_err_t get_effects(httpd_req_t *req)
     {
         cJSON *e = cJSON_CreateObject();
         cJSON_AddItemToArray(res, e);
+        cJSON_AddStringToObject(e, "code", effects[i].code);
         cJSON_AddStringToObject(e, "name", effects[i].name);
+        cJSON_AddBoolToObject(e, "demo", demo_is_included(i));
         cJSON_AddItemToObject(e, "params", effect_params_json(i));
     }
 
@@ -585,9 +589,10 @@ static esp_err_t get_lamp_state(httpd_req_t *req)
 {
     cJSON *res = cJSON_CreateObject();
     cJSON_AddBoolToObject(res, "on", surface_is_playing());
-    cJSON_AddNumberToObject(res, "effect", vol_settings.effect);
+    cJSON_AddStringToObject(res, "effect", effects[vol_settings.effect].code);
     cJSON_AddNumberToObject(res, "brightness", vol_settings.brightness);
     cJSON_AddNumberToObject(res, "fps", vol_settings.fps);
+    cJSON_AddBoolToObject(res, "demo", vol_settings.demo);
 
     return respond_json(req, res);
 }
@@ -617,10 +622,18 @@ static esp_err_t post_lamp_state(httpd_req_t *req)
         goto exit;
     }
     cJSON *effect_item = cJSON_GetObjectItem(json, "effect");
-    if (effect_item && !cJSON_IsNumber(effect_item))
+    int effect = effect_item ? effect_find(cJSON_GetStringValue(effect_item)) : -1;
+    if (effect_item && effect < 0)
     {
         err = ESP_ERR_INVALID_ARG;
-        msg = "Invalid `effect` item";
+        msg = "Invalid `effect` item: unknown effect code";
+        goto exit;
+    }
+    cJSON *demo_item = cJSON_GetObjectItem(json, "demo");
+    if (demo_item && !cJSON_IsBool(demo_item))
+    {
+        err = ESP_ERR_INVALID_ARG;
+        msg = "Invalid `demo` item";
         goto exit;
     }
     cJSON *brightness_item = cJSON_GetObjectItem(json, "brightness");
@@ -643,12 +656,22 @@ static esp_err_t post_lamp_state(httpd_req_t *req)
 
     if (effect_item)
     {
-        err = surface_set_effect((size_t)cJSON_GetNumberValue(effect_item));
+        // selecting an effect turns the demo mode off unless it is turned on in the same request
+        if (!cJSON_IsTrue(demo_item))
+            demo_stop();
+        err = surface_set_effect(effect);
         if (err != ESP_OK)
         {
             msg = "Effect setting error";
             goto exit;
         }
+    }
+    if (demo_item)
+    {
+        if (cJSON_IsTrue(demo_item))
+            demo_start();
+        else
+            demo_stop();
     }
     if (on_item)
     {
@@ -694,7 +717,7 @@ static const httpd_uri_t route_post_lamp_state = {
 static esp_err_t get_lamp_effect(httpd_req_t *req)
 {
     cJSON *res = cJSON_CreateObject();
-    cJSON_AddNumberToObject(res, "effect", vol_settings.effect);
+    cJSON_AddStringToObject(res, "effect", effects[vol_settings.effect].code);
     cJSON_AddItemToObject(res, "params", effect_params_json(vol_settings.effect));
     return respond_json(req, res);
 }
@@ -719,42 +742,44 @@ static esp_err_t post_lamp_effect(httpd_req_t *req)
     size_t effect = vol_settings.effect;
 
     cJSON *effect_item = cJSON_GetObjectItem(json, "effect");
-    if (cJSON_IsNumber(effect_item))
+    if (effect_item)
     {
-        effect = (size_t)cJSON_GetNumberValue(effect_item);
-        if (effect >= effects_count)
+        int e = effect_find(cJSON_GetStringValue(effect_item));
+        if (e < 0)
         {
             err = ESP_ERR_INVALID_ARG;
-            msg = "Invalid `effect` value";
+            msg = "Invalid `effect` value: unknown effect code";
             goto exit;
         }
+        effect = e;
     }
 
+    // {"param_code": value, ...}, missing parameters keep their values
     cJSON *params = cJSON_GetObjectItem(json, "params");
-    if (!cJSON_IsArray(params))
+    if (!cJSON_IsObject(params))
     {
         err = ESP_ERR_INVALID_ARG;
-        msg = "Invalid JSON, `params` must be array";
+        msg = "Invalid JSON, `params` must be object {code: value}";
         goto exit;
     }
 
-    if (cJSON_GetArraySize(params) != effects[effect].params_count)
+    // validate everything first, then apply
+    cJSON *item;
+    cJSON_ArrayForEach(item, params)
     {
-        err = ESP_ERR_INVALID_ARG;
-        msg = "Invalid JSON, array size is not equal to effect params count";
-        goto exit;
-    }
-
-    for (size_t p = 0; p < effects[effect].params_count; p++)
-    {
-        cJSON *item = cJSON_GetArrayItem(params, (int)p);
-        if (!cJSON_IsNumber(item))
+        int p = effect_param_find(effect, item->string);
+        if (p < 0 || !cJSON_IsNumber(item)
+                || cJSON_GetNumberValue(item) < effects[effect].params[p].min
+                || cJSON_GetNumberValue(item) > effects[effect].params[p].max)
         {
             err = ESP_ERR_INVALID_ARG;
-            msg = "Invalid JSON, parameter value must be numeric";
+            msg = "Unknown parameter code or invalid value";
             goto exit;
         }
-        err = effect_param_set(effect, p, (uint8_t)cJSON_GetNumberValue(item));
+    }
+    cJSON_ArrayForEach(item, params)
+    {
+        err = effect_param_set(effect, effect_param_find(effect, item->string), (uint8_t)cJSON_GetNumberValue(item));
         if (err != ESP_OK)
         {
             msg = "Error set parameter";
@@ -918,7 +943,7 @@ static esp_err_t get_schedule(httpd_req_t *req)
 
     cJSON *dawn = schedule_time_json(&s.dawn.at);
     cJSON_AddNumberToObject(dawn, "duration", s.dawn.duration);
-    cJSON_AddNumberToObject(dawn, "effect", s.dawn.effect);
+    cJSON_AddStringToObject(dawn, "effect", s.dawn.effect);
     cJSON_AddNumberToObject(dawn, "brightness", s.dawn.brightness);
     cJSON_AddItemToObject(res, "dawn", dawn);
 
@@ -964,16 +989,21 @@ static esp_err_t post_schedule(httpd_req_t *req)
     cJSON *dawn = cJSON_GetObjectItem(json, "dawn");
     if (!schedule_time_parse(dawn, &s.dawn.at)
             || (dawn && (!number_parse(dawn, "duration", &s.dawn.duration)
-                || !number_parse(dawn, "effect", &s.dawn.effect)
                 || !number_parse(dawn, "brightness", &s.dawn.brightness))))
     {
         msg = "Invalid `dawn` item";
         goto exit;
     }
-    if (s.dawn.effect >= effects_count)
+    cJSON *dawn_effect = dawn ? cJSON_GetObjectItem(dawn, "effect") : NULL;
+    if (dawn_effect)
     {
-        msg = "Invalid dawn effect";
-        goto exit;
+        if (effect_find(cJSON_GetStringValue(dawn_effect)) < 0)
+        {
+            msg = "Invalid dawn effect code";
+            goto exit;
+        }
+        strncpy(s.dawn.effect, cJSON_GetStringValue(dawn_effect), SCHEDULE_EFFECT_CODE_LEN);
+        s.dawn.effect[SCHEDULE_EFFECT_CODE_LEN] = 0;
     }
     cJSON *hourly = cJSON_GetObjectItem(json, "hourly_brightness");
     if (hourly)
@@ -1022,6 +1052,104 @@ static const httpd_uri_t route_post_schedule = {
 
 ////////////////////////////////////////////////////////////////////////////////
 
+static esp_err_t get_demo(httpd_req_t *req)
+{
+    demo_settings_t d;
+    demo_get_settings(&d);
+
+    cJSON *res = cJSON_CreateObject();
+    cJSON_AddBoolToObject(res, "active", demo_is_active());
+    cJSON_AddNumberToObject(res, "order", d.order);
+    cJSON_AddNumberToObject(res, "duration", d.duration);
+    cJSON_AddNumberToObject(res, "random", d.random);
+    cJSON *excluded = cJSON_CreateArray();
+    for (size_t e = 0; e < effects_count; e++)
+        if (!demo_is_included(e))
+            cJSON_AddItemToArray(excluded, cJSON_CreateString(effects[e].code));
+    cJSON_AddItemToObject(res, "excluded", excluded);
+
+    return respond_json(req, res);
+}
+
+static const httpd_uri_t route_get_demo = {
+    .uri = "/api/demo",
+    .method = HTTP_GET,
+    .handler = get_demo
+};
+
+static esp_err_t post_demo(httpd_req_t *req)
+{
+    const char *msg = NULL;
+    cJSON *json = NULL;
+    demo_settings_t d;
+    demo_get_settings(&d);
+
+    esp_err_t err = parse_post_json(req, &msg, &json);
+    if (err != ESP_OK)
+        goto exit;
+
+    err = ESP_ERR_INVALID_ARG;
+    const char *names[] = { "order", "duration", "random" };
+    for (size_t i = 0; i < 3; i++)
+    {
+        cJSON *item = cJSON_GetObjectItem(json, names[i]);
+        if (!item) continue;
+        if (!cJSON_IsNumber(item) || cJSON_GetNumberValue(item) < 0 || cJSON_GetNumberValue(item) > 65535)
+        {
+            msg = "Invalid demo settings";
+            goto exit;
+        }
+        uint16_t v = (uint16_t)cJSON_GetNumberValue(item);
+        if (i == 0) d.order = v; else if (i == 1) d.duration = v; else d.random = v;
+    }
+    // {"include": {"code": true/false, ...}}
+    cJSON *include = cJSON_GetObjectItem(json, "include");
+    cJSON *item;
+    if (include)
+    {
+        if (!cJSON_IsObject(include))
+        {
+            msg = "Invalid `include` item";
+            goto exit;
+        }
+        cJSON_ArrayForEach(item, include)
+            if (effect_find(item->string) < 0 || !cJSON_IsBool(item))
+            {
+                msg = "Unknown effect code in `include`";
+                goto exit;
+            }
+    }
+
+    err = demo_set_settings(&d);
+    if (err != ESP_OK)
+    {
+        msg = "Invalid demo settings";
+        goto exit;
+    }
+    if (include)
+        cJSON_ArrayForEach(item, include)
+        {
+            err = demo_set_included(effect_find(item->string), cJSON_IsTrue(item));
+            if (err != ESP_OK)
+            {
+                msg = "Could not exclude the last included effect";
+                goto exit;
+            }
+        }
+
+exit:
+    if (json) cJSON_Delete(json);
+    return respond_api(req, err, msg);
+}
+
+static const httpd_uri_t route_post_demo = {
+    .uri = "/api/demo",
+    .method = HTTP_POST,
+    .handler = post_demo
+};
+
+////////////////////////////////////////////////////////////////////////////////
+
 esp_err_t api_init(httpd_handle_t server)
 {
     CHECK(httpd_register_uri_handler(server, &route_get_info));
@@ -1041,6 +1169,8 @@ esp_err_t api_init(httpd_handle_t server)
     CHECK(httpd_register_uri_handler(server, &route_post_time));
     CHECK(httpd_register_uri_handler(server, &route_get_schedule));
     CHECK(httpd_register_uri_handler(server, &route_post_schedule));
+    CHECK(httpd_register_uri_handler(server, &route_get_demo));
+    CHECK(httpd_register_uri_handler(server, &route_post_demo));
 
     return ESP_OK;
 }

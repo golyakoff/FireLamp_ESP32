@@ -1,8 +1,11 @@
 menu "*** FireLamp configuration ***"
 
 	config FL_EFFECT_DEFAULT
-		int "Default effect"
-		default 1
+		string "Default effect code"
+		default "fire"
+		help
+			Code of the effect after first start or settings reset,
+			e.g. fire, lamp, matrix, plasma_waves.
 		
 	config FL_FPS_DEFAULT
 		int "Default FPS"

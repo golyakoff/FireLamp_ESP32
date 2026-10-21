@@ -50,7 +50,7 @@ void schedule_defaults(schedule_t *s)
     s->dawn.at.days = 0x1f; // working days
     s->dawn.at.hour = 7;
     s->dawn.duration = 30;
-    s->dawn.effect = 0;
+    strcpy(s->dawn.effect, "lamp");
     s->dawn.brightness = 255;
     for (size_t h = 0; h < 24; h++)
         s->hourly.values[h] = h >= 8 && h < 22 ? 255 : 32;
@@ -69,6 +69,15 @@ bool schedule_validate(const schedule_t *s)
         return false;
     if (!s->dawn.brightness)
         return false;
+    size_t len = strnlen(s->dawn.effect, sizeof(s->dawn.effect));
+    if (!len || len > SCHEDULE_EFFECT_CODE_LEN)
+        return false;
+    for (size_t i = 0; i < len; i++)
+    {
+        char c = s->dawn.effect[i];
+        if (!((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_'))
+            return false;
+    }
     for (size_t h = 0; h < 24; h++)
         if (!s->hourly.values[h])
             return false;
@@ -134,11 +143,9 @@ size_t schedule_evaluate(const schedule_t *s, schedule_state_t *st, time_t now, 
             {
                 st->dawn_active = true;
                 st->dawn_brightness = b;
-                actions[n++] = (schedule_action_t) {
-                    .type = SCHEDULE_ACTION_DAWN_START,
-                    .brightness = b,
-                    .effect = s->dawn.effect,
-                };
+                actions[n] = (schedule_action_t) { .type = SCHEDULE_ACTION_DAWN_START, .brightness = b };
+                memcpy(actions[n].effect, s->dawn.effect, sizeof(actions[n].effect));
+                n++;
                 playing = true;
             }
             else if (b != st->dawn_brightness)

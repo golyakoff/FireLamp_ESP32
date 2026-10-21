@@ -83,12 +83,20 @@ const size_t effects_count = sizeof(effects) / sizeof(effect_descriptor_t);
 ////////////////////////////////////////////////////////////////////////////////
 
 // Record format: sequence of entries
-//   uint16_t crc16 of effect name, uint8_t number of params, uint8_t values[number of params]
-// Bound to effect names, so the values survive adding or reordering effects in firmware updates.
+//   uint16_t crc16 of effect code, uint8_t number of params N,
+//   N x (uint16_t crc16 of param code, uint8_t value)
+// Bound to codes, so the values survive adding, removing or reordering effects and parameters.
 
-static uint16_t name_hash(const char *name)
+static uint16_t code_hash(const char *code)
 {
-    return esp_crc16_le(0, (const uint8_t *)name, strlen(name));
+    return esp_crc16_le(0, (const uint8_t *)code, strlen(code));
+}
+
+static effect_param_cb_t param_cb = NULL;
+
+void effect_set_param_cb(effect_param_cb_t cb)
+{
+    param_cb = cb;
 }
 
 static esp_err_t effects_save_now()
@@ -99,17 +107,22 @@ static esp_err_t effects_save_now()
     for (size_t e = 0; e < effects_count; e++)
     {
         size_t count = effects[e].params_count;
-        if (len + 3 + count > sizeof(buf))
+        if (len + 3 + count * 3 > sizeof(buf))
         {
             ESP_LOGE(TAG, "Effect parameters do not fit storage record");
             return ESP_ERR_NO_MEM;
         }
-        uint16_t hash = name_hash(effects[e].name);
+        uint16_t hash = code_hash(effects[e].code);
         buf[len++] = hash & 0xff;
         buf[len++] = hash >> 8;
         buf[len++] = count;
         for (size_t p = 0; p < count; p++)
+        {
+            hash = code_hash(PARAM(e, p).code);
+            buf[len++] = hash & 0xff;
+            buf[len++] = hash >> 8;
             buf[len++] = PARAM(e, p).value;
+        }
     }
 
     return storage_save(STORAGE_EFFECTS, buf, len);
@@ -138,15 +151,34 @@ esp_err_t effect_param_set(size_t effect, size_t param, uint8_t value)
     if (PARAM(effect, param).value == value)
         return ESP_OK;
 
-    ESP_LOGI(TAG, "'%s':'%s' = %d", effects[effect].name, PARAM(effect, param).name, value);
+    ESP_LOGI(TAG, "%s.%s = %d", effects[effect].code, PARAM(effect, param).code, value);
 
     PARAM(effect, param).value = value;
     storage_defer(STORAGE_EFFECTS, effects_save_now);
+    if (param_cb)
+        param_cb(effect, param);
 
     if (effect == vol_settings.effect)
         CHECK_LOGE(surface_prepare_effect(effect), "Could not prepare effect");
 
     return ESP_OK;
+}
+
+static void apply_stored_params(size_t e, const uint8_t *entry, size_t count)
+{
+    for (size_t i = 0; i < count; i++)
+    {
+        uint16_t hash = entry[i * 3] | (entry[i * 3 + 1] << 8);
+        uint8_t val = entry[i * 3 + 2];
+        for (size_t p = 0; p < effects[e].params_count; p++)
+        {
+            if (code_hash(PARAM(e, p).code) != hash)
+                continue;
+            if (val >= PARAM(e, p).min && val <= PARAM(e, p).max)
+                PARAM(e, p).value = val;
+            break;
+        }
+    }
 }
 
 static esp_err_t effect_params_load()
@@ -161,30 +193,24 @@ static esp_err_t effect_params_load()
         uint16_t hash = buf[pos] | (buf[pos + 1] << 8);
         size_t count = buf[pos + 2];
         pos += 3;
-        if (pos + count > len)
+        if (pos + count * 3 > len)
             break;
 
         for (size_t e = 0; e < effects_count; e++)
-        {
-            if (name_hash(effects[e].name) != hash)
-                continue;
-            for (size_t p = 0; p < effects[e].params_count && p < count; p++)
+            if (code_hash(effects[e].code) == hash)
             {
-                uint8_t val = buf[pos + p];
-                if (val >= PARAM(e, p).min && val <= PARAM(e, p).max)
-                    PARAM(e, p).value = val;
+                apply_stored_params(e, buf + pos, count);
+                break;
             }
-            break;
-        }
-        pos += count;
+        pos += count * 3;
     }
 
     for (size_t e = 0; e < effects_count; e++)
     {
-        ESP_LOGI(TAG, "Effect %d: '%s'", e, effects[e].name);
+        ESP_LOGI(TAG, "Effect %d: %s '%s'", e, effects[e].code, effects[e].name);
         for (size_t p = 0; p < effects[e].params_count; p++)
             ESP_LOGI(TAG, "    %s: %d (min %d, max %d, def %d)",
-                    PARAM(e, p).name, PARAM(e, p).value, PARAM(e, p).min, PARAM(e, p).max, PARAM(e, p).def);
+                    PARAM(e, p).code, PARAM(e, p).value, PARAM(e, p).min, PARAM(e, p).max, PARAM(e, p).def);
     }
 
     ESP_LOGI(TAG, "Effect parameters loaded");
@@ -192,8 +218,63 @@ static esp_err_t effect_params_load()
     return ESP_OK;
 }
 
+bool effect_code_valid(const char *code)
+{
+    size_t len = code ? strlen(code) : 0;
+    if (!len || len > EFFECT_CODE_MAX_LEN)
+        return false;
+    for (size_t i = 0; i < len; i++)
+        if (!((code[i] >= 'a' && code[i] <= 'z') || (code[i] >= '0' && code[i] <= '9') || code[i] == '_'))
+            return false;
+    return true;
+}
+
+int effect_find(const char *code)
+{
+    if (!code)
+        return -1;
+    for (size_t e = 0; e < effects_count; e++)
+        if (!strcmp(effects[e].code, code))
+            return e;
+    return -1;
+}
+
+int effect_param_find(size_t effect, const char *code)
+{
+    if (effect >= effects_count || !code)
+        return -1;
+    for (size_t p = 0; p < effects[effect].params_count; p++)
+        if (!strcmp(PARAM(effect, p).code, code))
+            return p;
+    return -1;
+}
+
+// Codes are stored as hashes: they must be valid and the hashes unique
+static void check_codes()
+{
+    for (size_t e = 0; e < effects_count; e++)
+    {
+        if (!effect_code_valid(effects[e].code))
+            ESP_LOGE(TAG, "Invalid effect code '%s'", effects[e].code);
+        for (size_t e2 = e + 1; e2 < effects_count; e2++)
+            if (code_hash(effects[e].code) == code_hash(effects[e2].code))
+                ESP_LOGE(TAG, "Effect codes '%s' and '%s' collide", effects[e].code, effects[e2].code);
+        for (size_t p = 0; p < effects[e].params_count; p++)
+        {
+            if (!effect_code_valid(PARAM(e, p).code))
+                ESP_LOGE(TAG, "Invalid parameter code '%s.%s'", effects[e].code, PARAM(e, p).code);
+            for (size_t p2 = p + 1; p2 < effects[e].params_count; p2++)
+                if (code_hash(PARAM(e, p).code) == code_hash(PARAM(e, p2).code))
+                    ESP_LOGE(TAG, "Parameter codes '%s.%s' and '%s' collide",
+                            effects[e].code, PARAM(e, p).code, PARAM(e, p2).code);
+        }
+    }
+}
+
 esp_err_t effects_init()
 {
+    check_codes();
+
     esp_err_t res = effect_params_load();
     if (res != ESP_OK)
         res = effects_reset();

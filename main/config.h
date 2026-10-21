@@ -77,6 +77,26 @@
 #define SCHEDULER_TASK_PRIORITY 4
 
 ////////////////////////////////////////////////////////////////////////////////
+/// OTA
+
+#define OTA_QUEUE_LEN 8
+#define OTA_QUEUE_TIMEOUT_MS 3000  // ota_write() blocks while the flash writer is busy
+#define OTA_DATA_TIMEOUT_MS 10000  // abort when no data comes
+#define OTA_WRITE_YIELD_MS 2
+#define OTA_PROGRESS_STEP 4096
+#define OTA_REBOOT_DELAY_MS 1000
+#define OTA_TASK_STACK_SIZE 4096
+#define OTA_TASK_PRIORITY 3
+
+////////////////////////////////////////////////////////////////////////////////
+/// BLE
+
+#define BLE_PAIRING_WINDOW_S 120
+#define BLE_AUTH_TIMEOUT_S 30      // unknown phone must pair within this time
+#define BLE_MAX_BONDS 4
+#define BLE_STATE_NOTIFY_MS 250    // lamp state notifications are coalesced: max 4 per second
+
+////////////////////////////////////////////////////////////////////////////////
 /// Bus
 
 #define BUS_QUEUE_LEN 10
@@ -91,7 +111,7 @@
 #define INPUT_POLL_MS 10
 #define INPUT_DEBOUNCE_SAMPLES 3   // x INPUT_POLL_MS
 #define INPUT_CLICK_TIMEOUT_MS 350 // max pause between clicks of a multi-click
-#define INPUT_MAX_CLICKS 3         // no need to wait for more clicks after this
+#define INPUT_MAX_CLICKS 5         // no need to wait for more clicks after this
 #define INPUT_HOLD_MS 600
 #define INPUT_HOLD_REPEAT_MS 50
 
@@ -100,6 +120,8 @@
 #define POWER_HOLD_MS 1500         // 4 buttons: Main hold time to turn on/off
 #define RESET_HOLD_MS 3000         // 4 buttons: Reset hold time
 #define RESET_HOLD_OFF_MS 10000    // 1 button/touch: hold time while the lamp is off
+#define PAIRING_CLICKS 5           // clicks of the main button to open the BLE pairing window
+#define PAIRING_BLINK_MS 300
 
 ////////////////////////////////////////////////////////////////////////////////
 /// Main task
@@ -114,6 +136,7 @@
 #define BRIGHTNESS_MIN 1 // 0 looks like the lamp is off
 #define SURFACE_TASK_STACK_SIZE 8192
 #define MAX_MATRIX_LEDS 1024
+#define MAX_EFFECTS 64
 #define MIN_MATRIX_SIZE 8
 #define MAX_MATRIX_SIZE 128
 

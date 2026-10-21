@@ -13,6 +13,10 @@ idf_component_register(
 		systime.c
 		schedule.c
 		scheduler.c
+		demo_core.c
+		demo.c
+		ota.c
+		ble_server.c
 		wifi.c
 		bus.c
 		effect.c

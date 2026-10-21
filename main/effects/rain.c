@@ -13,10 +13,10 @@
 #define P_TAIL    3
 
 EFFECT_PARAMS(rain, 4) = {
-    DECL_PARAM_BOOL(P_MODE, "Colored", 0),
-    DECL_PARAM_RANGE(P_HUE, "Hue", 0, 255, HUE_AQUA),
-    DECL_PARAM_RANGE(P_DENSITY, "Density", 0, 100, 50),
-    DECL_PARAM_RANGE(P_TAIL, "Tail length", 100, 200, 150),
+    DECL_PARAM_BOOL(P_MODE, "colored", "Colored", 0),
+    DECL_PARAM_RANGE(P_HUE, "hue", "Hue", 0, 255, HUE_AQUA),
+    DECL_PARAM_RANGE(P_DENSITY, "density", "Density", 0, 100, 50),
+    DECL_PARAM_RANGE(P_TAIL, "tail_length", "Tail length", 100, 200, 150),
 };
 
 static uint8_t density;

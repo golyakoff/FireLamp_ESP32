@@ -12,7 +12,7 @@ static time_t local(int y, int mo, int d, int h, int mi, int s)
     return mktime(&t);
 }
 
-typedef struct { int on, off, dawn_start, dawn_end, bright; uint8_t last_b, dawn_effect, first_b; } counts_t;
+typedef struct { int on, off, dawn_start, dawn_end, bright; uint8_t last_b, first_b; char dawn_effect[17]; } counts_t;
 
 // run evaluation every second from `from` to `to`, simulating the lamp state
 static counts_t run(const schedule_t *s, schedule_state_t *st, time_t from, time_t to, bool *playing)
@@ -28,7 +28,7 @@ static counts_t run(const schedule_t *s, schedule_state_t *st, time_t from, time
             {
                 case SCHEDULE_ACTION_POWER_ON: c.on++; *playing = true; break;
                 case SCHEDULE_ACTION_POWER_OFF: c.off++; *playing = false; break;
-                case SCHEDULE_ACTION_DAWN_START: c.dawn_start++; *playing = true; c.first_b = a[i].brightness; c.last_b = a[i].brightness; c.dawn_effect = a[i].effect; break;
+                case SCHEDULE_ACTION_DAWN_START: c.dawn_start++; *playing = true; c.first_b = a[i].brightness; c.last_b = a[i].brightness; strcpy(c.dawn_effect, a[i].effect); break;
                 case SCHEDULE_ACTION_BRIGHTNESS: c.bright++; assert(a[i].brightness >= c.last_b || !st->dawn_active); c.last_b = a[i].brightness; break;
                 case SCHEDULE_ACTION_DAWN_END: c.dawn_end++; c.last_b = a[i].brightness; break;
             }
@@ -76,12 +76,12 @@ int main(void)
     s.power_on.enabled = 0;
 
     // dawn 07:00, 30 min, Wednesday 2026-10-21 (working day)
-    s.dawn.at.enabled = 1; s.dawn.effect = 5; s.dawn.brightness = 200;
+    s.dawn.at.enabled = 1; strcpy(s.dawn.effect, "fire"); s.dawn.brightness = 200;
     schedule_state_init(&st); playing = false;
     c = run(&s, &st, local(2026, 10, 21, 6, 0, 0), local(2026, 10, 21, 6, 30, 0), &playing);
     assert(!c.dawn_start && !playing);
     c = run(&s, &st, local(2026, 10, 21, 6, 30, 0), local(2026, 10, 21, 7, 0, 0), &playing);
-    assert(c.dawn_start == 1 && c.first_b == 1 && c.dawn_effect == 5 && playing);
+    assert(c.dawn_start == 1 && c.first_b == 1 && !strcmp(c.dawn_effect, "fire") && playing);
     assert(c.last_b >= 195 && c.last_b < 200);
     printf("dawn 30 min to 200: %d brightness steps\n", c.bright);
     c = run(&s, &st, local(2026, 10, 21, 7, 0, 0), local(2026, 10, 21, 9, 0, 0), &playing);
@@ -150,6 +150,9 @@ int main(void)
     s.dawn.duration = 0; assert(!schedule_validate(&s));
     schedule_defaults(&s); s.power_on.hour = 24; assert(!schedule_validate(&s));
     schedule_defaults(&s); s.hourly.values[3] = 0; assert(!schedule_validate(&s));
+    schedule_defaults(&s); strcpy(s.dawn.effect, "Fire"); assert(!schedule_validate(&s));
+    schedule_defaults(&s); s.dawn.effect[0] = 0; assert(!schedule_validate(&s));
+    schedule_defaults(&s); assert(!strcmp(s.dawn.effect, "lamp"));
 
     printf("schedule: all tests passed\n");
     return 0;

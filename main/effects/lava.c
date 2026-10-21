@@ -19,10 +19,10 @@
 #define P_PALETTE 3
 
 EFFECT_PARAMS(lava, 4) = {
-    DECL_PARAM_RANGE(P_SCALE, "Scale", 5, 100, 40),
-    DECL_PARAM_RANGE(P_SPEED, "Speed", 0, 50, 15),
-    DECL_PARAM_RANGE(P_MODE, "Mode", 0, MODE_PALETTE, 1),
-    DECL_PARAM_RANGE(P_PALETTE, "Palette", 0, PALETTE_MAX - 1, 0),
+    DECL_PARAM_RANGE(P_SCALE, "scale", "Scale", 5, 100, 40),
+    DECL_PARAM_RANGE(P_SPEED, "speed", "Speed", 0, 50, 15),
+    DECL_PARAM_RANGE(P_MODE, "mode", "Mode", 0, MODE_PALETTE, 1),
+    DECL_PARAM_RANGE(P_PALETTE, "palette", "Palette", 0, PALETTE_MAX - 1, 0),
 };
 
 static const rgb_t lava_palette[] = {

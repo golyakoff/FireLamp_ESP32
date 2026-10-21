@@ -23,6 +23,8 @@ FireLamp provides a simple API based on HTTP GET and POST requests containing JS
 - [Set time and time zone](#set-time-and-time-zone)
 - [Get schedule](#get-schedule)
 - [Set schedule](#set-schedule)
+- [Get demo mode settings](#get-demo-mode-settings)
+- [Set demo mode settings](#set-demo-mode-settings)
 
 ---
 
@@ -280,9 +282,10 @@ No response, device just reboots.
 ```jsonc
 {
   "on": <Boolean, true - Lamp is on, false - Lamp is off>,
-  "effect": <Integer, Current effect ID, 0-based>,
-  "brightness": <Integer, LED matrix brightness, 0..255>,
-  "fps": <Integer, Frames per seconds, 0..120>
+  "effect": <String, current effect code>,
+  "brightness": <Integer, LED matrix brightness, 1..255>,
+  "fps": <Integer, Frames per seconds, 1..120>,
+  "demo": <Boolean, demo mode is on>
 }
 ```
 
@@ -290,7 +293,8 @@ No response, device just reboots.
 
 ## Set lamp state
 
-With this function you can switch LEDs on and off, change current effect, brightness and FPS.
+With this function you can switch LEDs on and off, change current effect, brightness, FPS
+and turn the demo mode on and off.
 
 ### Request
 
@@ -299,19 +303,23 @@ With this function you can switch LEDs on and off, change current effect, bright
 ```jsonc
 {
   "on": <Boolean, true - Lamp is on, false - Lamp is off>,
-  "effect": <Integer, Selected effect ID, 0-based>,
-  "brightness": <Integer, LED matrix brightness, 0..255>,
-  "fps": <Integer, Frames per seconds, 0..120>
+  "effect": <String, effect code>,
+  "brightness": <Integer, LED matrix brightness, 1..255>,
+  "fps": <Integer, Frames per seconds, 1..120>,
+  "demo": <Boolean, demo mode>
 }
 ```
 
-Any item in request can be omitted. For example, you can switch off the lamp with this POST:
+Any item in request can be omitted. Selecting an effect turns the demo mode off unless
+`"demo": true` is in the same request. Any request stops a running dawn.
+
+For example, you can switch off the lamp with this POST:
 ```json
 { "on": false }
 ```
-or change effect to "Fire" (id = 1) and set brightness:
+or change effect to "Fire" and set brightness:
 ```json
-{ "effect": 1, "brightness": 50 }
+{ "effect": "fire", "brightness": 50 }
 ```
 
 ### Response
@@ -337,14 +345,18 @@ or change effect to "Fire" (id = 1) and set brightness:
 ```jsonc
 [
   {
+    "code": <String, effect code, e.g. "fire">,
     "name": <String, Effect name>,
+    "demo": <Boolean, the effect takes part in the demo mode>,
     "params": [
       {
+        "code": <String, parameter code, unique within the effect, e.g. "speed">,
         "name": <String, Parameter name>,
         "min": <Integer, Minimal value>,
         "max": <Integer, Maximal value>,
         "default": <Integer, Default value>,
-        "value": <Integer, Current value>
+        "value": <Integer, Current value>,
+        "type": <Integer, 0 - range, 1 - boolean>
       },
       ...
     ]
@@ -353,78 +365,30 @@ or change effect to "Fire" (id = 1) and set brightness:
 ]
 ```
 
-The effect index in the response array is the effect ID.
-The parameter's index in the effect's parameter list is the parameter ID.
+Effects and parameters are identified by their codes: up to 16 characters `a-z`, `0-9`, `_`.
+Codes never change between firmware versions, while the order of the list may change.
 
-**Example**
+**Example** (shortened)
 
 ```json
 [{
+    "code": "lamp",
     "name": "Color lamp",
-    "params": [{
-        "name": "Red",
-        "min": 0,
-        "max": 255,
-        "default": 255,
-        "value": 255
-      }, {
-        "name": "Green",
-        "min": 0,
-        "max": 255,
-        "default": 159,
-        "value": 159
-      }, {
-        "name": "Blue",
-        "min": 0,
-        "max": 255,
-        "default": 70,
-        "value": 70
-      }]
+    "demo": true,
+    "params": [
+      { "code": "red", "name": "Red", "min": 0, "max": 255, "default": 255, "value": 255, "type": 0 },
+      { "code": "green", "name": "Green", "min": 0, "max": 255, "default": 159, "value": 159, "type": 0 },
+      { "code": "blue", "name": "Blue", "min": 0, "max": 255, "default": 70, "value": 70, "type": 0 }
+    ]
   },
   {
+    "code": "fire",
     "name": "Fire",
-    "params": [{
-        "name": "Palette",
-        "min": 0,
-        "max": 7,
-        "default": 0,
-        "value": 0
-      }, {
-        "name": "Scale",
-        "min": 10,
-        "max": 100,
-        "default": 60,
-        "value": 60
-      }]
-  },
-  ... 
-  {
-    "name": "Fireflies",
-    "params": [{
-        "name": "Number of fireflies",
-        "min": 4,
-        "max": 48,
-        "default": 16,
-        "value": 16
-      }, {
-        "name": "Chaotic movements",
-        "min": 0,
-        "max": 1,
-        "default": 1,
-        "value": 1
-      }, {
-        "name": "Speed",
-        "min": 1,
-        "max": 255,
-        "default": 255,
-        "value": 255
-      }, {
-        "name": "Update time",
-        "min": 1,
-        "max": 10,
-        "default": 3,
-        "value": 3
-      }]
+    "demo": true,
+    "params": [
+      { "code": "palette", "name": "Palette", "min": 0, "max": 7, "default": 0, "value": 0, "type": 0 },
+      { "code": "scale", "name": "Scale", "min": 10, "max": 100, "default": 60, "value": 60, "type": 0 }
+    ]
   }]
 ```
 
@@ -458,41 +422,8 @@ The parameter's index in the effect's parameter list is the parameter ID.
 
 ```jsonc
 {
-  "effect": <Integer, Current effect ID, 0-based>,
-  "params": [
-    {
-      "name": <String, Parameter name>,
-      "min": <Integer, Minimal value>,
-      "max": <Integer, Maximal value>,
-      "default": <Integer, Default value>,
-      "value": <Integer, Current value>
-    },
-    ...
-  ]
-}
-```
-
-**Example**
-
-```json
-{
-  "effect": 1,
-  "params": [
-    {
-      "name": "Palette",
-      "min": 0,
-      "max": 7,
-      "default": 0,
-      "value": 0
-    },
-    {
-      "name": "Scale",
-      "min": 10,
-      "max": 100,
-      "default": 60,
-      "value": 60
-    }
-  ]
+  "effect": <String, current effect code>,
+  "params": [ <parameters in the same format as in the effects list> ]
 }
 ```
 
@@ -506,23 +437,25 @@ The parameter's index in the effect's parameter list is the parameter ID.
 
 ```jsonc
 {
-  "effect": <Integer, Effect ID, 0-based>,
-  "params": [
-    <Integer, 0 parameter value>,
+  "effect": <String, effect code, optional: the current effect if omitted>,
+  "params": {
+    "<parameter code>": <Integer, value>,
     ...
-    <Integer, n parameter value>,
-  ]
+  }
 }
 ```
 
+Parameters that are not mentioned keep their values. Nothing is changed if any code or value
+is invalid.
+
 **Example**
 
-Set Palette = 1 and Scale = 60 for the "Fire" effect. 
+Set palette 1 and scale 60 for the "Fire" effect:
 
 ```json
 {
-  "effect": 1,
-  "params": [ 1, 60 ]
+  "effect": "fire",
+  "params": { "palette": 1, "scale": 60 }
 }
 ```
 
@@ -605,7 +538,7 @@ Example (Linux): `curl -d "{\"time\": $(date +%s)}" http://<lamp>/api/time`
   "dawn": {
     <Schedule time fields: moment when the full brightness is reached>,
     "duration": <Integer, minutes of brightness ramp before that moment, 1..120>,
-    "effect": <Integer, effect number>,
+    "effect": <String, effect code>,
     "brightness": <Integer, final brightness, 1..255>
   },
   "hourly_brightness": {
@@ -655,6 +588,71 @@ Dawn on working days at 07:00 for 30 minutes:
 {
   "dawn": { "enabled": true, "days": 31, "hour": 7, "minute": 0, "duration": 30 }
 }
+```
+
+### Response
+
+```jsonc
+{
+  "result": <Integer, Result code. 0 - no errors>,
+  "name": <String, Name of the result code, "ESP_OK" for result code 0>,
+  "message": <String, Error message if result code != 0>
+}
+```
+
+---
+
+## Get demo mode settings
+
+The demo mode plays the included effects one after another. It is turned on and off via
+[Set lamp state](#set-lamp-state) (`"demo": true/false`).
+
+### Request
+
+**GET** `/api/demo`
+
+### Response
+
+```jsonc
+{
+  "active": <Boolean, demo mode is on>,
+  "order": <Integer, 0 - sequential, 1 - random (never the same effect twice in a row)>,
+  "duration": <Integer, seconds every effect plays, 10..3600>,
+  "random": <Integer, seconds, 0..3600: every effect plays duration + random(0..random)>,
+  "excluded": [ <String, codes of effects that do not take part in the demo> ]
+}
+```
+
+---
+
+## Set demo mode settings
+
+All fields are optional.
+
+### Request
+
+**POST** `/api/demo`
+
+```jsonc
+{
+  "order": <Integer>,
+  "duration": <Integer>,
+  "random": <Integer>,
+  "include": {
+    "<effect code>": <Boolean, true - include, false - exclude>,
+    ...
+  }
+}
+```
+
+Excluding the last included effect fails. Effects added by firmware updates are included.
+
+**Example**
+
+Every effect for 2 minutes plus up to 1 minute, without GIF images:
+
+```json
+{ "duration": 120, "random": 60, "include": { "gif": false } }
 ```
 
 ### Response

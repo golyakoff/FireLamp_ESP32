@@ -2,9 +2,9 @@
 #include <string.h>
 #include "storage.h"
 #include "surface.h"
+#include "effect.h"
 
 _Static_assert(sizeof(system_settings_t) <= STORAGE_SYSTEM_MAX_SIZE, "System settings do not fit storage record");
-_Static_assert(sizeof(volatile_settings_t) <= STORAGE_VOLATILE_MAX_SIZE, "Volatile settings do not fit storage record");
 
 system_settings_t sys_settings = { 0 };
 volatile_settings_t vol_settings = { 0 };
@@ -35,6 +35,10 @@ static system_settings_t sys_defaults = {
     .time = {
         .tz = CONFIG_FL_TZ_DEFAULT,
     },
+    .wifi_client = {
+        .mode = WIFI_CLIENT_OFF,
+        .period = 1,
+    },
     .leds = {
         .width         = CONFIG_FL_MATRIX_WIDTH,
         .height        = CONFIG_FL_MATRIX_HEIGHT,
@@ -46,11 +50,27 @@ static system_settings_t sys_defaults = {
     },
 };
 
-static const volatile_settings_t vol_defaults = {
-    .fps        = CONFIG_FL_FPS_DEFAULT,
-    .brightness = CONFIG_FL_BRIGHTNESS_DEFAULT,
-    .effect     = CONFIG_FL_EFFECT_DEFAULT,
-};
+// Storage format of volatile settings
+typedef struct __attribute__((packed))
+{
+    uint8_t fps;
+    uint8_t brightness;
+    uint8_t demo;
+    char effect[EFFECT_CODE_MAX_LEN + 1];
+} stored_volatile_t;
+
+_Static_assert(sizeof(stored_volatile_t) <= STORAGE_VOLATILE_MAX_SIZE, "Volatile settings do not fit storage record");
+
+static size_t default_effect()
+{
+    int e = effect_find(CONFIG_FL_EFFECT_DEFAULT);
+    if (e < 0)
+    {
+        ESP_LOGE(TAG, "Default effect '%s' not found", CONFIG_FL_EFFECT_DEFAULT);
+        e = 0;
+    }
+    return e;
+}
 
 static esp_err_t load(storage_record_t rec, void *target, size_t size)
 {
@@ -66,7 +86,13 @@ static esp_err_t load(storage_record_t rec, void *target, size_t size)
 
 static esp_err_t vol_settings_save_now()
 {
-    return storage_save(STORAGE_VOLATILE, &vol_settings, sizeof(volatile_settings_t));
+    stored_volatile_t v = {
+        .fps = vol_settings.fps,
+        .brightness = vol_settings.brightness,
+        .demo = vol_settings.demo,
+    };
+    strncpy(v.effect, effects[vol_settings.effect < effects_count ? vol_settings.effect : 0].code, EFFECT_CODE_MAX_LEN);
+    return storage_save(STORAGE_VOLATILE, &v, sizeof(v));
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -91,10 +117,28 @@ esp_err_t sys_settings_reset()
     return ESP_OK;
 }
 
+// Records of older firmware versions end before these fields
+#define SYS_SETTINGS_MIN_SIZE offsetof(system_settings_t, ble)
+
 esp_err_t sys_settings_load()
 {
-    if (load(STORAGE_SYSTEM, &sys_settings, sizeof(system_settings_t)) != ESP_OK)
+    uint8_t buf[STORAGE_SYSTEM_MAX_SIZE];
+    size_t size = sizeof(buf);
+    if (storage_load(STORAGE_SYSTEM, buf, &size) != ESP_OK
+            || size < SYS_SETTINGS_MIN_SIZE || size > sizeof(system_settings_t))
+    {
+        ESP_LOGW(TAG, "No valid system settings stored");
         return sys_settings_reset();
+    }
+
+    // defaults for the fields missing in an older record
+    memcpy(&sys_settings, &sys_defaults, sizeof(system_settings_t));
+    memcpy(&sys_settings, buf, size);
+    if (size < sizeof(system_settings_t))
+    {
+        ESP_LOGW(TAG, "System settings upgraded from %d to %d bytes", size, sizeof(system_settings_t));
+        CHECK(sys_settings_save());
+    }
 
     return ESP_OK;
 }
@@ -106,7 +150,10 @@ esp_err_t sys_settings_save()
 
 esp_err_t vol_settings_reset()
 {
-    memcpy(&vol_settings, &vol_defaults, sizeof(volatile_settings_t));
+    vol_settings.fps = CONFIG_FL_FPS_DEFAULT;
+    vol_settings.brightness = CONFIG_FL_BRIGHTNESS_DEFAULT;
+    vol_settings.effect = default_effect();
+    vol_settings.demo = false;
     CHECK(vol_settings_save_now());
 
     ESP_LOGW(TAG, "Volatile settings have been reset to defaults");
@@ -116,8 +163,20 @@ esp_err_t vol_settings_reset()
 
 esp_err_t vol_settings_load()
 {
-    if (load(STORAGE_VOLATILE, &vol_settings, sizeof(volatile_settings_t)) != ESP_OK)
+    stored_volatile_t v;
+    if (load(STORAGE_VOLATILE, &v, sizeof(v)) != ESP_OK
+            || !v.fps || v.fps > FPS_MAX || v.brightness < BRIGHTNESS_MIN)
         return vol_settings_reset();
+
+    v.effect[EFFECT_CODE_MAX_LEN] = 0;
+    int e = effect_find(v.effect);
+    if (e < 0)
+        ESP_LOGW(TAG, "Stored effect '%s' not found, using default", v.effect);
+
+    vol_settings.fps = v.fps;
+    vol_settings.brightness = v.brightness;
+    vol_settings.demo = v.demo;
+    vol_settings.effect = e < 0 ? default_effect() : (size_t)e;
 
     return ESP_OK;
 }

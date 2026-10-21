@@ -13,6 +13,7 @@
 
 #define SCHEDULE_DAWN_MIN_DURATION 1
 #define SCHEDULE_DAWN_MAX_DURATION 120
+#define SCHEDULE_EFFECT_CODE_LEN   16 // same as EFFECT_CODE_MAX_LEN
 
 typedef struct
 {
@@ -29,8 +30,8 @@ typedef struct
     struct {
         schedule_time_t at;     // moment when the full brightness is reached
         uint8_t duration;       // minutes of brightness ramp before `at`
-        uint8_t effect;
         uint8_t brightness;     // final brightness
+        char effect[SCHEDULE_EFFECT_CODE_LEN + 1]; // effect code
     } dawn;
     struct {
         uint8_t enabled;
@@ -50,7 +51,7 @@ typedef struct
 {
     uint8_t type;       // schedule_action_type_t
     uint8_t brightness;
-    uint8_t effect;
+    char effect[SCHEDULE_EFFECT_CODE_LEN + 1]; // SCHEDULE_ACTION_DAWN_START: effect code
 } schedule_action_t;
 
 typedef struct
@@ -68,7 +69,7 @@ typedef struct
 void schedule_defaults(schedule_t *s);
 
 /**
- * Check values, returns false if invalid
+ * Check values (not the existence of the dawn effect), returns false if invalid
  */
 bool schedule_validate(const schedule_t *s);
 

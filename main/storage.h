@@ -15,15 +15,17 @@ typedef enum {
     STORAGE_VOLATILE,
     STORAGE_EFFECTS,
     STORAGE_SCHEDULE,
+    STORAGE_DEMO,
     // Append new records only: EEPROM layout depends on the order and sizes
 
     STORAGE_RECORD_MAX
 } storage_record_t;
 
-#define STORAGE_SYSTEM_MAX_SIZE   512
+#define STORAGE_SYSTEM_MAX_SIZE   768
 #define STORAGE_VOLATILE_MAX_SIZE 64
-#define STORAGE_EFFECTS_MAX_SIZE  768
+#define STORAGE_EFFECTS_MAX_SIZE  640
 #define STORAGE_SCHEDULE_MAX_SIZE 128
+#define STORAGE_DEMO_MAX_SIZE     128
 
 typedef esp_err_t (*storage_saver_t)();
 

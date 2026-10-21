@@ -16,7 +16,7 @@
 #define P_SPEED 0
 
 EFFECT_PARAMS(nuclear, 1) = {
-    DECL_PARAM_RANGE(P_SPEED, "Speed", 1, 10, 3),
+    DECL_PARAM_RANGE(P_SPEED, "speed", "Speed", 1, 10, 3),
 };
 
 typedef struct {

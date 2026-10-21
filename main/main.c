@@ -8,6 +8,8 @@
 #include "webserver.h"
 #include "systime.h"
 #include "scheduler.h"
+#include "demo.h"
+#include "ble_server.h"
 #include <esp_ota_ops.h>
 
 static void factory_reset()
@@ -15,9 +17,18 @@ static void factory_reset()
     ESP_LOGW(TAG, "Resetting all settings to defaults...");
     ESP_ERROR_CHECK(effects_reset());
     ESP_ERROR_CHECK(scheduler_reset());
+    ESP_ERROR_CHECK(demo_reset());
+    ble_server_forget_bonds();
     ESP_ERROR_CHECK(sys_settings_reset());
     ESP_ERROR_CHECK(vol_settings_reset());
     esp_restart();
+}
+
+static void open_pairing_window()
+{
+    ble_server_open_pairing_window();
+    // confirmation blink
+    surface_flash(rgb_from_values(0, 0, 96), PAIRING_BLINK_MS);
 }
 
 #if CONFIG_FL_INPUT_FOUR_BUTTONS
@@ -42,8 +53,10 @@ static void process_button_event(event_t *e)
             break;
 
         case INPUT_BTN_MAIN:
-            if (e->type == EVENT_BUTTON_CLICKED && playing)
-                surface_next_effect();
+            if (e->type == EVENT_BUTTON_CLICKED && ie->clicks == PAIRING_CLICKS)
+                open_pairing_window();
+            else if (e->type == EVENT_BUTTON_CLICKED && ie->clicks == 1 && playing)
+                demo_next_effect(1);
             else if (e->type == EVENT_BUTTON_HOLD && !handled && ie->hold_ms >= POWER_HOLD_MS)
             {
                 handled = true;
@@ -77,6 +90,12 @@ static void process_button_event(event_t *e)
     static bool brightness_up = false;
     static bool reset_armed = false;
 
+    if (e->type == EVENT_BUTTON_CLICKED && ie->clicks == PAIRING_CLICKS)
+    {
+        open_pairing_window();
+        return;
+    }
+
     if (!playing)
     {
         if (e->type == EVENT_BUTTON_CLICKED)
@@ -95,11 +114,11 @@ static void process_button_event(event_t *e)
     {
         case EVENT_BUTTON_CLICKED:
             if (ie->clicks == 1)
-                surface_next_effect();
+                demo_next_effect(1);
             else if (ie->clicks == 2)
                 surface_stop();
-            else
-                surface_prev_effect();
+            else if (ie->clicks == 3)
+                demo_next_effect(-1);
             break;
 
         case EVENT_BUTTON_HOLD_START:
@@ -136,12 +155,16 @@ static void process_schedule_event(event_t *e)
             surface_stop();
             break;
         case SCHEDULE_ACTION_DAWN_START:
-            ESP_LOGI(TAG, "Schedule: dawn started, effect %d", a->effect);
+        {
+            ESP_LOGI(TAG, "Schedule: dawn started, effect '%s'", a->effect);
+            demo_stop();
             surface_set_brightness_ex(a->brightness, false);
-            if (a->effect < effects_count && a->effect != vol_settings.effect)
-                surface_set_effect(a->effect);
+            int effect = effect_find(a->effect);
+            if (effect >= 0 && (size_t)effect != vol_settings.effect)
+                surface_set_effect(effect);
             surface_play();
             break;
+        }
         case SCHEDULE_ACTION_BRIGHTNESS:
             if (surface_is_playing())
                 surface_set_brightness_ex(a->brightness, false);
@@ -179,6 +202,14 @@ static void main_loop(void *arg)
                 process_schedule_event(&e);
                 break;
 
+            case EVENT_DEMO_NEXT:
+                demo_on_timer();
+                break;
+
+            case EVENT_FACTORY_RESET:
+                factory_reset();
+                break;
+
             case EVENT_NETWORK_UP:
                 ESP_LOGI(TAG, "Network is up, restarting HTTPD...");
                 err = webserver_restart();
@@ -198,6 +229,7 @@ static void main_loop(void *arg)
 
 void app_main()
 {
+    esp_err_t res;
     ESP_LOGI(TAG, "Starting " APP_NAME);
     ESP_LOGI(TAG, "Free heap: %lu bytes", esp_get_free_heap_size());
 
@@ -217,14 +249,22 @@ void app_main()
     // Initialize bus
     ESP_ERROR_CHECK(bus_init());
 
+    // Demo mode (resumes if it was on)
+    ESP_ERROR_CHECK(demo_init());
+
     // Initialize input
     ESP_ERROR_CHECK(input_init());
 
     // Start scheduler
     ESP_ERROR_CHECK(scheduler_init());
 
+    // BLE control
+    res = ble_server_init();
+    if (res != ESP_OK)
+        ESP_LOGE(TAG, "Could not start BLE: %d (%s)", res, esp_err_to_name(res));
+
     // Try to start WIFI
-    esp_err_t res = wifi_init();
+    res = wifi_init();
     if (res != ESP_OK)
         ESP_LOGW(TAG, "Could not start WiFi: %d (%s)", res, esp_err_to_name(res));
 

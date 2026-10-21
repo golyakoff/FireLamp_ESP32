@@ -5,7 +5,7 @@
 #define P_DENSITY 0
 
 EFFECT_PARAMS(matrix, 1) = {
-    DECL_PARAM_RANGE(P_DENSITY, "Density", 0, 255, 150),
+    DECL_PARAM_RANGE(P_DENSITY, "density", "Density", 0, 255, 150),
 };
 
 #define MATRIX_START_COLOR   0x9bf800

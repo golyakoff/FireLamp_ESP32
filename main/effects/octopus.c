@@ -17,9 +17,9 @@
 #define P_CLOCKWISE 2
 
 EFFECT_PARAMS(octopus, 3) = {
-    DECL_PARAM_RANGE(P_SPEED, "Speed", 1, 10, 3),
-    DECL_PARAM_RANGE(P_LEGS, "Legs", 2, 10, 3),
-    DECL_PARAM_BOOL(P_CLOCKWISE, "Clockwise", 0),
+    DECL_PARAM_RANGE(P_SPEED, "speed", "Speed", 1, 10, 3),
+    DECL_PARAM_RANGE(P_LEGS, "legs", "Legs", 2, 10, 3),
+    DECL_PARAM_BOOL(P_CLOCKWISE, "clockwise", "Clockwise", 0),
 };
 
 typedef struct {

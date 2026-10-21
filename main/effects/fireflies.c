@@ -16,10 +16,10 @@
 #define P_TIME  3
 
 EFFECT_PARAMS(fireflies, 4) = {
-    DECL_PARAM_RANGE(P_COUNT, "Number of fireflies", 4, MAX_FIREFLIES, 16),
-    DECL_PARAM_BOOL(P_CHAOS, "Chaotic movement", 1),
-    DECL_PARAM_RANGE(P_SPEED, "Speed", 1, 255, 255),
-    DECL_PARAM_RANGE(P_TIME, "Update time", 1, 10, 3),
+    DECL_PARAM_RANGE(P_COUNT, "fireflies", "Number of fireflies", 4, MAX_FIREFLIES, 16),
+    DECL_PARAM_BOOL(P_CHAOS, "chaotic", "Chaotic movement", 1),
+    DECL_PARAM_RANGE(P_SPEED, "speed", "Speed", 1, 255, 255),
+    DECL_PARAM_RANGE(P_TIME, "update_time", "Update time", 1, 10, 3),
 };
 
 typedef struct

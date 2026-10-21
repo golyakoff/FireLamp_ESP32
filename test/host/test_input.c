@@ -40,9 +40,17 @@ int main(void)
     reset(); press(100); run_ms(150); press(100); run_ms(500);
     assert(n == 1 && log_[0].e.clicks == 2);
 
-    // triple click is reported immediately on the third release
+    // triple click is reported after the multi-click timeout
     reset(); press(80); run_ms(100); press(80); run_ms(100); press(80); run_ms(30);
+    assert(n == 0);
+    run_ms(400);
     assert(n == 1 && log_[0].e.clicks == 3);
+
+    // 5 clicks (pairing gesture) are reported immediately on the fifth release
+    reset();
+    for (int i = 0; i < 4; i++) { press(80); run_ms(100); }
+    press(80); run_ms(30);
+    assert(n == 1 && log_[0].e.clicks == 5);
 
     // two clicks separated by more than the timeout are two single clicks
     reset(); press(100); run_ms(600); press(100); run_ms(600);
