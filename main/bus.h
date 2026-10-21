@@ -10,6 +10,7 @@ typedef enum {
     EVENT_BUTTON_HOLD_START,
     EVENT_BUTTON_HOLD,
     EVENT_BUTTON_HOLD_END,
+    EVENT_SCHEDULE,
     EVENT_TIMER
 } event_type_t;
 

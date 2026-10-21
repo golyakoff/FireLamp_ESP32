@@ -69,6 +69,14 @@
 #define STORAGE_TASK_PRIORITY 2
 
 ////////////////////////////////////////////////////////////////////////////////
+/// Time and scheduler
+
+#define MIN_VALID_TIME 1767225600 // 2026-01-01 UTC: anything earlier is not a real time
+#define RTC_SYNC_INTERVAL_S 3600
+#define SCHEDULER_TASK_STACK_SIZE 4096
+#define SCHEDULER_TASK_PRIORITY 4
+
+////////////////////////////////////////////////////////////////////////////////
 /// Bus
 
 #define BUS_QUEUE_LEN 10

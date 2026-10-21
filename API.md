@@ -19,6 +19,10 @@ FireLamp provides a simple API based on HTTP GET and POST requests containing JS
 - [Reset parameters of all effects](#reset-parameters-of-all-effects)
 - [Get current effect parameters](#get-current-effect-parameters)
 - [Set effect parameters](#set-effect-parameters)
+- [Get time](#get-time)
+- [Set time and time zone](#set-time-and-time-zone)
+- [Get schedule](#get-schedule)
+- [Set schedule](#set-schedule)
 
 ---
 
@@ -519,6 +523,137 @@ Set Palette = 1 and Scale = 60 for the "Fire" effect.
 {
   "effect": 1,
   "params": [ 1, 60 ]
+}
+```
+
+### Response
+
+```jsonc
+{
+  "result": <Integer, Result code. 0 - no errors>,
+  "name": <String, Name of the result code, "ESP_OK" for result code 0>,
+  "message": <String, Error message if result code != 0>
+}
+```
+
+---
+
+## Get time
+
+### Request
+
+**GET** `/api/time`
+
+### Response
+
+```jsonc
+{
+  "time": <Integer, current time, seconds since 1970-01-01 UTC>,
+  "local": <String, local time "YYYY-MM-DD HH:MM:SS">,
+  "tz": <String, POSIX time zone>,
+  "valid": <Boolean, time has been set since boot (RTC, phone, internet or API)>,
+  "source": <String, where the time came from: "none", "rtc", "ble", "sntp", "api">,
+  "rtc": <Boolean, DS3231 RTC is present>
+}
+```
+
+Schedules work only when `valid` is true.
+
+---
+
+## Set time and time zone
+
+Both fields are optional. The time is also written to the RTC when it is present.
+
+### Request
+
+**POST** `/api/time`
+
+```jsonc
+{
+  "time": <Integer, seconds since 1970-01-01 UTC>,
+  "tz": <String, POSIX time zone, e.g. "MSK-3" or "CET-1CEST,M3.5.0,M10.5.0/3", max 47 chars>
+}
+```
+
+Example (Linux): `curl -d "{\"time\": $(date +%s)}" http://<lamp>/api/time`
+
+### Response
+
+```jsonc
+{
+  "result": <Integer, Result code. 0 - no errors>,
+  "name": <String, Name of the result code, "ESP_OK" for result code 0>,
+  "message": <String, Error message if result code != 0>
+}
+```
+
+---
+
+## Get schedule
+
+### Request
+
+**GET** `/api/schedule`
+
+### Response
+
+```jsonc
+{
+  "power_on": <Schedule time, turn the lamp on>,
+  "power_off": <Schedule time, turn the lamp off>,
+  "dawn": {
+    <Schedule time fields: moment when the full brightness is reached>,
+    "duration": <Integer, minutes of brightness ramp before that moment, 1..120>,
+    "effect": <Integer, effect number>,
+    "brightness": <Integer, final brightness, 1..255>
+  },
+  "hourly_brightness": {
+    "enabled": <Boolean>,
+    "values": <Array of 24 integers 1..255, brightness for every hour of the day>
+  }
+}
+```
+
+Schedule time:
+
+```jsonc
+{
+  "enabled": <Boolean>,
+  "days": <Integer, days of week bitmask: bit 0 - Monday ... bit 6 - Sunday, 127 - every day>,
+  "hour": <Integer, 0..23, local time>,
+  "minute": <Integer, 0..59>
+}
+```
+
+Notes:
+
+- Power on/off fire once at the given minute; the lamp can be controlled manually in between.
+- Dawn turns the lamp on with the given effect and raises brightness from minimum to `brightness`
+  over `duration` minutes. Any manual control (buttons, app, API) stops the brightness ramp
+  until the next dawn.
+- Hourly brightness is applied when the lamp is turned on and at the start of every hour.
+  Manual brightness change keeps effect until the next hour.
+
+---
+
+## Set schedule
+
+All sections and fields are optional, missing ones keep their current values.
+
+### Request
+
+**POST** `/api/schedule`
+
+Same format as the response of [Get schedule](#get-schedule).
+
+**Example**
+
+Dawn on working days at 07:00 for 30 minutes:
+
+```json
+{
+  "dawn": { "enabled": true, "days": 31, "hour": 7, "minute": 0, "duration": 30 }
 }
 ```
 

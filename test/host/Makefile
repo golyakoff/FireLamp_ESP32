@@ -12,7 +12,7 @@ INPUT4 := -DCONFIG_FL_INPUT_FOUR_BUTTONS=1 -DCONFIG_FL_BUTTON_MAIN_GPIO=25 \
 	-DCONFIG_FL_BUTTON_UP_GPIO=26 -DCONFIG_FL_BUTTON_DOWN_GPIO=27 -DCONFIG_FL_BUTTON_RESET_GPIO=0 \
 	-DCONFIG_FL_BUTTON_LEVEL=1 -DCONFIG_FL_BUTTON_RESET_LEVEL=0 -DCONFIG_FL_BUTTON_PULLUPDOWN=1
 
-TESTS := build/test_storage build/test_input build/test_input4
+TESTS := build/test_storage build/test_input build/test_input4 build/test_schedule
 
 .PHONY: all clean
 all: $(TESTS)
@@ -29,6 +29,10 @@ build/test_input: test_input.c $(MAIN)/input.c $(MAIN)/input.h | build
 
 build/test_input4: test_input4.c $(MAIN)/input.c $(MAIN)/input.h | build
 	$(CC) $(CFLAGS) $(INPUT4) -o $@ test_input4.c
+
+# schedule.c is plain C without ESP-IDF dependencies
+build/test_schedule: test_schedule.c $(MAIN)/schedule.c $(MAIN)/schedule.h | build
+	$(CC) -Wall -std=gnu17 -I$(MAIN) -o $@ test_schedule.c $(MAIN)/schedule.c
 
 clean:
 	rm -rf build

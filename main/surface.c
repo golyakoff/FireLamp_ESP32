@@ -339,15 +339,21 @@ esp_err_t surface_prev_effect()
             : effects_count - 1);
 }
 
-esp_err_t surface_set_brightness(uint8_t val)
+esp_err_t surface_set_brightness_ex(uint8_t val, bool save)
 {
     // no pause needed: the renderer reads brightness on every frame
     vol_settings.brightness = val;
-    vol_settings_save();
+    if (save)
+        vol_settings_save();
 
     ESP_LOGD(TAG, "Brightness set to %d", val);
 
     return ESP_OK;
+}
+
+esp_err_t surface_set_brightness(uint8_t val)
+{
+    return surface_set_brightness_ex(val, true);
 }
 
 esp_err_t surface_increment_brightness(int16_t val)

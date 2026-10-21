@@ -6,12 +6,15 @@
 #include "surface.h"
 #include "input.h"
 #include "webserver.h"
+#include "systime.h"
+#include "scheduler.h"
 #include <esp_ota_ops.h>
 
 static void factory_reset()
 {
     ESP_LOGW(TAG, "Resetting all settings to defaults...");
     ESP_ERROR_CHECK(effects_reset());
+    ESP_ERROR_CHECK(scheduler_reset());
     ESP_ERROR_CHECK(sys_settings_reset());
     ESP_ERROR_CHECK(vol_settings_reset());
     esp_restart();
@@ -118,6 +121,39 @@ static void process_button_event(event_t *e)
 
 #endif
 
+static void process_schedule_event(event_t *e)
+{
+    const schedule_action_t *a = (const schedule_action_t *)e->data;
+
+    switch (a->type)
+    {
+        case SCHEDULE_ACTION_POWER_ON:
+            ESP_LOGI(TAG, "Schedule: power on");
+            surface_play();
+            break;
+        case SCHEDULE_ACTION_POWER_OFF:
+            ESP_LOGI(TAG, "Schedule: power off");
+            surface_stop();
+            break;
+        case SCHEDULE_ACTION_DAWN_START:
+            ESP_LOGI(TAG, "Schedule: dawn started, effect %d", a->effect);
+            surface_set_brightness_ex(a->brightness, false);
+            if (a->effect < effects_count && a->effect != vol_settings.effect)
+                surface_set_effect(a->effect);
+            surface_play();
+            break;
+        case SCHEDULE_ACTION_BRIGHTNESS:
+            if (surface_is_playing())
+                surface_set_brightness_ex(a->brightness, false);
+            break;
+        case SCHEDULE_ACTION_DAWN_END:
+            ESP_LOGI(TAG, "Schedule: dawn finished");
+            if (surface_is_playing())
+                surface_set_brightness(a->brightness);
+            break;
+    }
+}
+
 static void main_loop(void *arg)
 {
     event_t e;
@@ -134,7 +170,13 @@ static void main_loop(void *arg)
             case EVENT_BUTTON_HOLD_START:
             case EVENT_BUTTON_HOLD:
             case EVENT_BUTTON_HOLD_END:
+                // any manual control stops the dawn
+                scheduler_cancel_dawn();
                 process_button_event(&e);
+                break;
+
+            case EVENT_SCHEDULE:
+                process_schedule_event(&e);
                 break;
 
             case EVENT_NETWORK_UP:
@@ -167,6 +209,8 @@ void app_main()
     ESP_ERROR_CHECK(vol_settings_load());
     // Load effect parameters
     ESP_ERROR_CHECK(effects_init());
+    // Time zone, RTC
+    ESP_ERROR_CHECK(systime_init());
     // Init surface
     ESP_ERROR_CHECK(surface_init());
 
@@ -175,6 +219,9 @@ void app_main()
 
     // Initialize input
     ESP_ERROR_CHECK(input_init());
+
+    // Start scheduler
+    ESP_ERROR_CHECK(scheduler_init());
 
     // Try to start WIFI
     esp_err_t res = wifi_init();

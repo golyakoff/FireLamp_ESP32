@@ -6,8 +6,8 @@ Bluetooth Low Energy. Based on [EvLamp](https://github.com/UncleRus/EvLamp) by R
 [Matrix_Clock_ESP32](https://github.com/golyakoff/Matrix_Clock_ESP32).
 
 > **Status: work in progress.** The EvLamp core is ported to a single matrix and builds for both
-> targets; settings storage (NVS or external EEPROM) and buttons/touch are done. BLE control,
-> schedules, optional RTC and internet OTA are not implemented yet.
+> targets; settings storage (NVS or external EEPROM), buttons/touch, time (optional DS3231 RTC)
+> and schedules are done. BLE control and internet OTA are not implemented yet.
 
 ## Hardware
 
@@ -17,6 +17,7 @@ Bluetooth Low Energy. Based on [EvLamp](https://github.com/UncleRus/EvLamp) by R
 - Controls, selected in menuconfig: one button (or a TTP223 touch module), four buttons,
   or the ESP32 built-in touch pad (ESP32 only, ESP32-C3 has no touch sensor)
 - Optional AT24C32..AT24C512 I2C EEPROM for settings
+- Optional DS3231 RTC (keeps time while unpowered)
 
 LED output uses [espressif/led_strip](https://components.espressif.com/components/espressif/led_strip):
 SPI with DMA by default on ESP32-C3 (its RMT has no DMA), RMT by default on ESP32.
@@ -50,6 +51,22 @@ If the EEPROM does not respond at boot, the lamp logs a warning and uses NVS.
   3 seconds after the last change, and on reboot.
 - Effect parameters are stored by effect name, so they survive firmware updates that add or
   reorder effects.
+
+## Time and schedules
+
+The lamp keeps UTC and a POSIX time zone string (daylight saving time is handled). Time comes from
+the optional DS3231 RTC at boot, then from the phone (BLE), the internet (SNTP) or the HTTP API;
+when the RTC is present it is updated by these sources and corrects the system clock hourly.
+Without RTC and before the time is set the lamp works normally, only schedules wait.
+
+Schedules (see [API.md](API.md#get-schedule)):
+
+- **Power on / power off** at a given time on selected days of week
+- **Dawn alarm**: turns the lamp on with a chosen effect and raises brightness over 1..120
+  minutes, reaching the full brightness at the alarm time; manual control stops it
+- **Hourly brightness**: 24 values, applied when the lamp is on and at every hour change
+
+Automatic brightness changes (dawn ramp, hourly) are not written to the settings storage.
 
 ## Building
 

@@ -317,6 +317,27 @@ menu "*** FireLamp configuration ***"
 		config FL_I2C_USED
 			bool
 
+		menu "Time"
+
+			config FL_RTC_DS3231
+				bool "DS3231 real time clock"
+				default n
+				select FL_I2C_USED
+				help
+					Keeps time while the lamp is unpowered. Optional: when it is
+					disabled or not found, time comes from the phone (BLE) or the
+					internet (SNTP), schedules start working once it is set.
+
+			config FL_TZ_DEFAULT
+				string "Default time zone (POSIX TZ string)"
+				default "MSK-3"
+				help
+					Examples: "MSK-3" (Moscow), "EET-2EEST,M3.5.0/3,M10.5.0/4" (Kyiv),
+					"CET-1CEST,M3.5.0,M10.5.0/3" (Berlin), "UTC0".
+					Can be changed at runtime.
+
+		endmenu
+
 		menu "Settings storage"
 
 			choice FL_STORAGE_C

@@ -32,6 +32,9 @@ static system_settings_t sys_defaults = {
             .threshold.authmode = WIFI_AUTH_WPA2_PSK,
         },
     },
+    .time = {
+        .tz = CONFIG_FL_TZ_DEFAULT,
+    },
     .leds = {
         .width         = CONFIG_FL_MATRIX_WIDTH,
         .height        = CONFIG_FL_MATRIX_HEIGHT,

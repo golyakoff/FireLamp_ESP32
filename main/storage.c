@@ -26,6 +26,7 @@ static const record_descr_t records[STORAGE_RECORD_MAX] = {
     [STORAGE_SYSTEM]   = { .name = "system",   .max_size = STORAGE_SYSTEM_MAX_SIZE },
     [STORAGE_VOLATILE] = { .name = "volatile", .max_size = STORAGE_VOLATILE_MAX_SIZE },
     [STORAGE_EFFECTS]  = { .name = "effects",  .max_size = STORAGE_EFFECTS_MAX_SIZE },
+    [STORAGE_SCHEDULE] = { .name = "schedule", .max_size = STORAGE_SCHEDULE_MAX_SIZE },
 };
 
 static const char *NVS_NAMESPACE = "storage";

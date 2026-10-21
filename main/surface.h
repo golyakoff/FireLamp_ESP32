@@ -23,6 +23,11 @@ esp_err_t surface_prev_effect();
 
 esp_err_t surface_set_brightness(uint8_t val);
 
+/**
+ * Set brightness, optionally without saving it (for automatic changes: dawn, hourly brightness)
+ */
+esp_err_t surface_set_brightness_ex(uint8_t val, bool save);
+
 esp_err_t surface_increment_brightness(int16_t val);
 
 esp_err_t surface_set_fps(uint8_t val);

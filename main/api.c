@@ -1,9 +1,12 @@
 #include "api.h"
+#include <string.h>
 #include <lwip/ip_addr.h>
 #include <esp_ota_ops.h>
 #include "settings.h"
 #include "effect.h"
 #include "surface.h"
+#include "systime.h"
+#include "scheduler.h"
 
 static esp_err_t respond_json(httpd_req_t *req, cJSON *resp)
 {
@@ -635,6 +638,9 @@ static esp_err_t post_lamp_state(httpd_req_t *req)
         goto exit;
     }
 
+    // manual control stops the dawn
+    scheduler_cancel_dawn();
+
     if (effect_item)
     {
         err = surface_set_effect((size_t)cJSON_GetNumberValue(effect_item));
@@ -769,6 +775,253 @@ static const httpd_uri_t route_post_lamp_effect = {
 
 ////////////////////////////////////////////////////////////////////////////////
 
+////////////////////////////////////////////////////////////////////////////////
+
+static esp_err_t get_time(httpd_req_t *req)
+{
+    time_t now = time(NULL);
+    struct tm t;
+    localtime_r(&now, &t);
+    char local[32];
+    strftime(local, sizeof(local), "%Y-%m-%d %H:%M:%S", &t);
+
+    cJSON *res = cJSON_CreateObject();
+    cJSON_AddNumberToObject(res, "time", (double)now);
+    cJSON_AddStringToObject(res, "local", local);
+    cJSON_AddStringToObject(res, "tz", systime_get_tz());
+    cJSON_AddBoolToObject(res, "valid", systime_is_valid());
+    cJSON_AddStringToObject(res, "source", systime_source_name(systime_source()));
+    cJSON_AddBoolToObject(res, "rtc", systime_has_rtc());
+
+    return respond_json(req, res);
+}
+
+static const httpd_uri_t route_get_time = {
+    .uri = "/api/time",
+    .method = HTTP_GET,
+    .handler = get_time
+};
+
+static esp_err_t post_time(httpd_req_t *req)
+{
+    const char *msg = NULL;
+    cJSON *json = NULL;
+
+    esp_err_t err = parse_post_json(req, &msg, &json);
+    if (err != ESP_OK)
+        goto exit;
+
+    cJSON *time_item = cJSON_GetObjectItem(json, "time");
+    if (time_item && !cJSON_IsNumber(time_item))
+    {
+        err = ESP_ERR_INVALID_ARG;
+        msg = "Invalid `time` item";
+        goto exit;
+    }
+    cJSON *tz_item = cJSON_GetObjectItem(json, "tz");
+    if (tz_item && (!cJSON_IsString(tz_item) || !strlen(cJSON_GetStringValue(tz_item))
+            || strlen(cJSON_GetStringValue(tz_item)) >= TZ_MAX_LEN))
+    {
+        err = ESP_ERR_INVALID_ARG;
+        msg = "Invalid `tz` item";
+        goto exit;
+    }
+
+    if (tz_item)
+    {
+        err = systime_set_tz(cJSON_GetStringValue(tz_item));
+        if (err != ESP_OK)
+        {
+            msg = "Error setting time zone";
+            goto exit;
+        }
+    }
+    if (time_item)
+    {
+        err = systime_set((time_t)cJSON_GetNumberValue(time_item), TIME_SOURCE_API);
+        if (err != ESP_OK)
+        {
+            msg = "Invalid time";
+            goto exit;
+        }
+    }
+
+exit:
+    if (json) cJSON_Delete(json);
+    return respond_api(req, err, msg);
+}
+
+static const httpd_uri_t route_post_time = {
+    .uri = "/api/time",
+    .method = HTTP_POST,
+    .handler = post_time
+};
+
+////////////////////////////////////////////////////////////////////////////////
+
+static cJSON *schedule_time_json(const schedule_time_t *t)
+{
+    cJSON *res = cJSON_CreateObject();
+    cJSON_AddBoolToObject(res, "enabled", t->enabled);
+    cJSON_AddNumberToObject(res, "days", t->days);
+    cJSON_AddNumberToObject(res, "hour", t->hour);
+    cJSON_AddNumberToObject(res, "minute", t->minute);
+    return res;
+}
+
+// Missing fields keep current values
+static bool schedule_time_parse(cJSON *json, schedule_time_t *t)
+{
+    if (!json)
+        return true;
+    if (!cJSON_IsObject(json))
+        return false;
+
+    cJSON *item = cJSON_GetObjectItem(json, "enabled");
+    if (item)
+    {
+        if (!cJSON_IsBool(item)) return false;
+        t->enabled = cJSON_IsTrue(item);
+    }
+    const char *names[] = { "days", "hour", "minute" };
+    uint8_t *fields[] = { &t->days, &t->hour, &t->minute };
+    for (size_t i = 0; i < 3; i++)
+    {
+        item = cJSON_GetObjectItem(json, names[i]);
+        if (!item) continue;
+        if (!cJSON_IsNumber(item) || cJSON_GetNumberValue(item) < 0 || cJSON_GetNumberValue(item) > 255)
+            return false;
+        *fields[i] = (uint8_t)cJSON_GetNumberValue(item);
+    }
+    return true;
+}
+
+static bool number_parse(cJSON *json, const char *name, uint8_t *val)
+{
+    cJSON *item = cJSON_GetObjectItem(json, name);
+    if (!item)
+        return true;
+    if (!cJSON_IsNumber(item) || cJSON_GetNumberValue(item) < 0 || cJSON_GetNumberValue(item) > 255)
+        return false;
+    *val = (uint8_t)cJSON_GetNumberValue(item);
+    return true;
+}
+
+static esp_err_t get_schedule(httpd_req_t *req)
+{
+    schedule_t s;
+    scheduler_get(&s);
+
+    cJSON *res = cJSON_CreateObject();
+    cJSON_AddItemToObject(res, "power_on", schedule_time_json(&s.power_on));
+    cJSON_AddItemToObject(res, "power_off", schedule_time_json(&s.power_off));
+
+    cJSON *dawn = schedule_time_json(&s.dawn.at);
+    cJSON_AddNumberToObject(dawn, "duration", s.dawn.duration);
+    cJSON_AddNumberToObject(dawn, "effect", s.dawn.effect);
+    cJSON_AddNumberToObject(dawn, "brightness", s.dawn.brightness);
+    cJSON_AddItemToObject(res, "dawn", dawn);
+
+    cJSON *hourly = cJSON_CreateObject();
+    cJSON_AddBoolToObject(hourly, "enabled", s.hourly.enabled);
+    cJSON *values = cJSON_CreateArray();
+    for (size_t h = 0; h < 24; h++)
+        cJSON_AddItemToArray(values, cJSON_CreateNumber(s.hourly.values[h]));
+    cJSON_AddItemToObject(hourly, "values", values);
+    cJSON_AddItemToObject(res, "hourly_brightness", hourly);
+
+    return respond_json(req, res);
+}
+
+static const httpd_uri_t route_get_schedule = {
+    .uri = "/api/schedule",
+    .method = HTTP_GET,
+    .handler = get_schedule
+};
+
+static esp_err_t post_schedule(httpd_req_t *req)
+{
+    const char *msg = NULL;
+    cJSON *json = NULL;
+    schedule_t s;
+    scheduler_get(&s);
+
+    esp_err_t err = parse_post_json(req, &msg, &json);
+    if (err != ESP_OK)
+        goto exit;
+
+    err = ESP_ERR_INVALID_ARG;
+    if (!schedule_time_parse(cJSON_GetObjectItem(json, "power_on"), &s.power_on))
+    {
+        msg = "Invalid `power_on` item";
+        goto exit;
+    }
+    if (!schedule_time_parse(cJSON_GetObjectItem(json, "power_off"), &s.power_off))
+    {
+        msg = "Invalid `power_off` item";
+        goto exit;
+    }
+    cJSON *dawn = cJSON_GetObjectItem(json, "dawn");
+    if (!schedule_time_parse(dawn, &s.dawn.at)
+            || (dawn && (!number_parse(dawn, "duration", &s.dawn.duration)
+                || !number_parse(dawn, "effect", &s.dawn.effect)
+                || !number_parse(dawn, "brightness", &s.dawn.brightness))))
+    {
+        msg = "Invalid `dawn` item";
+        goto exit;
+    }
+    if (s.dawn.effect >= effects_count)
+    {
+        msg = "Invalid dawn effect";
+        goto exit;
+    }
+    cJSON *hourly = cJSON_GetObjectItem(json, "hourly_brightness");
+    if (hourly)
+    {
+        cJSON *enabled = cJSON_GetObjectItem(hourly, "enabled");
+        cJSON *values = cJSON_GetObjectItem(hourly, "values");
+        if (!cJSON_IsObject(hourly) || (enabled && !cJSON_IsBool(enabled))
+                || (values && (!cJSON_IsArray(values) || cJSON_GetArraySize(values) != 24)))
+        {
+            msg = "Invalid `hourly_brightness` item";
+            goto exit;
+        }
+        if (enabled)
+            s.hourly.enabled = cJSON_IsTrue(enabled);
+        for (size_t h = 0; values && h < 24; h++)
+        {
+            cJSON *v = cJSON_GetArrayItem(values, h);
+            if (!cJSON_IsNumber(v) || cJSON_GetNumberValue(v) < 1 || cJSON_GetNumberValue(v) > 255)
+            {
+                msg = "Invalid hourly brightness value";
+                goto exit;
+            }
+            s.hourly.values[h] = (uint8_t)cJSON_GetNumberValue(v);
+        }
+    }
+    if (!schedule_validate(&s))
+    {
+        msg = "Invalid schedule values";
+        goto exit;
+    }
+
+    err = scheduler_set(&s);
+    if (err != ESP_OK)
+        msg = "Error saving schedule";
+
+exit:
+    if (json) cJSON_Delete(json);
+    return respond_api(req, err, msg);
+}
+
+static const httpd_uri_t route_post_schedule = {
+    .uri = "/api/schedule",
+    .method = HTTP_POST,
+    .handler = post_schedule
+};
+
+////////////////////////////////////////////////////////////////////////////////
+
 esp_err_t api_init(httpd_handle_t server)
 {
     CHECK(httpd_register_uri_handler(server, &route_get_info));
@@ -784,6 +1037,10 @@ esp_err_t api_init(httpd_handle_t server)
     CHECK(httpd_register_uri_handler(server, &route_post_lamp_state));
     CHECK(httpd_register_uri_handler(server, &route_get_lamp_effect));
     CHECK(httpd_register_uri_handler(server, &route_post_lamp_effect));
+    CHECK(httpd_register_uri_handler(server, &route_get_time));
+    CHECK(httpd_register_uri_handler(server, &route_post_time));
+    CHECK(httpd_register_uri_handler(server, &route_get_schedule));
+    CHECK(httpd_register_uri_handler(server, &route_post_schedule));
 
     return ESP_OK;
 }

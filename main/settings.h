@@ -41,6 +41,9 @@ typedef struct
         wifi_sta_config_t sta;
     } wifi;
     struct {
+        char tz[48];        // POSIX TZ string
+    } time;
+    struct {
         uint8_t width;
         uint8_t height;
         uint8_t type;

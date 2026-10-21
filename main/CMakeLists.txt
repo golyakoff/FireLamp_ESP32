@@ -9,6 +9,10 @@ idf_component_register(
 		storage.c
 		i2c_bus.c
 		eeprom.c
+		ds3231.c
+		systime.c
+		schedule.c
+		scheduler.c
 		wifi.c
 		bus.c
 		effect.c
