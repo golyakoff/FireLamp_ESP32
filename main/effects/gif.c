@@ -50,7 +50,8 @@ EFFECT_PARAMS(gif, 1) = {
 nsgif_t *gif = NULL;
 const nsgif_info_t *gif_info;
 uint32_t next_frame_time = 0;
-size_t pos_x = 0, pos_y = 0;
+// the GIF is scaled to fit the matrix keeping the aspect ratio: out_w x out_h at pos_x, pos_y
+size_t out_w = 0, out_h = 0, pos_x = 0, pos_y = 0;
 
 static nsgif_bitmap_t *bitmap_create(int width, int height)
 {
@@ -113,8 +114,18 @@ esp_err_t effect_gif_prepare(framebuffer_t *fb)
     gif_info = nsgif_get_info(gif);
     ESP_LOGI(TAG, "GIF frame_count=%lu, width=%lu, height=%lu", gif_info->frame_count, gif_info->width, gif_info->height);
 
-    pos_x = fb->width / 2 - gif_info->width / 2;
-    pos_y = fb->height / 2 - gif_info->height / 2;
+    if (gif_info->width * fb->height <= gif_info->height * fb->width)
+    {
+        out_h = fb->height;
+        out_w = MAX(1, gif_info->width * fb->height / gif_info->height);
+    }
+    else
+    {
+        out_w = fb->width;
+        out_h = MAX(1, gif_info->height * fb->width / gif_info->width);
+    }
+    pos_x = (fb->width - out_w) / 2;
+    pos_y = (fb->height - out_h) / 2;
 
     next_frame_time = 0;
 
@@ -146,8 +157,6 @@ esp_err_t effect_gif_run(framebuffer_t *fb)
     }
     next_frame_time = delay_cs == NSGIF_INFINITE ? UINT32_MAX : time_cs + delay_cs - 1;
 
-    CHECK(fb_begin(fb));
-
     nsgif_bitmap_t *bitmap;
     res = nsgif_frame_decode(gif, frame, &bitmap);
     if (res != NSGIF_OK)
@@ -156,19 +165,36 @@ esp_err_t effect_gif_run(framebuffer_t *fb)
         return ESP_FAIL;
     }
 
+    CHECK(fb_begin(fb));
+
+    // the bitmap is the whole composed image, not only frame_rect: draw all of it.
+    // Every matrix pixel gets the average of its block of GIF pixels (one pixel when scaling up).
+    // GIF rows go top to bottom, matrix rows bottom to top.
     uint32_t *frame_image = (uint32_t *)bitmap;
 
-    for (size_t x = frame_rect.x0; x < MIN(fb->width, frame_rect.x1); x++)
-        for (size_t y = frame_rect.y0; y < MIN(fb->height, frame_rect.y1); y++)
+    fb_clear(fb);
+    for (size_t oy = 0; oy < out_h; oy++)
+    {
+        size_t y0 = oy * gif_info->height / out_h;
+        size_t y1 = MAX(y0 + 1, (oy + 1) * gif_info->height / out_h);
+        for (size_t ox = 0; ox < out_w; ox++)
         {
-            size_t offs = y * gif_info->width + x;
-            rgb_t c = {
-                .r = frame_image[offs],
-                .g = frame_image[offs] >> 8,
-                .b = frame_image[offs] >> 16,
-            };
-            fb_set_pixel_rgb(fb, pos_x + x, pos_y + fb->height - y - 1, c);
+            size_t x0 = ox * gif_info->width / out_w;
+            size_t x1 = MAX(x0 + 1, (ox + 1) * gif_info->width / out_w);
+            uint32_t r = 0, g = 0, b = 0;
+            for (size_t y = y0; y < y1; y++)
+                for (size_t x = x0; x < x1; x++)
+                {
+                    uint32_t p = frame_image[y * gif_info->width + x];
+                    r += p & 0xff;
+                    g += (p >> 8) & 0xff;
+                    b += (p >> 16) & 0xff;
+                }
+            uint32_t n = (y1 - y0) * (x1 - x0);
+            rgb_t c = { .r = r / n, .g = g / n, .b = b / n };
+            fb_set_pixel_rgb(fb, pos_x + ox, pos_y + out_h - oy - 1, c);
         }
+    }
 
     return fb_end(fb);
 }

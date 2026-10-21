@@ -163,7 +163,7 @@ Layout: mask, on, brightness, fps, demo, str8 effect code (empty when bit 1 is n
   mode switching effects, the HTTP API. Use notifications as the source of truth; do not assume a
   write changed what you expect (e.g. selecting an effect turns the demo mode off).
 - During a dawn, brightness notifications come up to 4 times per second.
-- For a brightness slider, write at most every ~100 ms; the lamp saves settings 3 s after the
+- For a brightness slider, write at most every ~100 ms; the lamp saves settings 15 s after the
   last change, so frequent writes do not wear the flash.
 - Next/previous effect respecting the demo mode: Command `0x04` / `0x05`.
 

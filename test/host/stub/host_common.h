@@ -53,7 +53,7 @@ static inline BaseType_t xTaskCreate(void *f, const char *n, int s, void *a, int
 #define vTaskDelay(x) (void)0
 // project config: keep in sync with main/config.h
 #define SETTINGS_MAGIC 0xf1a30001
-#define STORAGE_SAVE_DELAY_MS 3000
+#define STORAGE_SAVE_DELAY_MS 15000
 #define STORAGE_TASK_STACK_SIZE 4096
 #define STORAGE_TASK_PRIORITY 2
 #define INPUT_TASK_STACK_SIZE 3072

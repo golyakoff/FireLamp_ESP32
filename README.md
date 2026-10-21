@@ -115,7 +115,7 @@ survives `erase-flash` and module replacement), otherwise in the internal flash 
 - Every record has a magic number, size and CRC. In the EEPROM each record has two slots that are
   written alternately, so a power loss during a write keeps the previous copy.
 - Frequently changed values (brightness, current effect, effect parameters) are written
-  3 seconds after the last change, and on reboot.
+  15 seconds after the last change, and on reboot.
 - Effect parameters are stored by effect name, so they survive firmware updates that add or
   reorder effects.
 

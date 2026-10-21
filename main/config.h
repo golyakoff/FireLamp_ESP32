@@ -73,7 +73,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 /// Storage
 
-#define STORAGE_SAVE_DELAY_MS 3000
+#define STORAGE_SAVE_DELAY_MS 15000
 #define STORAGE_TASK_STACK_SIZE 4096
 #define STORAGE_TASK_PRIORITY 2
 

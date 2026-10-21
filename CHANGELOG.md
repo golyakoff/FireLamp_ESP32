@@ -1,3 +1,8 @@
+Release 0.1.3
+
+- [x] GIF effect: the image is scaled to fit the matrix keeping the aspect ratio (averaging pixels when scaled down) and centered; before, on matrices smaller than 16x16 only a few dots were shown
+- [x] Settings are saved 15 s after the last change instead of 3 s
+
 Release 0.1.2
 
 - [x] BLE: a disconnect aborts only a firmware upload over BLE; an update from the internet started by the app goes on without the phone
