@@ -1,3 +1,8 @@
+Release 0.1.4
+
+- [x] Firmware update no longer turns the demo mode off: it goes on after the update (before, the lamp rebooted with the demo mode off)
+- [x] A failed or aborted firmware update turns the lamp back on if it was on (before, it stayed dark)
+
 Release 0.1.3
 
 - [x] GIF effect: the image is scaled to fit the matrix keeping the aspect ratio (averaging pixels when scaled down) and centered; before, on matrices smaller than 16x16 only a few dots were shown

@@ -57,4 +57,11 @@ void surface_state_changed();
  */
 esp_err_t surface_flash(rgb_t color, uint32_t ms);
 
+/**
+ * Firmware update: blank the matrix for the transfer (hold = true), and after a failed or
+ * aborted update turn the animation back on if it was playing before (hold = false).
+ * The demo mode is not touched: its timer waits while the animation is stopped.
+ */
+esp_err_t surface_hold_for_update(bool hold);
+
 #endif /* EVLAMP_SURFACE_H_ */

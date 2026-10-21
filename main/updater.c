@@ -9,7 +9,6 @@
 #include "ota.h"
 #include "settings.h"
 #include "surface.h"
-#include "demo.h"
 #include "scheduler.h"
 #include "wifi.h"
 
@@ -177,9 +176,8 @@ static esp_err_t install()
     ESP_LOGI(TAG, "Updater: installing %s from %s", info.version, url);
 
     // like the BLE upload: blank the matrix, stop automatic changes
-    demo_stop();
     scheduler_cancel_dawn();
-    surface_stop();
+    surface_hold_for_update(true);
 
     esp_http_client_handle_t client = http_client(url);
     if (!client)

@@ -486,6 +486,28 @@ esp_err_t surface_play()
     return res;
 }
 
+esp_err_t surface_hold_for_update(bool hold)
+{
+    static bool held = false, was_playing = false;
+
+    xSemaphoreTakeRecursive(lock, portMAX_DELAY);
+    esp_err_t res = ESP_OK;
+    if (hold && !held)
+    {
+        held = true;
+        was_playing = surface_is_playing();
+        res = surface_stop_unlocked();
+    }
+    else if (!hold && held)
+    {
+        held = false;
+        if (was_playing)
+            res = surface_play_unlocked();
+    }
+    xSemaphoreGiveRecursive(lock);
+    return res;
+}
+
 esp_err_t surface_set_effect_ex(size_t num, bool save)
 {
     xSemaphoreTakeRecursive(lock, portMAX_DELAY);

@@ -240,6 +240,9 @@ static void on_ota_status(ota_state_t state, ota_error_t err, uint32_t received,
         if (ble_upload)
             wifi_pause(false);
         ble_upload = false;
+        // the update failed or was aborted: the lamp goes on as before (BUSY: another update runs)
+        if (err != OTA_ERR_BUSY)
+            surface_hold_for_update(false);
     }
 
     buf_t b = { 0 };
@@ -803,9 +806,8 @@ static int chr_ota_control(struct ble_gatt_access_ctxt *ctxt, reader_t *r)
                 return 0;
             }
             // blank the matrix and stop automatic changes during the transfer
-            demo_stop();
             scheduler_cancel_dawn();
-            surface_stop();
+            surface_hold_for_update(true);
             wifi_pause(true);
             request_ota_conn_params();
             ble_upload = true;
