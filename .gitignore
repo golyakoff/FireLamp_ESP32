@@ -7,3 +7,4 @@ sdkconfig.old
 .vscode/
 .idea/
 *.swp
+test/host/build/

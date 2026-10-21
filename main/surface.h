@@ -19,9 +19,11 @@ esp_err_t surface_set_effect(size_t num);
 
 esp_err_t surface_next_effect();
 
+esp_err_t surface_prev_effect();
+
 esp_err_t surface_set_brightness(uint8_t val);
 
-esp_err_t surface_increment_brightness(int8_t val);
+esp_err_t surface_increment_brightness(int16_t val);
 
 esp_err_t surface_set_fps(uint8_t val);
 

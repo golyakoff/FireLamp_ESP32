@@ -181,24 +181,49 @@ menu "*** FireLamp configuration ***"
 
 		endmenu
 
-		menu "Buttons configuration"
+		menu "Controls"
+
+			choice FL_INPUT_MODE_C
+				prompt "Control elements"
+				default FL_INPUT_ONE_BUTTON
+				help
+					One button (or touch pad):
+					  lamp off: click - turn on, hold 10 s - reset all settings;
+					  lamp on: click - next effect, double click - turn off,
+					  triple click - previous effect, hold - change brightness
+					  (direction alternates with every hold).
+					Four buttons (as in EvLamp):
+					  Main: click - next effect, hold - turn on/off;
+					  Up/Down: brightness, hold to repeat;
+					  Reset: hold 3 s - reset all settings.
+
+				config FL_INPUT_ONE_BUTTON
+					bool "One button (or TTP223 touch module)"
+
+				config FL_INPUT_FOUR_BUTTONS
+					bool "Four buttons: Main, Up, Down, Reset"
+
+				config FL_INPUT_TOUCH
+					bool "ESP32 built-in touch pad"
+					depends on IDF_TARGET_ESP32
+			endchoice
 
 			config FL_BUTTON_LEVEL
 				int "Button logic level for 'pressed' state"
+				depends on !FL_INPUT_TOUCH
 				range 0 1
 				default 1
-
-			config FL_BUTTON_RESET_LEVEL
-				int "Logic level of reset button for 'pressed' state"
-				range 0 1
-				default 0
+				help
+					TTP223 touch module output is active high: use 1.
 
 			config FL_BUTTON_PULLUPDOWN
 				bool "Enable internal pullup/pulldown resistor"
+				depends on !FL_INPUT_TOUCH
 				default y
 
 			config FL_BUTTON_MAIN_GPIO
 				int "'Main' button GPIO pin"
+				depends on !FL_INPUT_TOUCH
 				range 0 39 if IDF_TARGET_ESP32
 				range 0 21 if IDF_TARGET_ESP32C3
 				default 4 if IDF_TARGET_ESP32C3
@@ -206,6 +231,7 @@ menu "*** FireLamp configuration ***"
 
 			config FL_BUTTON_UP_GPIO
 				int "'Up' button GPIO pin"
+				depends on FL_INPUT_FOUR_BUTTONS
 				range 0 39 if IDF_TARGET_ESP32
 				range 0 21 if IDF_TARGET_ESP32C3
 				default 6 if IDF_TARGET_ESP32C3
@@ -213,6 +239,7 @@ menu "*** FireLamp configuration ***"
 
 			config FL_BUTTON_DOWN_GPIO
 				int "'Down' button GPIO pin"
+				depends on FL_INPUT_FOUR_BUTTONS
 				range 0 39 if IDF_TARGET_ESP32
 				range 0 21 if IDF_TARGET_ESP32C3
 				default 7 if IDF_TARGET_ESP32C3
@@ -220,12 +247,121 @@ menu "*** FireLamp configuration ***"
 
 			config FL_BUTTON_RESET_GPIO
 				int "'Reset' button GPIO pin"
+				depends on FL_INPUT_FOUR_BUTTONS
 				range 0 39 if IDF_TARGET_ESP32
 				range 0 21 if IDF_TARGET_ESP32C3
 				default 9 if IDF_TARGET_ESP32C3
 				default 0
 
+			config FL_BUTTON_RESET_LEVEL
+				int "Logic level of reset button for 'pressed' state"
+				depends on FL_INPUT_FOUR_BUTTONS
+				range 0 1
+				default 0
+
+			config FL_TOUCH_CHANNEL
+				int "Touch pad channel"
+				depends on FL_INPUT_TOUCH
+				range 0 9
+				default 0
+				help
+					Touch channel and its GPIO:
+					T0 - GPIO4, T1 - GPIO0, T2 - GPIO2, T3 - GPIO15, T4 - GPIO13,
+					T5 - GPIO12, T6 - GPIO14, T7 - GPIO27, T8 - GPIO33, T9 - GPIO32.
+					Avoid T1 (GPIO0), T2 (GPIO2) and T5 (GPIO12): strapping pins.
+
+			config FL_TOUCH_THRESHOLD_PERCENT
+				int "Touch threshold, % of the untouched value"
+				depends on FL_INPUT_TOUCH
+				range 1 50
+				default 3
+				help
+					The pad counts as touched when its value drops by this percentage
+					below the untouched value measured at boot (and slowly tracked
+					afterwards). Increase if the pad triggers by itself, decrease if it
+					does not react through the lamp body.
+
 		endmenu
+
+		menu "I2C bus"
+			depends on FL_I2C_USED
+
+			config FL_I2C_SDA_GPIO
+				int "SDA GPIO"
+				range 0 39 if IDF_TARGET_ESP32
+				range 0 21 if IDF_TARGET_ESP32C3
+				default 3 if IDF_TARGET_ESP32C3
+				default 21
+
+			config FL_I2C_SCL_GPIO
+				int "SCL GPIO"
+				range 0 39 if IDF_TARGET_ESP32
+				range 0 21 if IDF_TARGET_ESP32C3
+				default 10 if IDF_TARGET_ESP32C3
+				default 22
+
+			config FL_I2C_FREQ_HZ
+				int "Bus frequency, Hz"
+				range 10000 1000000
+				default 400000
+
+			config FL_I2C_INTERNAL_PULLUP
+				bool "Enable internal pullups"
+				default n
+				help
+					Internal pullups are weak (~45 kOhm), use external 4.7 kOhm
+					resistors (most modules already have them).
+
+		endmenu
+
+		config FL_I2C_USED
+			bool
+
+		menu "Settings storage"
+
+			choice FL_STORAGE_C
+				prompt "Settings storage"
+				default FL_STORAGE_NVS
+
+				config FL_STORAGE_NVS
+					bool "Internal flash (NVS)"
+
+				config FL_STORAGE_EEPROM
+					bool "External AT24Cxx EEPROM (I2C)"
+					select FL_I2C_USED
+					help
+						Settings survive full flash erase and module replacement.
+						If the EEPROM is not found at boot, the lamp falls back to NVS.
+			endchoice
+
+			choice FL_EEPROM_TYPE_C
+				prompt "EEPROM chip"
+				depends on FL_STORAGE_EEPROM
+				default FL_EEPROM_AT24C32
+
+				config FL_EEPROM_AT24C32
+					bool "AT24C32 (4 KB)"
+				config FL_EEPROM_AT24C64
+					bool "AT24C64 (8 KB)"
+				config FL_EEPROM_AT24C128
+					bool "AT24C128 (16 KB)"
+				config FL_EEPROM_AT24C256
+					bool "AT24C256 (32 KB)"
+				config FL_EEPROM_AT24C512
+					bool "AT24C512 (64 KB)"
+			endchoice
+
+			config FL_EEPROM_ADDR
+				hex "EEPROM I2C address"
+				depends on FL_STORAGE_EEPROM
+				range 0x50 0x57
+				default 0x50
+				help
+					0x50..0x57 depending on A0..A2 pins. Note: the AT24C32 on
+					common DS3231 modules is usually at 0x57.
+
+		endmenu
+
 
 	endmenu
 

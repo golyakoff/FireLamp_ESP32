@@ -8,54 +8,115 @@
 #include "webserver.h"
 #include <esp_ota_ops.h>
 
-inline static void process_button_event(event_t *e)
+static void factory_reset()
 {
-    size_t button_id = *((size_t *)e->data);
+    ESP_LOGW(TAG, "Resetting all settings to defaults...");
+    ESP_ERROR_CHECK(effects_reset());
+    ESP_ERROR_CHECK(sys_settings_reset());
+    ESP_ERROR_CHECK(vol_settings_reset());
+    esp_restart();
+}
 
-    ESP_LOGD(TAG, "Got button %d event %d", button_id, e->type);
+#if CONFIG_FL_INPUT_FOUR_BUTTONS
 
-    if (button_id == INPUT_BTN_RESET)
-    {
-        if (e->type == EVENT_BUTTON_PRESSED_LONG)
-        {
-            ESP_ERROR_CHECK(effects_reset());
-            ESP_ERROR_CHECK(sys_settings_reset());
-            ESP_ERROR_CHECK(vol_settings_reset());
-            esp_restart();
-        }
-        return;
-    }
-
+static void process_button_event(event_t *e)
+{
+    const input_event_t *ie = (const input_event_t *)e->data;
     bool playing = surface_is_playing();
-    if (button_id == INPUT_BTN_MAIN)
+    static bool handled = false; // the current hold has already triggered an action
+
+    if (e->type == EVENT_BUTTON_HOLD_START)
+        handled = false;
+
+    switch (ie->button)
     {
-        switch (e->type)
-        {
-            case EVENT_BUTTON_CLICKED:
-                if (playing)
-                    surface_next_effect();
-                break;
-            case EVENT_BUTTON_PRESSED_LONG:
+        case INPUT_BTN_RESET:
+            if (e->type == EVENT_BUTTON_HOLD && !handled && ie->hold_ms >= RESET_HOLD_MS)
+            {
+                handled = true;
+                factory_reset();
+            }
+            break;
+
+        case INPUT_BTN_MAIN:
+            if (e->type == EVENT_BUTTON_CLICKED && playing)
+                surface_next_effect();
+            else if (e->type == EVENT_BUTTON_HOLD && !handled && ie->hold_ms >= POWER_HOLD_MS)
+            {
+                handled = true;
                 if (playing)
                     surface_stop();
                 else
                     surface_play();
-                break;
-            default:
-                break;
+            }
+            break;
+
+        case INPUT_BTN_UP:
+        case INPUT_BTN_DOWN:
+        {
+            if (!playing) break;
+            int dir = ie->button == INPUT_BTN_UP ? 1 : -1;
+            if (e->type == EVENT_BUTTON_CLICKED)
+                surface_increment_brightness(dir * CLICK_BRIGHTNESS_STEP);
+            else if (e->type == EVENT_BUTTON_HOLD_START || e->type == EVENT_BUTTON_HOLD)
+                surface_increment_brightness(dir * HOLD_BRIGHTNESS_STEP);
+            break;
+        }
+    }
+}
+
+#else // one button or touch pad
+
+static void process_button_event(event_t *e)
+{
+    const input_event_t *ie = (const input_event_t *)e->data;
+    bool playing = surface_is_playing();
+    static bool brightness_up = false;
+    static bool reset_armed = false;
+
+    if (!playing)
+    {
+        if (e->type == EVENT_BUTTON_CLICKED)
+            surface_play();
+        else if (e->type == EVENT_BUTTON_HOLD_START)
+            reset_armed = true;
+        else if (e->type == EVENT_BUTTON_HOLD && reset_armed && ie->hold_ms >= RESET_HOLD_OFF_MS)
+        {
+            reset_armed = false;
+            factory_reset();
         }
         return;
     }
 
-    if (!playing) return;
-
-    // up/down
-    if (e->type == EVENT_BUTTON_CLICKED &&
-            (button_id == INPUT_BTN_UP || button_id == INPUT_BTN_DOWN))
+    switch (e->type)
     {
-        surface_increment_brightness(button_id == INPUT_BTN_UP ? 5 : -5);
+        case EVENT_BUTTON_CLICKED:
+            if (ie->clicks == 1)
+                surface_next_effect();
+            else if (ie->clicks == 2)
+                surface_stop();
+            else
+                surface_prev_effect();
+            break;
+
+        case EVENT_BUTTON_HOLD_START:
+            // alternate direction with every hold, but never start against a limit
+            brightness_up = !brightness_up;
+            if (vol_settings.brightness == 255)
+                brightness_up = false;
+            else if (vol_settings.brightness <= BRIGHTNESS_MIN)
+                brightness_up = true;
+            // fall through
+        case EVENT_BUTTON_HOLD:
+            surface_increment_brightness(brightness_up ? HOLD_BRIGHTNESS_STEP : -HOLD_BRIGHTNESS_STEP);
+            break;
+
+        default:
+            break;
     }
 }
+
+#endif
 
 static void main_loop(void *arg)
 {
@@ -70,7 +131,9 @@ static void main_loop(void *arg)
         switch (e.type)
         {
             case EVENT_BUTTON_CLICKED:
-            case EVENT_BUTTON_PRESSED_LONG:
+            case EVENT_BUTTON_HOLD_START:
+            case EVENT_BUTTON_HOLD:
+            case EVENT_BUTTON_HOLD_END:
                 process_button_event(&e);
                 break;
 

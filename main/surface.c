@@ -313,8 +313,7 @@ esp_err_t surface_set_effect(size_t num)
     CHECK(surface_stop());
 
     vol_settings.effect = num;
-    if (vol_settings_save() != ESP_OK)
-        ESP_LOGW(TAG, "Could not save volatile settings");
+    vol_settings_save();
 
     if (effects[num].prepare)
         CHECK(effects[num].prepare(&framebuffer));
@@ -333,26 +332,31 @@ esp_err_t surface_next_effect()
             : 0);
 }
 
+esp_err_t surface_prev_effect()
+{
+    return surface_set_effect(vol_settings.effect > 0
+            ? vol_settings.effect - 1
+            : effects_count - 1);
+}
+
 esp_err_t surface_set_brightness(uint8_t val)
 {
-    CHECK(surface_pause());
-
+    // no pause needed: the renderer reads brightness on every frame
     vol_settings.brightness = val;
-    if (vol_settings_save() != ESP_OK)
-        ESP_LOGW(TAG, "Could not save volatile settings");
+    vol_settings_save();
 
-    ESP_LOGI(TAG, "Brightness set to %d", val);
-
-    CHECK(surface_play());
+    ESP_LOGD(TAG, "Brightness set to %d", val);
 
     return ESP_OK;
 }
 
-esp_err_t surface_increment_brightness(int8_t val)
+esp_err_t surface_increment_brightness(int16_t val)
 {
     int16_t b = (int16_t)(vol_settings.brightness + val);
-    if (b < 0) b = 0;
+    if (b < BRIGHTNESS_MIN) b = BRIGHTNESS_MIN;
     else if (b > 255) b = 255;
+    if (b == vol_settings.brightness)
+        return ESP_OK;
     return surface_set_brightness(b);
 }
 
@@ -363,8 +367,7 @@ esp_err_t surface_set_fps(uint8_t val)
     CHECK(surface_pause());
 
     vol_settings.fps = val;
-    if (vol_settings_save() != ESP_OK)
-        ESP_LOGW(TAG, "Could not save volatile settings");
+    vol_settings_save();
 
     ESP_LOGI(TAG, "FPS set to %d", val);
 

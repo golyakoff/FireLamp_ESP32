@@ -5,4 +5,3 @@ dependencies:
   esp-idf-lib/color: "~1.0.7"
   esp-idf-lib/lib8tion: "~1.0.8"
   esp-idf-lib/noise: "~1.0.7"
-  esp-idf-lib/button: "~1.1.0"

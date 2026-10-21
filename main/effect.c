@@ -1,5 +1,7 @@
 #include "effect.h"
-#include <nvs.h>
+#include <string.h>
+#include <esp_crc.h>
+#include "storage.h"
 #include "settings.h"
 #include "surface.h"
 #include "lib8tion.h"
@@ -80,16 +82,46 @@ const size_t effects_count = sizeof(effects) / sizeof(effect_descriptor_t);
 
 ////////////////////////////////////////////////////////////////////////////////
 
-static const char *STORAGE_PARAMS_NAME = "effects";
-static const char *NVS_KEY_FMT = "e%04x:p%04x";
+// Record format: sequence of entries
+//   uint16_t crc16 of effect name, uint8_t number of params, uint8_t values[number of params]
+// Bound to effect names, so the values survive adding or reordering effects in firmware updates.
+
+static uint16_t name_hash(const char *name)
+{
+    return esp_crc16_le(0, (const uint8_t *)name, strlen(name));
+}
+
+static esp_err_t effects_save_now()
+{
+    uint8_t buf[STORAGE_EFFECTS_MAX_SIZE];
+    size_t len = 0;
+
+    for (size_t e = 0; e < effects_count; e++)
+    {
+        size_t count = effects[e].params_count;
+        if (len + 3 + count > sizeof(buf))
+        {
+            ESP_LOGE(TAG, "Effect parameters do not fit storage record");
+            return ESP_ERR_NO_MEM;
+        }
+        uint16_t hash = name_hash(effects[e].name);
+        buf[len++] = hash & 0xff;
+        buf[len++] = hash >> 8;
+        buf[len++] = count;
+        for (size_t p = 0; p < count; p++)
+            buf[len++] = PARAM(e, p).value;
+    }
+
+    return storage_save(STORAGE_EFFECTS, buf, len);
+}
 
 esp_err_t effects_reset()
 {
-    // FIXME not effective
     for (size_t e = 0; e < effects_count; e++)
         for (size_t p = 0; p < effects[e].params_count; p++)
-            CHECK_LOGE(effect_param_set(e, p, PARAM(e, p).def),
-                    "Could not set %s.%s to %d", effects[e].name, PARAM(e, p).name, PARAM(e, p).def);
+            PARAM(e, p).value = PARAM(e, p).def;
+
+    CHECK(effects_save_now());
 
     ESP_LOGW(TAG, "Effect parameters have been reset to defaults");
 
@@ -106,17 +138,11 @@ esp_err_t effect_param_set(size_t effect, size_t param, uint8_t value)
     if (PARAM(effect, param).value == value)
         return ESP_OK;
 
-    nvs_handle_t nvs;
-    CHECK_LOGE(nvs_open(STORAGE_PARAMS_NAME, NVS_READWRITE, &nvs),
-            "Could not open NVS storage '%s'", STORAGE_PARAMS_NAME);
-    char key[NVS_KEY_NAME_MAX_SIZE];
-    snprintf(key, sizeof(key), NVS_KEY_FMT, effect, param);
-    nvs_set_u8(nvs, key, value);
-    nvs_close(nvs);
-
     ESP_LOGI(TAG, "'%s':'%s' = %d", effects[effect].name, PARAM(effect, param).name, value);
 
     PARAM(effect, param).value = value;
+    storage_defer(STORAGE_EFFECTS, effects_save_now);
+
     if (effect == vol_settings.effect)
         CHECK_LOGE(surface_prepare_effect(effect), "Could not prepare effect");
 
@@ -125,35 +151,41 @@ esp_err_t effect_param_set(size_t effect, size_t param, uint8_t value)
 
 static esp_err_t effect_params_load()
 {
-    char key[NVS_KEY_NAME_MAX_SIZE];
-    uint8_t val;
+    uint8_t buf[STORAGE_EFFECTS_MAX_SIZE];
+    size_t len = sizeof(buf);
+    CHECK(storage_load(STORAGE_EFFECTS, buf, &len));
 
-    nvs_handle_t nvs;
-    CHECK_LOGE(nvs_open(STORAGE_PARAMS_NAME, NVS_READWRITE, &nvs),
-            "Could not open NVS storage '%s'", STORAGE_PARAMS_NAME);
+    size_t pos = 0;
+    while (pos + 3 <= len)
+    {
+        uint16_t hash = buf[pos] | (buf[pos + 1] << 8);
+        size_t count = buf[pos + 2];
+        pos += 3;
+        if (pos + count > len)
+            break;
 
-    // read effect params
+        for (size_t e = 0; e < effects_count; e++)
+        {
+            if (name_hash(effects[e].name) != hash)
+                continue;
+            for (size_t p = 0; p < effects[e].params_count && p < count; p++)
+            {
+                uint8_t val = buf[pos + p];
+                if (val >= PARAM(e, p).min && val <= PARAM(e, p).max)
+                    PARAM(e, p).value = val;
+            }
+            break;
+        }
+        pos += count;
+    }
+
     for (size_t e = 0; e < effects_count; e++)
     {
         ESP_LOGI(TAG, "Effect %d: '%s'", e, effects[e].name);
         for (size_t p = 0; p < effects[e].params_count; p++)
-        {
-            snprintf(key, sizeof(key), NVS_KEY_FMT, e, p);
-
-            val = PARAM(e, p).def;
-            esp_err_t res = nvs_get_u8(nvs, key, &val);
-            if (res == ESP_ERR_NVS_NOT_FOUND || val < PARAM(e, p).min || val > PARAM(e, p).max)
-            {
-                val = PARAM(e, p).def;
-                nvs_set_u8(nvs, key, val);
-            }
-            PARAM(e, p).value = val;
-
             ESP_LOGI(TAG, "    %s: %d (min %d, max %d, def %d)",
                     PARAM(e, p).name, PARAM(e, p).value, PARAM(e, p).min, PARAM(e, p).max, PARAM(e, p).def);
-        }
     }
-    nvs_close(nvs);
 
     ESP_LOGI(TAG, "Effect parameters loaded");
 

@@ -6,6 +6,9 @@ idf_component_register(
 		common.c
 		main.c
 		settings.c
+		storage.c
+		i2c_bus.c
+		eeprom.c
 		wifi.c
 		bus.c
 		effect.c

@@ -6,18 +6,50 @@ Bluetooth Low Energy. Based on [EvLamp](https://github.com/UncleRus/EvLamp) by R
 [Matrix_Clock_ESP32](https://github.com/golyakoff/Matrix_Clock_ESP32).
 
 > **Status: work in progress.** The EvLamp core is ported to a single matrix and builds for both
-> targets. BLE control, schedules, optional RTC/EEPROM and internet OTA are not implemented yet.
+> targets; settings storage (NVS or external EEPROM) and buttons/touch are done. BLE control,
+> schedules, optional RTC and internet OTA are not implemented yet.
 
 ## Hardware
 
 - ESP32 (e.g. ESP32-WROOM-32D) or ESP32-C3 (e.g. ESP32-C3-FH4), 4 MB flash
 - One WS2812B / SK6812 / WS2811 LED matrix, 16x16 recommended (up to 1024 LEDs), connected
   like a snake starting from the bottom left corner
-- Buttons (see `idf.py menuconfig`)
+- Controls, selected in menuconfig: one button (or a TTP223 touch module), four buttons,
+  or the ESP32 built-in touch pad (ESP32 only, ESP32-C3 has no touch sensor)
+- Optional AT24C32..AT24C512 I2C EEPROM for settings
 
 LED output uses [espressif/led_strip](https://components.espressif.com/components/espressif/led_strip):
 SPI with DMA by default on ESP32-C3 (its RMT has no DMA), RMT by default on ESP32.
 The previous frame is transmitted while the next one is computed.
+
+## Controls
+
+One button / touch pad:
+
+| Lamp | Gesture | Action |
+|------|---------|--------|
+| off  | click | turn on |
+| off  | hold 10 s | reset all settings to defaults and reboot |
+| on   | click | next effect |
+| on   | double click | turn off |
+| on   | triple click | previous effect |
+| on   | hold | change brightness; direction alternates with every hold |
+
+Four buttons (as in EvLamp): **Main** - click: next effect, hold 1.5 s: turn on/off;
+**Up/Down** - brightness, hold to repeat; **Reset** - hold 3 s: reset all settings.
+
+## Settings storage
+
+Settings are kept either in the internal flash (NVS) or in an external AT24Cxx EEPROM
+(menuconfig → `Settings storage`), which survives `erase-flash` and module replacement.
+If the EEPROM does not respond at boot, the lamp logs a warning and uses NVS.
+
+- Every record has a magic number, size and CRC. In the EEPROM each record has two slots that are
+  written alternately, so a power loss during a write keeps the previous copy.
+- Frequently changed values (brightness, current effect, effect parameters) are written
+  3 seconds after the last change, and on reboot.
+- Effect parameters are stored by effect name, so they survive firmware updates that add or
+  reorder effects.
 
 ## Building
 
@@ -44,6 +76,15 @@ Project options are in `menuconfig` → `*** FireLamp configuration ***`.
 Enable `Benchmark all effects at boot` in menuconfig to have the firmware run every effect for
 100 frames at boot and log the average/maximum computation time per frame. Useful to check the
 CPU headroom on ESP32-C3 (single core, no FPU).
+
+### Host tests
+
+Hardware independent logic (settings storage with simulated EEPROM and power loss, button
+gestures) is covered by unit tests that run on the PC:
+
+```bash
+make -C test/host
+```
 
 ## Flash layout (4 MB)
 

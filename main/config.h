@@ -62,11 +62,36 @@
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////
+/// Storage
+
+#define STORAGE_SAVE_DELAY_MS 3000
+#define STORAGE_TASK_STACK_SIZE 4096
+#define STORAGE_TASK_PRIORITY 2
+
+////////////////////////////////////////////////////////////////////////////////
 /// Bus
 
-#define BUS_QUEUE_LEN 5
+#define BUS_QUEUE_LEN 10
 #define BUS_TIMEOUT_MS 500
 #define BUS_EVENT_DATA_SIZE 64
+
+////////////////////////////////////////////////////////////////////////////////
+/// Input
+
+#define INPUT_TASK_STACK_SIZE 3072
+#define INPUT_TASK_PRIORITY 6
+#define INPUT_POLL_MS 10
+#define INPUT_DEBOUNCE_SAMPLES 3   // x INPUT_POLL_MS
+#define INPUT_CLICK_TIMEOUT_MS 350 // max pause between clicks of a multi-click
+#define INPUT_MAX_CLICKS 3         // no need to wait for more clicks after this
+#define INPUT_HOLD_MS 600
+#define INPUT_HOLD_REPEAT_MS 50
+
+#define HOLD_BRIGHTNESS_STEP 3     // per INPUT_HOLD_REPEAT_MS: ~4 s for full range
+#define CLICK_BRIGHTNESS_STEP 5
+#define POWER_HOLD_MS 1500         // 4 buttons: Main hold time to turn on/off
+#define RESET_HOLD_MS 3000         // 4 buttons: Reset hold time
+#define RESET_HOLD_OFF_MS 10000    // 1 button/touch: hold time while the lamp is off
 
 ////////////////////////////////////////////////////////////////////////////////
 /// Main task
@@ -78,6 +103,7 @@
 /// Surface
 
 #define FPS_MAX 120
+#define BRIGHTNESS_MIN 1 // 0 looks like the lamp is off
 #define SURFACE_TASK_STACK_SIZE 8192
 #define MAX_MATRIX_LEDS 1024
 #define MIN_MATRIX_SIZE 8

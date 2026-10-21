@@ -74,6 +74,9 @@ esp_err_t vol_settings_reset();
 
 esp_err_t vol_settings_load();
 
+/**
+ * Deferred: the settings are written STORAGE_SAVE_DELAY_MS after the last change
+ */
 esp_err_t vol_settings_save();
 
 #endif /* EVLAMP_SETTINGS_H_ */

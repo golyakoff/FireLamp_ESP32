@@ -1,14 +1,10 @@
 #include "settings.h"
 #include <string.h>
-#include <nvs_flash.h>
-#include <nvs.h>
+#include "storage.h"
 #include "surface.h"
 
-static const char *STORAGE_SYSTEM_NAME   = "system";
-static const char *STORAGE_VOLATILE_NAME = "volatile";
-
-static const char *OPT_MAGIC    = "magic";
-static const char *OPT_SETTINGS = "settings";
+_Static_assert(sizeof(system_settings_t) <= STORAGE_SYSTEM_MAX_SIZE, "System settings do not fit storage record");
+_Static_assert(sizeof(volatile_settings_t) <= STORAGE_VOLATILE_MAX_SIZE, "Volatile settings do not fit storage record");
 
 system_settings_t sys_settings = { 0 };
 volatile_settings_t vol_settings = { 0 };
@@ -53,80 +49,28 @@ static const volatile_settings_t vol_defaults = {
     .effect     = CONFIG_FL_EFFECT_DEFAULT,
 };
 
-static esp_err_t storage_load(const char *storage_name, void *target, size_t size)
+static esp_err_t load(storage_record_t rec, void *target, size_t size)
 {
-    nvs_handle_t nvs;
-    esp_err_t res;
-
-    ESP_LOGD(TAG, "Reading settings from '%s'...", storage_name);
-
-    CHECK(nvs_open(storage_name, NVS_READONLY, &nvs));
-
-    uint32_t magic = 0;
-    res = nvs_get_u32(nvs, OPT_MAGIC, &magic);
-    if (magic != SETTINGS_MAGIC)
+    size_t len = size;
+    CHECK(storage_load(rec, target, &len));
+    if (len != size)
     {
-        ESP_LOGW(TAG, "Invalid magic 0x%08lx, expected 0x%08x", magic, SETTINGS_MAGIC);
-        res = ESP_FAIL;
+        ESP_LOGW(TAG, "Invalid settings size %d, expected %d", len, size);
+        return ESP_ERR_INVALID_SIZE;
     }
-    if (res != ESP_OK)
-    {
-        nvs_close(nvs);
-        return res;
-    }
-
-    size_t tmp = size;
-    res = nvs_get_blob(nvs, OPT_SETTINGS, target, &tmp);
-    if (tmp != size) // NOLINT
-    {
-        ESP_LOGW(TAG, "Invalid settings size");
-        res = ESP_FAIL;
-    }
-    if (res != ESP_OK)
-    {
-        ESP_LOGE(TAG, "Error reading settings %d (%s)", res, esp_err_to_name(res));
-        nvs_close(nvs);
-        return res;
-    }
-
-    nvs_close(nvs);
-
-    ESP_LOGD(TAG, "Settings read from '%s'", storage_name);
-
     return ESP_OK;
 }
 
-static esp_err_t storage_save(const char *storage_name, const void *source, size_t size)
+static esp_err_t vol_settings_save_now()
 {
-    ESP_LOGD(TAG, "Saving settings to '%s'...", storage_name);
-
-    nvs_handle_t nvs;
-    CHECK_LOGE(nvs_open(storage_name, NVS_READWRITE, &nvs),
-            "Could not open NVS to write");
-    CHECK_LOGE(nvs_set_u32(nvs, OPT_MAGIC, SETTINGS_MAGIC),
-            "Error writing NVS magic");
-    CHECK_LOGE(nvs_set_blob(nvs, OPT_SETTINGS, source, size),
-            "Error writing NVS settings");
-    nvs_close(nvs);
-
-    ESP_LOGD(TAG, "Settings saved to '%s'", storage_name);
-
-    return ESP_OK;
+    return storage_save(STORAGE_VOLATILE, &vol_settings, sizeof(volatile_settings_t));
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
 esp_err_t settings_init()
 {
-    esp_err_t res = nvs_flash_init();
-    if (res == ESP_ERR_NVS_NO_FREE_PAGES || res == ESP_ERR_NVS_NEW_VERSION_FOUND)
-    {
-        CHECK_LOGE(nvs_flash_erase(), "Could not erase NVS flash");
-        CHECK_LOGE(nvs_flash_init(), "Could not init NVS flash");
-        CHECK_LOGE(sys_settings_reset(), "Could not reset system settings");
-        CHECK_LOGE(vol_settings_reset(), "Could not reset volatile settings");
-    }
-    return res;
+    return storage_init();
 }
 
 esp_err_t sys_settings_reset()
@@ -146,8 +90,7 @@ esp_err_t sys_settings_reset()
 
 esp_err_t sys_settings_load()
 {
-    esp_err_t res = storage_load(STORAGE_SYSTEM_NAME, &sys_settings, sizeof(system_settings_t));
-    if (res != ESP_OK)
+    if (load(STORAGE_SYSTEM, &sys_settings, sizeof(system_settings_t)) != ESP_OK)
         return sys_settings_reset();
 
     return ESP_OK;
@@ -155,13 +98,13 @@ esp_err_t sys_settings_load()
 
 esp_err_t sys_settings_save()
 {
-    return storage_save(STORAGE_SYSTEM_NAME, &sys_settings, sizeof(system_settings_t));
+    return storage_save(STORAGE_SYSTEM, &sys_settings, sizeof(system_settings_t));
 }
 
 esp_err_t vol_settings_reset()
 {
     memcpy(&vol_settings, &vol_defaults, sizeof(volatile_settings_t));
-    CHECK(vol_settings_save());
+    CHECK(vol_settings_save_now());
 
     ESP_LOGW(TAG, "Volatile settings have been reset to defaults");
 
@@ -170,8 +113,7 @@ esp_err_t vol_settings_reset()
 
 esp_err_t vol_settings_load()
 {
-    esp_err_t res = storage_load(STORAGE_VOLATILE_NAME, &vol_settings, sizeof(volatile_settings_t));
-    if (res != ESP_OK)
+    if (load(STORAGE_VOLATILE, &vol_settings, sizeof(volatile_settings_t)) != ESP_OK)
         return vol_settings_reset();
 
     return ESP_OK;
@@ -179,5 +121,6 @@ esp_err_t vol_settings_load()
 
 esp_err_t vol_settings_save()
 {
-    return storage_save(STORAGE_VOLATILE_NAME, &vol_settings, sizeof(volatile_settings_t));
+    storage_defer(STORAGE_VOLATILE, vol_settings_save_now);
+    return ESP_OK;
 }
