@@ -1,3 +1,9 @@
+Release 0.1.5
+
+- [x] BLE: WiFi network scan for choosing the SSID in the app (command `0x08`, characteristic `0x0014` WiFi networks, read page by page), works in any WiFi mode
+- [x] Periodic WiFi mode: a check / install request from the app is answered with an error when the lamp cannot connect (before, no answer)
+- [x] Internet update: free heap and connection errors are logged
+
 Release 0.1.4
 
 - [x] Firmware update no longer turns the demo mode off: it goes on after the update (before, the lamp rebooted with the demo mode off)

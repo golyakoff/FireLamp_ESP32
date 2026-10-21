@@ -48,6 +48,7 @@ enum {
     CHR_OTA_DATA      = 0x0011,
     CHR_UPDATE_INFO   = 0x0012,
     CHR_HARDWARE      = 0x0013,
+    CHR_WIFI_NETWORKS = 0x0014,
 };
 
 enum {
@@ -66,6 +67,7 @@ enum {
     CMD_PREV_EFFECT   = 0x05,
     CMD_CHECK_UPDATE  = 0x06,
     CMD_INSTALL_UPDATE = 0x07,
+    CMD_WIFI_SCAN     = 0x08,
 };
 
 enum {
@@ -78,10 +80,10 @@ enum {
 
 static const ble_uuid128_t service_uuid = FL_UUID(0x0000);
 
-static uint16_t h_state, h_param, h_wifi_status, h_ota_control, h_update;
+static uint16_t h_state, h_param, h_wifi_status, h_ota_control, h_update, h_networks;
 static uint16_t conn = BLE_HS_CONN_HANDLE_NONE;
 static bool authorized = false;
-static bool sub_state, sub_param, sub_ota, sub_wifi, sub_update;
+static bool sub_state, sub_param, sub_ota, sub_wifi, sub_update, sub_networks;
 static uint8_t own_addr_type;
 static char device_name[BLE_NAME_MAX_LEN + 1];
 
@@ -90,6 +92,7 @@ static ble_addr_t bonded[BLE_MAX_BONDS];
 static int bonded_count = 0;
 
 static size_t effect_cursor = 0;
+static size_t networks_cursor = 0; // first network of the WiFi networks page to read
 static volatile bool ble_upload = false; // OTA in progress was started over BLE (not internet)
 
 static esp_timer_handle_t auth_timer, idle_timer, state_timer, reboot_timer;
@@ -230,6 +233,42 @@ static void on_wifi_status()
     buf_t b = { 0 };
     build_wifi_status(&b);
     notify(h_wifi_status, sub_wifi, &b);
+}
+
+// State, total count, first index and the networks from `first` that fit in `limit` bytes
+static void build_networks(buf_t *b, size_t first, size_t limit)
+{
+    const wifi_network_t *nets;
+    size_t count;
+    wifi_scan_state_t st = wifi_scan_lock(&nets, &count);
+    if (st != WIFI_SCAN_DONE)
+        count = 0;
+    if (first > count)
+        first = count;
+    put_u8(b, st);
+    put_u8(b, count);
+    put_u8(b, first);
+    put_u8(b, 0);
+    uint8_t n = 0;
+    for (size_t i = first; i < count && b->len + 1 + strlen(nets[i].ssid) + 3 <= limit; i++, n++)
+    {
+        put_str8(b, nets[i].ssid);
+        put_u8(b, (uint8_t)nets[i].rssi);
+        put_u8(b, nets[i].security);
+        put_u8(b, nets[i].channel);
+    }
+    wifi_scan_unlock();
+    b->data[3] = n;
+}
+
+// WiFi task: scan started or finished. The notification has the header only,
+// the app reads the list page by page.
+static void on_wifi_scan()
+{
+    networks_cursor = 0;
+    buf_t b = { 0 };
+    build_networks(&b, 0, 4);
+    notify(h_networks, sub_networks, &b);
 }
 
 static void on_ota_status(ota_state_t state, ota_error_t err, uint32_t received, uint32_t total)
@@ -651,6 +690,29 @@ static int chr_wifi_status(struct ble_gatt_access_ctxt *ctxt)
     return reply(ctxt, &b);
 }
 
+static int chr_wifi_networks(struct ble_gatt_access_ctxt *ctxt, reader_t *r)
+{
+    if (ctxt->op == BLE_GATT_ACCESS_OP_READ_CHR)
+    {
+        buf_t b = { 0 };
+        build_networks(&b, networks_cursor, BUF_SIZE);
+        return reply(ctxt, &b);
+    }
+
+    // select the first network of the page to read
+    uint8_t first = get_u8(r);
+    if (r->error || r->pos != r->len)
+        return BLE_ATT_ERR_INVALID_ATTR_VALUE_LEN;
+    const wifi_network_t *nets;
+    size_t count;
+    wifi_scan_state_t st = wifi_scan_lock(&nets, &count);
+    wifi_scan_unlock();
+    if (st != WIFI_SCAN_DONE || first > count)
+        return BLE_ATT_ERR_VALUE_NOT_ALLOWED;
+    networks_cursor = first;
+    return 0;
+}
+
 static int chr_device_name(struct ble_gatt_access_ctxt *ctxt, reader_t *r)
 {
     if (ctxt->op == BLE_GATT_ACCESS_OP_READ_CHR)
@@ -700,6 +762,11 @@ static int chr_command(struct ble_gatt_access_ctxt *ctxt, reader_t *r)
             return updater_request_check() == ESP_OK ? 0 : BLE_ATT_ERR_VALUE_NOT_ALLOWED;
         case CMD_INSTALL_UPDATE:
             return updater_request_install() == ESP_OK ? 0 : BLE_ATT_ERR_VALUE_NOT_ALLOWED;
+        case CMD_WIFI_SCAN:
+            // WiFi is paused during the BLE upload; an already running scan is not restarted
+            if (ble_upload)
+                return BLE_ATT_ERR_VALUE_NOT_ALLOWED;
+            return wifi_scan_start() == ESP_OK ? 0 : BLE_ATT_ERR_VALUE_NOT_ALLOWED;
         default:
             return BLE_ATT_ERR_VALUE_NOT_ALLOWED;
     }
@@ -879,6 +946,7 @@ static int access_cb(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt
         case CHR_OTA_DATA:      return chr_ota_data(ctxt, &r);
         case CHR_UPDATE_INFO:   return chr_update_info(ctxt);
         case CHR_HARDWARE:      return chr_hardware(ctxt, &r);
+        case CHR_WIFI_NETWORKS: return chr_wifi_networks(ctxt, &r);
         default:                return BLE_ATT_ERR_UNLIKELY;
     }
 }
@@ -916,6 +984,7 @@ static const struct ble_gatt_svc_def services[] = {
             CHR(CHR_OTA_DATA, W),
             CHR_H(CHR_UPDATE_INFO, R | N, &h_update),
             CHR(CHR_HARDWARE, R | W),
+            CHR_H(CHR_WIFI_NETWORKS, R | W | N, &h_networks),
             { 0 }
         },
     },
@@ -974,7 +1043,7 @@ static void idle_timer_cb(void *arg)
     if (conn == BLE_HS_CONN_HANDLE_NONE)
         return;
     // an app waiting for notifications is not idle
-    if (sub_state || sub_param || sub_ota || sub_wifi || sub_update)
+    if (sub_state || sub_param || sub_ota || sub_wifi || sub_update || sub_networks)
     {
         idle_restart();
         return;
@@ -1032,8 +1101,9 @@ static int gap_event(struct ble_gap_event *event, void *arg)
             }
             conn = event->connect.conn_handle;
             authorized = false;
-            sub_state = sub_param = sub_ota = sub_wifi = sub_update = false;
+            sub_state = sub_param = sub_ota = sub_wifi = sub_update = sub_networks = false;
             effect_cursor = 0;
+            networks_cursor = 0;
             ESP_LOGI(TAG, "BLE: connected");
             esp_timer_start_once(auth_timer, BLE_AUTH_TIMEOUT_S * 1000000ULL);
             idle_restart();
@@ -1085,6 +1155,8 @@ static int gap_event(struct ble_gap_event *event, void *arg)
                 sub_wifi = event->subscribe.cur_notify;
             else if (event->subscribe.attr_handle == h_update)
                 sub_update = event->subscribe.cur_notify;
+            else if (event->subscribe.attr_handle == h_networks)
+                sub_networks = event->subscribe.cur_notify;
             else
                 break; // not ours, e.g. Service Changed subscribed by the phone's system
             idle_restart();
@@ -1224,6 +1296,7 @@ esp_err_t ble_server_init()
     surface_set_state_cb(on_state_changed);
     effect_set_param_cb(on_param_changed);
     wifi_set_status_cb(on_wifi_status);
+    wifi_set_scan_cb(on_wifi_scan);
     updater_set_cb(on_update_info);
 
     // new phones can pair right after power on

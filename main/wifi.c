@@ -14,6 +14,8 @@
 #define BIT_DISCONNECTED BIT(1)
 #define BIT_REQUEST      BIT(2) // settings changed, pause/resume
 #define BIT_JOB          BIT(3) // updater needs the internet
+#define BIT_SCAN         BIT(4) // scan requested
+#define BIT_SCAN_DONE    BIT(5)
 
 static esp_netif_t *iface = NULL;
 static EventGroupHandle_t events = NULL;
@@ -26,6 +28,13 @@ static volatile bool want_connect = false; // reconnect on STA_START
 static volatile uint8_t last_reason = 0;
 static bool started = false;
 static bool sntp_running = false;
+
+static SemaphoreHandle_t scan_mutex = NULL;
+static wifi_scan_cb_t scan_cb = NULL;
+static volatile wifi_scan_state_t scan_state = WIFI_SCAN_NONE;
+static wifi_network_t networks[WIFI_SCAN_MAX];
+static size_t networks_count = 0;
+static volatile bool scan_ok = false; // result of the last WIFI_EVENT_SCAN_DONE
 
 static void set_state(wifi_state_t s)
 {
@@ -60,6 +69,10 @@ static void wifi_handler(void *arg, esp_event_base_t base, int32_t id, void *dat
         case WIFI_EVENT_STA_START:
             if (want_connect)
                 esp_wifi_connect();
+            break;
+        case WIFI_EVENT_SCAN_DONE:
+            scan_ok = ((wifi_event_sta_scan_done_t *)data)->status == 0;
+            xEventGroupSetBits(events, BIT_SCAN_DONE);
             break;
         case WIFI_EVENT_STA_DISCONNECTED:
         {
@@ -184,6 +197,131 @@ static EventBits_t wait(EventBits_t bits, uint32_t timeout_ms)
             timeout_ms == UINT32_MAX ? portMAX_DELAY : pdMS_TO_TICKS(timeout_ms));
 }
 
+////////////////////////////////////////////////////////////////////////////////
+/// Scan
+
+static uint8_t security(wifi_auth_mode_t mode)
+{
+    switch (mode)
+    {
+        case WIFI_AUTH_OPEN:
+        case WIFI_AUTH_OWE:
+            return WIFI_SECURITY_OPEN;
+        case WIFI_AUTH_WEP:
+            return WIFI_SECURITY_WEP;
+        case WIFI_AUTH_ENTERPRISE:
+        case WIFI_AUTH_WPA3_ENT_192:
+        case WIFI_AUTH_WPA3_ENTERPRISE:
+        case WIFI_AUTH_WPA2_WPA3_ENTERPRISE:
+        case WIFI_AUTH_WPA_ENTERPRISE:
+            return WIFI_SECURITY_ENTERPRISE;
+        default:
+            return WIFI_SECURITY_PERSONAL;
+    }
+}
+
+static void scan_finish(wifi_scan_state_t s)
+{
+    scan_state = s;
+    if (scan_cb)
+        scan_cb();
+}
+
+// Unique visible SSIDs, the strongest record of each, sorted by RSSI
+static void scan_collect()
+{
+    uint16_t n = 0;
+    esp_wifi_scan_get_ap_num(&n);
+    if (n > WIFI_SCAN_RECORDS_MAX)
+        n = WIFI_SCAN_RECORDS_MAX;
+    wifi_ap_record_t *recs = n ? calloc(n, sizeof(wifi_ap_record_t)) : NULL;
+    if (!recs || esp_wifi_scan_get_ap_records(&n, recs) != ESP_OK)
+        n = 0;
+    // frees the records that did not fit
+    esp_wifi_clear_ap_list();
+
+    xSemaphoreTake(scan_mutex, portMAX_DELAY);
+    networks_count = 0;
+    for (uint16_t i = 0; i < n; i++)
+    {
+        const char *ssid = (const char *)recs[i].ssid;
+        if (!ssid[0])
+            continue;
+        size_t j = 0;
+        while (j < networks_count && strcmp(networks[j].ssid, ssid))
+            j++;
+        if (j < networks_count)
+        {
+            if (recs[i].rssi <= networks[j].rssi)
+                continue;
+        }
+        else if (networks_count < WIFI_SCAN_MAX)
+            j = networks_count++;
+        else
+            continue;
+        memcpy(networks[j].ssid, recs[i].ssid, sizeof(networks[j].ssid) - 1);
+        networks[j].ssid[sizeof(networks[j].ssid) - 1] = 0;
+        networks[j].rssi = recs[i].rssi;
+        networks[j].security = security(recs[i].authmode);
+        networks[j].channel = recs[i].primary;
+    }
+    // insertion sort, strongest first
+    for (size_t i = 1; i < networks_count; i++)
+        for (size_t j = i; j > 0 && networks[j].rssi > networks[j - 1].rssi; j--)
+        {
+            wifi_network_t t = networks[j];
+            networks[j] = networks[j - 1];
+            networks[j - 1] = t;
+        }
+    xSemaphoreGive(scan_mutex);
+    free(recs);
+}
+
+// Runs in the WiFi task. Starts the radio for the scan if it is not running.
+static void scan()
+{
+    if (paused)
+    {
+        scan_finish(WIFI_SCAN_ERROR);
+        return;
+    }
+    bool own_radio = !started;
+    esp_err_t res = ESP_OK;
+    if (own_radio)
+    {
+        // want_connect is false: STA_START does not connect
+        res = esp_wifi_set_mode(WIFI_MODE_STA);
+        if (res == ESP_OK)
+            res = esp_wifi_start();
+    }
+    xEventGroupClearBits(events, BIT_SCAN_DONE);
+    if (res == ESP_OK)
+        res = esp_wifi_scan_start(NULL, false);
+    bool ok = false;
+    if (res != ESP_OK)
+        ESP_LOGW(TAG, "WiFi: could not start scan: %d (%s)", res, esp_err_to_name(res));
+    else if (xEventGroupWaitBits(events, BIT_SCAN_DONE, pdTRUE, pdTRUE, pdMS_TO_TICKS(WIFI_SCAN_TIMEOUT_MS)) & BIT_SCAN_DONE)
+        ok = scan_ok;
+    else
+    {
+        ESP_LOGW(TAG, "WiFi: scan timeout");
+        esp_wifi_scan_stop();
+    }
+
+    if (ok)
+        scan_collect();
+    else
+        esp_wifi_clear_ap_list();
+    if (own_radio)
+        esp_wifi_stop();
+
+    if (ok)
+        ESP_LOGI(TAG, "WiFi: scan done, %u networks", networks_count);
+    scan_finish(ok ? WIFI_SCAN_DONE : WIFI_SCAN_ERROR);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
 // Returns false if WiFi could not be started at all
 static bool run_always_on()
 {
@@ -215,7 +353,10 @@ static bool run_always_on()
             timeout = (next_check - now) / 1000 + 1;
         }
 
-        EventBits_t b = wait(BIT_GOT_IP | BIT_DISCONNECTED | BIT_REQUEST | BIT_JOB, timeout);
+        EventBits_t b = wait(BIT_GOT_IP | BIT_DISCONNECTED | BIT_REQUEST | BIT_JOB | BIT_SCAN, timeout);
+        // the connection is kept; while connecting the driver refuses to scan (error state)
+        if (b & BIT_SCAN)
+            scan();
         if (b & BIT_REQUEST)
             break;
         if (b & BIT_GOT_IP)
@@ -308,7 +449,9 @@ static void wifi_task(void *arg)
                     break;
                 }
                 // a settings change starts a new session soon, an update request right away
-                EventBits_t b = wait(BIT_REQUEST | BIT_JOB, (next_session - now) / 1000 + 1);
+                EventBits_t b = wait(BIT_REQUEST | BIT_JOB | BIT_SCAN, (next_session - now) / 1000 + 1);
+                if (b & BIT_SCAN)
+                    scan();
                 if (b & BIT_JOB)
                     next_session = 0;
                 else if (b & BIT_REQUEST)
@@ -320,7 +463,11 @@ static void wifi_task(void *arg)
                 stop();
                 if (state != WIFI_STATE_OFF)
                     set_state(WIFI_STATE_OFF);
-                wait(BIT_REQUEST, UINT32_MAX);
+                if (wait(BIT_REQUEST | BIT_SCAN, UINT32_MAX) & BIT_SCAN)
+                {
+                    scan();
+                    break;
+                }
                 next_session = esp_timer_get_time() + WIFI_FIRST_SESSION_DELAY_MS * 1000LL;
                 break;
         }
@@ -332,7 +479,8 @@ static void wifi_task(void *arg)
 esp_err_t wifi_init()
 {
     events = xEventGroupCreate();
-    if (!events)
+    scan_mutex = xSemaphoreCreateMutex();
+    if (!events || !scan_mutex)
         return ESP_ERR_NO_MEM;
 
     CHECK(esp_netif_init());
@@ -395,4 +543,36 @@ void wifi_get_status(wifi_status_t *s)
 void wifi_set_status_cb(wifi_status_cb_t cb)
 {
     status_cb = cb;
+}
+
+esp_err_t wifi_scan_start()
+{
+    if (!events || !scan_mutex)
+        return ESP_ERR_INVALID_STATE;
+    if (scan_state == WIFI_SCAN_RUNNING)
+        return ESP_OK;
+    xSemaphoreTake(scan_mutex, portMAX_DELAY);
+    networks_count = 0;
+    xSemaphoreGive(scan_mutex);
+    scan_finish(WIFI_SCAN_RUNNING);
+    xEventGroupSetBits(events, BIT_SCAN);
+    return ESP_OK;
+}
+
+wifi_scan_state_t wifi_scan_lock(const wifi_network_t **nets, size_t *count)
+{
+    xSemaphoreTake(scan_mutex, portMAX_DELAY);
+    *nets = networks;
+    *count = networks_count;
+    return scan_state;
+}
+
+void wifi_scan_unlock()
+{
+    xSemaphoreGive(scan_mutex);
+}
+
+void wifi_set_scan_cb(wifi_scan_cb_t cb)
+{
+    scan_cb = cb;
 }

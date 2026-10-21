@@ -173,6 +173,9 @@
 #define WIFI_SESSION_CONNECT_MS 30000     // periodic mode: connection timeout
 #define WIFI_SESSION_RETRY_MS (10 * 60 * 1000) // periodic mode: retry after a failed session
 #define WIFI_SNTP_WAIT_MS 15000
+#define WIFI_SCAN_TIMEOUT_MS 10000
+#define WIFI_SCAN_MAX 64                  // networks kept after a scan (strongest first)
+#define WIFI_SCAN_RECORDS_MAX 80          // driver records read (with duplicates and hidden ones)
 
 ////////////////////////////////////////////////////////////////////////////////
 /// Internet update

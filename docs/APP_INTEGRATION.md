@@ -27,6 +27,7 @@ if the lamp behaves differently from these documents, the documents describe the
    - `0x000A` WiFi status
    - `0x0010` OTA control (status)
    - `0x0012` Update info
+   - `0x0014` WiFi networks (if present, firmware ≥ 0.1.5)
 
 Only one phone can be connected at a time; the lamp advertises again after a disconnect.
 Android permissions: `BLUETOOTH_SCAN` and `BLUETOOTH_CONNECT` (Android 12+), location for scanning
@@ -195,6 +196,12 @@ in the "always on" mode, the HTTP API (`http://<lamp ip>/api/...`, see [API.md](
   password send password length `0xFF` (keep the stored one).
 - Watch `0x000A` WiFi status: off / connecting / connected (IP, RSSI) / error (wrong password or
   network not found). In the periodic mode "off" between sessions is normal.
+- **Choosing the network** (firmware ≥ 0.1.5, characteristic `0x0014` present): command `0x08`
+  → notification `0x0014` with state `1` (scanning) → notification with state `2` (done) or `3`
+  (error) → read `0x0014` page by page: the header has the total `T`, the page start and its
+  size `N`; while `start + N < T` write `start + N` to `0x0014` and read again. The list is
+  2.4 GHz only (the lamp cannot use 5 GHz), strongest first; security `3` (enterprise) cannot be
+  used by the lamp, show it disabled. Without `0x0014` keep the manual SSID input.
 
 ## 9. Firmware update
 

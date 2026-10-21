@@ -87,6 +87,10 @@ Service: `F1A70000-B390-49C3-8770-A1DFC323D1AF`
 | 0x0011 | [OTA data](#0x0011-ota-data)                     | W       |
 | 0x0012 | [Update info](#0x0012-update-info)               | R, N    |
 | 0x0013 | [Hardware settings](#0x0013-hardware-settings)   | R, W    |
+| 0x0014 | [WiFi networks](#0x0014-wifi-networks) (optional, firmware ≥ 0.1.5) | R, W, N |
+
+Optional characteristics may be missing on older firmware: the app checks for them after
+service discovery and hides the feature when one is missing.
 
 R - read, W - write with response, N - notify (the app enables it via the CCCD descriptor).
 
@@ -363,6 +367,7 @@ Write; the first byte is the command:
 | 0x05 | Previous effect (same) |
 | 0x06 | Check for a firmware update on the internet now; the result comes in [Update info](#0x0012-update-info). Needs WiFi configured (otherwise `0x13`); in the periodic WiFi mode the lamp connects right away |
 | 0x07 | Install the firmware update from the internet, if a newer version is released; progress comes in [OTA control](#0x0010-ota-control) notifications. Needs WiFi configured (otherwise `0x13`) |
+| 0x08 | Scan for WiFi networks, see [WiFi networks](#0x0014-wifi-networks) (firmware ≥ 0.1.5). Works in any WiFi mode. `0x13` during a firmware upload over BLE; a repeated command while scanning is accepted and does nothing |
 
 ---
 
@@ -492,3 +497,49 @@ low: it is the BOOT button in the reference pinout.
 
 The DS3231 RTC and the AT24Cxx EEPROM need no settings: they are detected on the I2C bus at
 boot, see [Device info](#0x0001-device-info) features.
+
+---
+
+## 0x0014 WiFi networks
+
+Optional, firmware ≥ 0.1.5. The networks the lamp hears, for choosing the SSID in the WiFi
+settings: the lamp sees 2.4 GHz networks only, so 5 GHz networks never get in the list.
+
+The scan is started by [Command](#0x000c-command) `0x08`. It works in any WiFi mode: when WiFi is
+off or between the sessions of the periodic mode the radio is turned on for the scan only and off
+again; an always-on connection is kept (while the lamp is connecting the scan fails with state
+`3`, try again); during a periodic session the scan starts right after it. A scan takes a few
+seconds, `3` is reported if there is no result in 10 s. The result is kept in RAM until the next
+scan.
+
+The list has unique SSIDs (the strongest access point of each), no hidden networks, strongest
+first, up to 64 networks. It is read page by page.
+
+**Read**: one page, starting at the selected network (the first one after connecting and after
+every scan):
+
+| Offset | Type | Field |
+|--------|------|-------|
+| 0      | u8   | State: `0` - not scanned since boot, `1` - scanning, `2` - done, `3` - error |
+| 1      | u8   | Total number of networks `T` (0 unless the state is `2`) |
+| 2      | u8   | Index of the first network on this page |
+| 3      | u8   | Number of networks on this page `N` (as many as fit in 512 bytes) |
+| 4      | N × network | |
+
+Network:
+
+| Type | Field |
+|------|-------|
+| str8 | SSID |
+| i8   | RSSI, dBm |
+| u8   | Security: `0` - open (also OWE), `1` - WEP, `2` - WPA/WPA2/WPA3 personal (password), `3` - enterprise (the lamp cannot connect) |
+| u8   | Channel |
+
+**Write**: u8 - index of the first network of the next page to read, `0 .. T`. Rejected with
+`0x13` unless the state is `2`.
+
+**Notify**: the header only (4 bytes, `N` = 0) when the scan starts (state `1`) and finishes
+(`2` or `3`).
+
+To get the list: subscribe, write command `0x08`, wait for the notification with state `2`, read;
+while `index + N < T`, write `index + N` and read again.
