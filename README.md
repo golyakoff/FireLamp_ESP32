@@ -70,7 +70,8 @@ In the demo mode next/previous effect switch to the next included effect and the
 
 The lamp is controlled from the phone app over Bluetooth Low Energy, see
 [docs/BLE_PROTOCOL.md](docs/BLE_PROTOCOL.md): lamp state, effects and their parameters, time,
-schedules, demo mode, LED and WiFi settings, firmware update.
+schedules, demo mode, LED and WiFi settings, firmware update. Notes for the app developer:
+[docs/APP_INTEGRATION.md](docs/APP_INTEGRATION.md).
 
 - Effects and parameters are identified by text codes (`fire`, `plasma_waves`, `speed`, ...),
   so app and firmware versions do not depend on the order of effects.

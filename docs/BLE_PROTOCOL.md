@@ -217,8 +217,8 @@ demo flag) do not change while the firmware version is the same, so the app may 
 | str8 | Parameter code |
 | u8   | Value, within the parameter's min..max |
 
-**Notify**: the same as write, when a parameter is changed by anyone (also as a confirmation of
-the app's own write).
+**Notify**: the same as write, when a parameter value is changed by anyone (also after the app's
+own write). Writing the current value again gives no notification.
 
 ---
 
@@ -449,7 +449,7 @@ supervision timeout (lessons from Matrix Clock OTA).
 ## 0x0011 OTA data
 
 Write: next chunk of the firmware file, up to `MTU - 3` bytes. Only accepted between OTA start
-and end.
+and end. A disconnect aborts a BLE upload (not an internet update).
 
 ---
 

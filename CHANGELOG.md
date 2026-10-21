@@ -1,3 +1,8 @@
+Release 0.1.2
+
+- [x] BLE: a disconnect aborts only a firmware upload over BLE; an update from the internet started by the app goes on without the phone
+- [x] docs/APP_INTEGRATION.md: notes for the app developer
+
 Release 0.1.1
 
 - [x] BLE: a connection with no requests and no enabled notifications for 5 minutes is dropped, so the lamp advertises again (Android keeps the link to a just bonded lamp open by itself)

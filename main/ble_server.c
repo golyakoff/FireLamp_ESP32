@@ -90,6 +90,7 @@ static ble_addr_t bonded[BLE_MAX_BONDS];
 static int bonded_count = 0;
 
 static size_t effect_cursor = 0;
+static volatile bool ble_upload = false; // OTA in progress was started over BLE (not internet)
 
 static esp_timer_handle_t auth_timer, idle_timer, state_timer, reboot_timer;
 
@@ -233,9 +234,13 @@ static void on_wifi_status()
 
 static void on_ota_status(ota_state_t state, ota_error_t err, uint32_t received, uint32_t total)
 {
-    // WiFi is paused during the upload
+    // WiFi is paused during the BLE upload
     if (state == OTA_STATE_IDLE || state == OTA_STATE_ERROR)
-        wifi_pause(false);
+    {
+        if (ble_upload)
+            wifi_pause(false);
+        ble_upload = false;
+    }
 
     buf_t b = { 0 };
     put_u8(&b, state);
@@ -803,7 +808,12 @@ static int chr_ota_control(struct ble_gatt_access_ctxt *ctxt, reader_t *r)
             surface_stop();
             wifi_pause(true);
             request_ota_conn_params();
-            ota_begin(size, with_sha ? sha : NULL);
+            ble_upload = true;
+            if (ota_begin(size, with_sha ? sha : NULL) != ESP_OK)
+            {
+                ble_upload = false;
+                wifi_pause(false);
+            }
             return 0;
         }
         case OTA_CMD_END:
@@ -1033,8 +1043,9 @@ static int gap_event(struct ble_gap_event *event, void *arg)
             authorized = false;
             esp_timer_stop(auth_timer);
             esp_timer_stop(idle_timer);
-            // an interrupted BLE upload is useless
-            ota_abort();
+            // an interrupted BLE upload is useless; an internet update goes on without the phone
+            if (ble_upload)
+                ota_abort();
             start_advertising();
             break;
 
