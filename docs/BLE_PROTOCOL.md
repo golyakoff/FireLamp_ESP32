@@ -23,6 +23,14 @@ The lamp is a BLE GATT server (peripheral) with a single primary service.
   where `XXXX` are the last two bytes of the BLE MAC address in hex.
 - The advertising packet carries the 128-bit service UUID, so the app can filter lamps by it.
 - One connection at a time. Advertising restarts after disconnect.
+- A connection with no requests to the lamp's characteristics for 5 minutes and no enabled
+  notifications is dropped by the lamp, so it can advertise again.
+- Finding lamps: while a lamp is connected it does not advertise, and Android often keeps the
+  link to a just bonded lamp open by itself, with no app using it (until the idle timeout above).
+  So the app should list both the lamps found by scanning for the service UUID and the bonded
+  lamps from `BluetoothAdapter.getBondedDevices()` (name `FireLamp-*` by default, or any name
+  when the service is found after connecting). `connectGatt()` to a bonded lamp works even when
+  the system already holds the link: Android shares one link between GATT clients.
 - MTU up to 517 is accepted; the app should request it right after connecting
   (the OTA data chunk size depends on it).
 

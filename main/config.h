@@ -102,6 +102,7 @@
 
 #define BLE_PAIRING_WINDOW_S 120
 #define BLE_AUTH_TIMEOUT_S 30      // unknown phone must pair within this time
+#define BLE_IDLE_TIMEOUT_S 300     // no requests and no subscriptions: disconnect to advertise again
 #define BLE_MAX_BONDS 4
 #define BLE_STATE_NOTIFY_MS 250    // lamp state notifications are coalesced: max 4 per second
 

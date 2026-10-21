@@ -91,9 +91,10 @@ static int bonded_count = 0;
 
 static size_t effect_cursor = 0;
 
-static esp_timer_handle_t auth_timer, state_timer, reboot_timer;
+static esp_timer_handle_t auth_timer, idle_timer, state_timer, reboot_timer;
 
 static void start_advertising();
+static void idle_restart();
 
 ////////////////////////////////////////////////////////////////////////////////
 /// Buffer helpers
@@ -832,6 +833,8 @@ static int access_cb(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt
     if (!authorized)
         return BLE_ATT_ERR_INSUFFICIENT_AUTHEN;
 
+    idle_restart();
+
     static uint8_t in[BUF_SIZE];
     reader_t r = { .data = in };
     if (ctxt->op == BLE_GATT_ACCESS_OP_WRITE_CHR)
@@ -952,6 +955,28 @@ static void auth_timer_cb(void *arg)
     }
 }
 
+// Android keeps the link to a just bonded lamp open with no app using it, and the lamp
+// cannot advertise while connected. Drop a connection that nobody uses.
+static void idle_timer_cb(void *arg)
+{
+    if (conn == BLE_HS_CONN_HANDLE_NONE)
+        return;
+    // an app waiting for notifications is not idle
+    if (sub_state || sub_param || sub_ota || sub_wifi || sub_update)
+    {
+        idle_restart();
+        return;
+    }
+    ESP_LOGW(TAG, "BLE: connection is idle for %d s, disconnecting", BLE_IDLE_TIMEOUT_S);
+    ble_gap_terminate(conn, BLE_ERR_REM_USER_CONN_TERM);
+}
+
+static void idle_restart()
+{
+    esp_timer_stop(idle_timer);
+    esp_timer_start_once(idle_timer, BLE_IDLE_TIMEOUT_S * 1000000ULL);
+}
+
 // Encryption is established: either with an existing bond or after a new pairing
 static void on_encrypted(uint16_t conn_handle)
 {
@@ -999,6 +1024,7 @@ static int gap_event(struct ble_gap_event *event, void *arg)
             effect_cursor = 0;
             ESP_LOGI(TAG, "BLE: connected");
             esp_timer_start_once(auth_timer, BLE_AUTH_TIMEOUT_S * 1000000ULL);
+            idle_restart();
             break;
 
         case BLE_GAP_EVENT_DISCONNECT:
@@ -1006,6 +1032,7 @@ static int gap_event(struct ble_gap_event *event, void *arg)
             conn = BLE_HS_CONN_HANDLE_NONE;
             authorized = false;
             esp_timer_stop(auth_timer);
+            esp_timer_stop(idle_timer);
             // an interrupted BLE upload is useless
             ota_abort();
             start_advertising();
@@ -1045,6 +1072,9 @@ static int gap_event(struct ble_gap_event *event, void *arg)
                 sub_wifi = event->subscribe.cur_notify;
             else if (event->subscribe.attr_handle == h_update)
                 sub_update = event->subscribe.cur_notify;
+            else
+                break; // not ours, e.g. Service Changed subscribed by the phone's system
+            idle_restart();
             break;
 
         case BLE_GAP_EVENT_MTU:
@@ -1142,6 +1172,8 @@ esp_err_t ble_server_init()
 
     esp_timer_create_args_t args = { .callback = auth_timer_cb, .name = "ble_auth" };
     CHECK(esp_timer_create(&args, &auth_timer));
+    args = (esp_timer_create_args_t) { .callback = idle_timer_cb, .name = "ble_idle" };
+    CHECK(esp_timer_create(&args, &idle_timer));
     args = (esp_timer_create_args_t) { .callback = state_timer_cb, .name = "ble_state" };
     CHECK(esp_timer_create(&args, &state_timer));
     args = (esp_timer_create_args_t) { .callback = reboot_timer_cb, .name = "ble_reboot" };
