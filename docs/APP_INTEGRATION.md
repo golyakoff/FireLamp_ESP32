@@ -94,7 +94,7 @@ the value actually changes, the lamp notifies the same triple (also for changes 
 e.g. the HTTP API). Writing the current value again gives no notification: rely on the write
 response for success.
 
-Current effects (from the firmware sources, for localization; `starfall` and `storm` since 0.2.0):
+Current effects (from the firmware sources, for localization; `starfall` and `storm` since 0.2.0, `twinkles`, `butterflies`, `rainbow_snake`, `soaring_fire` since 0.3.0):
 
 | Effect code | English name | Parameters: code (English name) |
 |---|---|---|
@@ -132,6 +132,10 @@ Current effects (from the firmware sources, for localization; `starfall` and `st
 | `nuclear` | Nuclear Noise | `speed` (Speed) |
 | `starfall` | Starfall | `colored` (Colored, bool), `saturation` (Saturation), `density` (Density), `tail_length` (Tail length) |
 | `storm` | Thunderstorm | `density` (Density), `lightning` (Lightning frequency), `clouds` (Clouds, bool) |
+| `twinkles` | Twinkles | `palette` (Palette; the last value is rainbow colors), `density` (Density) |
+| `butterflies` | Butterflies | `lamp` (Lamp with butterflies, bool), `butterflies` (Number of butterflies), `speed` (Speed), `wings` (Flapping wings, bool), `hue` (Lamp hue), `saturation` (Lamp saturation) |
+| `rainbow_snake` | Rainbow snake | `hue` (Hue), `rotate` (Rotate colors, bool) |
+| `soaring_fire` | Soaring fire | `fadeout` (Fadeout) |
 
 ## 5. Time and time zone
 

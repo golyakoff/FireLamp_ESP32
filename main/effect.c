@@ -42,6 +42,9 @@
 #include "effects/nuclear.h"
 #include "effects/starfall.h"
 #include "effects/storm.h"
+#include "effects/twinkles.h"
+#include "effects/butterflies.h"
+#include "effects/streams.h"
 
 const effect_descriptor_t effects[] = {
     DESCR_EFFECT_LAMP,
@@ -78,6 +81,10 @@ const effect_descriptor_t effects[] = {
     DESCR_EFFECT_NUCLEAR,
     DESCR_EFFECT_STARFALL,
     DESCR_EFFECT_STORM,
+    DESCR_EFFECT_TWINKLES,
+    DESCR_EFFECT_BUTTERFLIES,
+    DESCR_EFFECT_RAINBOW_SNAKE,
+    DESCR_EFFECT_SOARING_FIRE,
 };
 
 const size_t effects_count = sizeof(effects) / sizeof(effect_descriptor_t);

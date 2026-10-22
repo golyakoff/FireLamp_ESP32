@@ -1,3 +1,10 @@
+Release 0.3.0
+
+- [x] New effects from GyverLamp gunner47_v2:
+  - "Twinkles" (`twinkles`, "Мерцание" by SottNick): pixels smoothly light up and fade out; rainbow colors or a palette
+  - "Butterflies" (`butterflies`, "Мотыльки" by SottNick): butterflies sit on the glass and fly one by one; the lamp mode is "Лампа с мотыльками", a lamp of the chosen color with the butterflies as shadows
+  - "Rainbow snake" (`rainbow_snake`, "Радужный змей") and "Soaring fire" (`soaring_fire`, "Парящий огонь"): color dots smeared by noise (NoiseSmearing by Stefan Petrick)
+
 Release 0.2.0
 
 - [x] New effect "Starfall" (`starfall`, from GyverLamp gunner47_v2 by PalPalych): comets with tails flying diagonally; not colored, it is a snowstorm

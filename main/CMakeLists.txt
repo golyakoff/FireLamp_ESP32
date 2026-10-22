@@ -62,6 +62,9 @@ idf_component_register(
 		effects/nuclear.c
 		effects/starfall.c
 		effects/storm.c
+		effects/twinkles.c
+		effects/butterflies.c
+		effects/streams.c
 
 	EMBED_FILES
 		${EMBED}/gifs/heart.gif
