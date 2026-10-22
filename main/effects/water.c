@@ -4,6 +4,7 @@
  * https://wokwi.com/arduino/projects/287787908971102732
  */
 #include "effects/water.h"
+#include "palettes.h"
 
 #include <lib8tion.h>
 #include <noise.h>
@@ -46,7 +47,7 @@ esp_err_t effect_water_run(framebuffer_t *fb)
         for (size_t x = 0; x < fb->width; x++)
         {
             uint8_t idx = inoise8_3d(x * 30, y * 30, time_ms / (255 - (PARAM_VAL(water, P_SPEED) + 200)));
-            fb_set_pixel_rgb(fb, x, y, color_from_palette_rgb(palette, PALETTE_SIZE, idx, 255, true));
+            fb_set_pixel_rgb(fb, x, y, palette_color_rgb(palette, PALETTE_SIZE, idx, 255, true));
         }
     fb_blur2d(fb, 32);
 

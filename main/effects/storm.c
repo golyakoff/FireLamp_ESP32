@@ -9,6 +9,7 @@
  * Here a bolt lives a few frames, flickers and lights up the clouds.
  */
 #include "effects/storm.h"
+#include "palettes.h"
 
 #include <string.h>
 #include <esp_timer.h>
@@ -202,7 +203,7 @@ esp_err_t effect_storm_run(framebuffer_t *fb)
                 size_t y = height - 1 - z;
                 rgb_t p;
                 fb_get_pixel_rgb(fb, x, y, &p);
-                rgb_t cloud = color_from_palette_rgb(CLOUD_PALETTE, 4, *c, 255, true);
+                rgb_t cloud = palette_color_rgb(CLOUD_PALETTE, 4, *c, 255, true);
                 cloud = rgb_add_rgb(cloud, rgb_scale(lit, *c));
                 fb_set_pixel_rgb(fb, x, y, rgb_blend(p, cloud, (cloud_h - z) * (250 / cloud_h)));
             }

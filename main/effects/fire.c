@@ -47,7 +47,7 @@ esp_err_t effect_fire_run(framebuffer_t *fb)
                 inoise8_3d(x * PARAM_VAL(fire, P_SCALE), y * PARAM_VAL(fire, P_SCALE) + time_ms / time_scale, time_ms / 3),
                 abs8(y - (fb->height - 1)) * 255 / (fb->height - 1)
             );
-            rgb_t c = color_from_palette_rgb(palettes[PARAM_VAL(fire, P_PALETTE)].palette, palettes[PARAM_VAL(fire, P_PALETTE)].size, idx, 255, true);
+            rgb_t c = palette_color_rgb(palettes[PARAM_VAL(fire, P_PALETTE)].palette, palettes[PARAM_VAL(fire, P_PALETTE)].size, idx, 255, true);
             fb_set_pixel_rgb(fb, x, fb->height - y - 1, c);
         }
 

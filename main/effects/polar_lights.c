@@ -71,7 +71,7 @@ esp_err_t effect_polar_lights_run(framebuffer_t *fb)
         for (size_t y = 0; y < fb->height; y++)
         {
             t++;
-            rgb_t color = color_from_palette_rgb(palette, PALETTE_SIZE,
+            rgb_t color = palette_color_rgb(palette, PALETTE_SIZE,
                     qsub8(inoise8_3d(t % 2 + x * p_scale, y * 16 + t % 16, t / p_speed),
                             fabsf((float)fb->height / 2 - y) * height_adj),
                     255, true);

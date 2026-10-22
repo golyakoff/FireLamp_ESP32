@@ -61,7 +61,7 @@ esp_err_t effect_whirls_run(framebuffer_t *fb)
         whirls[i].x += (float)sin8(angle) * 0.0078125f - 1.0f;
         whirls[i].y -= (float)cos8(angle) * 0.0078125f - 1.0f;
 
-        rgb_t c = color_from_palette_rgb(
+        rgb_t c = palette_color_rgb(
                 palettes[PARAM_VAL(whirls, P_PALETTE)].palette,
                 palettes[PARAM_VAL(whirls, P_PALETTE)].size,
                 angle / 2, 255, true);

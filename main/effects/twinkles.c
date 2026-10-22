@@ -78,9 +78,6 @@ esp_err_t effect_twinkles_run(framebuffer_t *fb)
     uint8_t chance = 12 - PARAM_VAL(twinkles, P_DENSITY);
     uint8_t pal_num = PARAM_VAL(twinkles, P_PALETTE);
     const palette_def_t *pal = pal_num < PALETTE_MAX ? &palettes[pal_num] : NULL;
-    // color_from_palette_rgb() reads past a palette which size is not a power of 2 for the
-    // highest indices, keep them in range
-    uint8_t max_idx = pal ? pal->size * (256 / pal->size) - 1 : 255;
 
     for (size_t i = 0; i < count; i++)
     {
@@ -120,7 +117,7 @@ esp_err_t effect_twinkles_run(framebuffer_t *fb)
 
         rgb_t c = { 0 };
         if (p->value && pal)
-            c = color_from_palette_rgb(pal->palette, pal->size, scale8(p->hue, max_idx), p->value, true);
+            c = palette_color_rgb(pal->palette, pal->size, p->hue, p->value, true);
         else if (p->value)
             c = hsv2rgb_rainbow(hsv_from_values(p->hue, 255, p->value));
         fb_set_pixel_rgb(fb, i % fb->width, i / fb->width, c);

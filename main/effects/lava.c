@@ -61,10 +61,10 @@ esp_err_t effect_lava_run(framebuffer_t *fb)
                     fb_set_pixel_hsv(fb, x, y, hsv_from_values(hue + noise, 255, 255));
                     break;
                 case MODE_LAVA:
-                    fb_set_pixel_rgb(fb, x, y, color_from_palette_rgb(lava_palette, LAVA_PALETTE_SIZE, noise, 255, true));
+                    fb_set_pixel_rgb(fb, x, y, palette_color_rgb(lava_palette, LAVA_PALETTE_SIZE, noise, 255, true));
                     break;
                 default:
-                    fb_set_pixel_rgb(fb, x, y, color_from_palette_rgb(palettes[PARAM_VAL(lava, P_PALETTE)].palette,
+                    fb_set_pixel_rgb(fb, x, y, palette_color_rgb(palettes[PARAM_VAL(lava, P_PALETTE)].palette,
                             palettes[PARAM_VAL(lava, P_PALETTE)].size, noise, 255, true));
                     break;
             }

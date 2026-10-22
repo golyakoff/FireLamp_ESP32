@@ -36,8 +36,8 @@ esp_err_t effect_dunes_run(framebuffer_t *fb)
         y_hue_delta += yd2;
         for (size_t x = 0; x < fb->width; x++)
         {
-            //rgb_t c = color_from_palette_rgb(palette, palette_size, pixel_hue >> 8, 255, true);
-            rgb_t c = color_from_palette_rgb(
+            //rgb_t c = palette_color_rgb(palette, palette_size, pixel_hue >> 8, 255, true);
+            rgb_t c = palette_color_rgb(
                 palettes[PARAM_VAL(dunes, P_PALETTE)].palette,
                 palettes[PARAM_VAL(dunes, P_PALETTE)].size,
                 pixel_hue >> 8, 255, true);

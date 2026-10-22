@@ -182,4 +182,17 @@ typedef struct
 
 extern const palette_def_t palettes[PALETTE_MAX];
 
+/**
+ * color_from_palette_rgb() with the index kept inside the palette
+ *
+ * color_from_palette_rgb() gives each entry 256 / size indices, so for a size that is not a power
+ * of 2 the highest indices point past the end of the palette (e.g. 247..255 for 13 entries).
+ * Use this function instead.
+ */
+static inline rgb_t palette_color_rgb(const rgb_t *palette, uint8_t size, uint8_t index, uint8_t brightness, bool blend)
+{
+    uint8_t last = size * (256 / size) - 1;
+    return color_from_palette_rgb(palette, size, index > last ? last : index, brightness, blend);
+}
+
 #endif /* EVLAMP_PALETTES_H_ */

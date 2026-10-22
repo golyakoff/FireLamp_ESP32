@@ -1,3 +1,7 @@
+Release 0.4.1
+
+- [x] Effects with palettes of 6, 7 or 13 colors (Fire, Lava, Sun, Whirls, Polar lights, Dunes with the Heat palette; Metaballs; Lava) no longer read colors past the end of the palette: the brightest spots could flash a random color
+
 Release 0.4.0
 
 - [x] New effects from GyverLamp gunner47_v2:

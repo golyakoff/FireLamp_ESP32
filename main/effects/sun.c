@@ -66,7 +66,7 @@ esp_err_t effect_sun_run(framebuffer_t *fb)
             int c = 200 - temp / PARAM_VAL(sun, P_SIZE);
             if (c < 0) c = 0;
             fb_set_pixel_rgb(fb, x, y,
-                    color_from_palette_rgb(palettes[PARAM_VAL(sun, P_PALETTE)].palette, palettes[PARAM_VAL(sun, P_PALETTE)].size, c, 255, true));
+                    palette_color_rgb(palettes[PARAM_VAL(sun, P_PALETTE)].palette, palettes[PARAM_VAL(sun, P_PALETTE)].size, c, 255, true));
         }
         idx_y += ((int)fb->width + 2);
     }
