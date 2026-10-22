@@ -615,18 +615,28 @@ static int chr_hardware(struct ble_gatt_access_ctxt *ctxt, reader_t *r)
         put_u8(&b, sys_settings.hw.input_mode);
         put_u8(&b, supported);
         put_u8(&b, sys_settings.hw.button_level);
+        put_u8(&b, input_main_gpio(sys_settings.hw.main_gpio));
+        size_t n;
+        const uint8_t *gpios = input_main_gpios(&n);
+        put_u8(&b, n);
+        for (size_t i = 0; i < n; i++)
+            put_u8(&b, gpios[i]);
         return reply(ctxt, &b);
     }
 
+    // 2 bytes from the apps that do not know the Main button pin: the pin is kept
     uint8_t mode = get_u8(r);
     uint8_t level = get_u8(r);
+    uint8_t gpio = r->len > 2 ? get_u8(r) : input_main_gpio(sys_settings.hw.main_gpio);
     if (r->error || r->pos != r->len)
         return BLE_ATT_ERR_INVALID_ATTR_VALUE_LEN;
-    if (!input_mode_supported(mode) || level > 1)
+    if (!input_mode_supported(mode) || level > 1 || !input_main_gpio_allowed(gpio))
         return BLE_ATT_ERR_VALUE_NOT_ALLOWED;
     sys_settings.hw.input_mode = mode;
     sys_settings.hw.button_level = level;
-    ESP_LOGI(TAG, "Controls set to %d, buttons active %s, applied after reboot", mode, level ? "high" : "low");
+    sys_settings.hw.main_gpio = gpio;
+    ESP_LOGI(TAG, "Controls set to %d, buttons active %s, main button GPIO %d, applied after reboot",
+            mode, level ? "high" : "low", gpio);
     return sys_settings_save() == ESP_OK ? 0 : BLE_ATT_ERR_UNLIKELY;
 }
 

@@ -183,7 +183,7 @@ Layout: mask, on, brightness, fps, demo, str8 effect code (empty when bit 1 is n
 | Schedule | `0x0007` | read, modify, write the whole value; dawn effect by code |
 | Demo mode | `0x000D`, `0x000E`, flag in Effect info | order, duration, random addition; include/exclude effects by code; the last included effect cannot be excluded |
 | Matrix | `0x0008` | size, LED type, color order, rotation, mirror, current limit, wiring; **reboot to apply** |
-| Hardware | `0x0013` | controls (one button / four buttons / touch pad - only those in the "supported" mask), buttons type; **reboot to apply** |
+| Hardware | `0x0013` | controls (one button / four buttons / touch pad - only those in the "supported" mask), buttons type, Main button pin (a dropdown of the pins the lamp lists, firmware ≥ 0.4.3); **reboot to apply** |
 | WiFi | `0x0009`, `0x000A` | mode off / periodic / always on, period, SSID, password (never read back) |
 | Name | `0x000B` | up to 20 bytes, **reboot to apply** |
 | Device | `0x000C` | reboot (`01`), reset effects (`02`), factory reset (`03`, forgets bonds) |

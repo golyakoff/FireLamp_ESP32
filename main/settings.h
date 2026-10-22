@@ -92,6 +92,9 @@ typedef struct
         uint8_t input_mode;     // input_mode_t, applied after reboot
         uint8_t wiring;         // matrix_wiring_t, applied after reboot
         uint8_t button_level;   // pressed level of Main/Up/Down: 1 - TTP223 or button to +3.3V, 0 - button to GND
+        // Main button GPIO, applied after reboot; 0 - the pin of the build (CONFIG_FL_BUTTON_MAIN_GPIO).
+        // Takes the former padding byte, zero in the records of older firmware versions.
+        uint8_t main_gpio;
     } hw;
 } system_settings_t;
 

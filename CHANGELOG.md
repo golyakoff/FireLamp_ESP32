@@ -1,3 +1,7 @@
+Release 0.4.3
+
+- [x] The Main button pin is a setting (BLE `Hardware settings`, HTTP `/api/settings/hardware`): the lamp lists the pins it can be moved to (inputs with internal pull resistors, no strapping, flash or UART pins, none used by the matrix, I2C or the other buttons), ESP32: GPIO 4, 13, 14, 18, 19, 23, 25, 32, 33; ESP32-C3: GPIO 1, 4. Applied after reboot, the default pin stays as before
+
 Release 0.4.2
 
 - [x] One button / touch pad: click turns the lamp on and off, double click - next effect, triple click - previous effect (were: click - next effect, double click - off)

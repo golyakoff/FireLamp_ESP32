@@ -687,8 +687,8 @@ The lamp reboots after a successful installation.
 
 ## Hardware settings
 
-The control elements connected to the fixed pins. The DS3231 RTC and the AT24Cxx EEPROM are
-detected automatically.
+The control elements connected to the fixed pins and the pin of the Main button. The DS3231 RTC
+and the AT24Cxx EEPROM are detected automatically.
 
 ### Request
 
@@ -701,7 +701,9 @@ detected automatically.
   "input_mode": <Integer, 0 - one button, 1 - four buttons, 2 - touch pad (ESP32 only)>,
   "input_mode_active": <Integer, controls in use now (input_mode is applied after reboot)>,
   "input_modes": [ <Integer, supported values> ],
-  "button_level": <Integer, 1 - TTP223 or a button to +3.3V (active high), 0 - a button to GND (active low)>
+  "button_level": <Integer, 1 - TTP223 or a button to +3.3V (active high), 0 - a button to GND (active low)>,
+  "main_gpio": <Integer, GPIO of the Main button (one button, TTP223, or Main of four buttons)>,
+  "main_gpios": [ <Integer, GPIOs the Main button can be connected to, ascending> ]
 }
 ```
 
@@ -710,10 +712,10 @@ detected automatically.
 **POST** `/api/settings/hardware`
 
 ```jsonc
-{ "input_mode": <Integer>, "button_level": <Integer> }
+{ "input_mode": <Integer>, "button_level": <Integer>, "main_gpio": <Integer, one of main_gpios> }
 ```
 
-Both fields are optional.
+All fields are optional.
 
 Applied after reboot.
 

@@ -8,7 +8,7 @@ esp_err_t bus_send_event(event_type_t type, void *data, size_t size) { last_t = 
 static void run_ms(int ms) { for (int i = 0; i < ms / INPUT_POLL_MS; i++) { fake_now_us += INPUT_POLL_MS * 1000; for (int b = 0; b < INPUT_BTN_MAX; b++) process(b, fake_now_us); } }
 int main(void)
 {
-    input_init(INPUT_MODE_FOUR_BUTTONS, 1);
+    input_init(INPUT_MODE_FOUR_BUTTONS, 1, 0);
     // all GPIO stubs share one level; pressed_level differs for Reset (0), so set Reset "released" = 1
     // -> test only that a click is reported right after release, without the multi-click wait
     fake_level = 1; run_ms(100); fake_level = 0; run_ms(40);

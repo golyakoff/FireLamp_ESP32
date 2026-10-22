@@ -228,6 +228,8 @@ esp_err_t sys_settings_load()
             sys_settings.hw.wiring = MATRIX_WIRING_SERPENTINE;
         if (sys_settings.hw.button_level > 1)
             sys_settings.hw.button_level = CONFIG_FL_BUTTON_LEVEL;
+        if (sys_settings.hw.main_gpio && !input_main_gpio_allowed(sys_settings.hw.main_gpio))
+            sys_settings.hw.main_gpio = 0;
         if (size == sizeof(system_settings_t))
             return ESP_OK;
         ESP_LOGW(TAG, "System settings upgraded from %d to %d bytes", size, sizeof(system_settings_t));

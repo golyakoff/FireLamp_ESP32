@@ -90,17 +90,31 @@ def test_led_settings(lamp):
 
 def test_hardware_settings(lamp, info):
     orig = lamp.read(fl.HARDWARE)
-    mode, supported, level = orig
+    mode, supported, level, gpio, count = orig[:5]
+    gpios = list(orig[5:])
+    assert len(gpios) == count and gpios == sorted(gpios) and gpio in gpios
     assert supported & (1 << mode)
     assert level in (0, 1)
     if info.chip == 1:
         assert not supported & 0b100, "no touch pad on ESP32-C3"
+    for taken in (5, 0, 34) if info.chip == 0 else (5, 9, 18):
+        assert taken not in gpios, f"GPIO {taken} must not be offered for the Main button"
 
+    # the 2 bytes form of older apps keeps the pin
     lamp.write(fl.HARDWARE, bytes([mode, level]))
+    assert lamp.read(fl.HARDWARE) == orig
+    other = next((g for g in gpios if g != gpio), gpio)
+    lamp.write(fl.HARDWARE, bytes([mode, level, other]))
+    assert lamp.read(fl.HARDWARE)[3] == other
+    lamp.write(fl.HARDWARE, bytes([mode, level, gpio]))
+
     unsupported = [m for m in range(3) if not supported & (1 << m)]
-    for bad in [bytes([m, level]) for m in unsupported] + [bytes([3, level]), bytes([mode, 2])]:
+    bad_pins = [g for g in range(40) if g not in gpios]
+    for bad in [bytes([m, level]) for m in unsupported] + [bytes([3, level]), bytes([mode, 2])] \
+            + [bytes([mode, level, g]) for g in bad_pins]:
         assert lamp.write_error(fl.HARDWARE, bad) == fl.ATT_VALUE_NOT_ALLOWED
     assert lamp.write_error(fl.HARDWARE, bytes([mode])) == fl.ATT_INVALID_LENGTH
+    assert lamp.write_error(fl.HARDWARE, bytes([mode, level, gpio, 0])) == fl.ATT_INVALID_LENGTH
     assert lamp.read(fl.HARDWARE) == orig
 
 

@@ -218,7 +218,70 @@ static void input_task(void *arg)
     }
 }
 
-esp_err_t input_init(input_mode_t m, uint8_t level)
+////////////////////////////////////////////////////////////////////////////////
+/// Main button pin
+
+// Inputs with internal pull resistors, without strapping, flash, PSRAM, USB and UART pins
+#if CONFIG_IDF_TARGET_ESP32C3
+static const uint8_t main_gpio_candidates[] = { 1, 4, 6, 7 };
+#else
+static const uint8_t main_gpio_candidates[] = { 4, 13, 14, 18, 19, 23, 25, 26, 27, 32, 33 };
+#endif
+
+// the pins used by the other functions of the lamp
+static bool gpio_taken(uint8_t gpio)
+{
+    return gpio == CONFIG_FL_MATRIX_GPIO || gpio == CONFIG_FL_I2C_SDA_GPIO || gpio == CONFIG_FL_I2C_SCL_GPIO
+        || gpio == CONFIG_FL_BUTTON_UP_GPIO || gpio == CONFIG_FL_BUTTON_DOWN_GPIO
+        || gpio == CONFIG_FL_BUTTON_RESET_GPIO;
+}
+
+const uint8_t *input_main_gpios(size_t *n)
+{
+    static uint8_t list[sizeof(main_gpio_candidates) + 1];
+    static size_t list_count = 0;
+
+    if (!list_count)
+    {
+        bool default_added = false;
+        for (size_t i = 0; i < sizeof(main_gpio_candidates); i++)
+        {
+            uint8_t gpio = main_gpio_candidates[i];
+            // the pin of the build is always there, even in a build with other pins
+            if (!default_added && CONFIG_FL_BUTTON_MAIN_GPIO <= gpio)
+            {
+                list[list_count++] = CONFIG_FL_BUTTON_MAIN_GPIO;
+                default_added = true;
+            }
+            if (gpio != CONFIG_FL_BUTTON_MAIN_GPIO && !gpio_taken(gpio))
+                list[list_count++] = gpio;
+        }
+        if (!default_added)
+            list[list_count++] = CONFIG_FL_BUTTON_MAIN_GPIO;
+    }
+
+    *n = list_count;
+    return list;
+}
+
+bool input_main_gpio_allowed(uint8_t gpio)
+{
+    size_t n;
+    const uint8_t *list = input_main_gpios(&n);
+    for (size_t i = 0; i < n; i++)
+        if (list[i] == gpio)
+            return true;
+    return false;
+}
+
+uint8_t input_main_gpio(uint8_t setting)
+{
+    return setting && input_main_gpio_allowed(setting) ? setting : CONFIG_FL_BUTTON_MAIN_GPIO;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+esp_err_t input_init(input_mode_t m, uint8_t level, uint8_t main_gpio)
 {
     mode = m;
 #if !SOC_TOUCH_SENSOR_SUPPORTED
@@ -229,7 +292,7 @@ esp_err_t input_init(input_mode_t m, uint8_t level)
 
     // Main waits for multi-click (pairing gesture and one button gestures),
     // other buttons react immediately as in EvLamp
-    buttons[INPUT_BTN_MAIN].gpio = CONFIG_FL_BUTTON_MAIN_GPIO;
+    buttons[INPUT_BTN_MAIN].gpio = input_main_gpio(main_gpio);
     buttons[INPUT_BTN_MAIN].pressed_level = level ? 1 : 0;
     buttons[INPUT_BTN_MAIN].multi_click = true;
     buttons[INPUT_BTN_RESET].gpio = CONFIG_FL_BUTTON_RESET_GPIO;
@@ -239,8 +302,9 @@ esp_err_t input_init(input_mode_t m, uint8_t level)
     buttons[INPUT_BTN_DOWN].gpio = CONFIG_FL_BUTTON_DOWN_GPIO;
     buttons[INPUT_BTN_DOWN].pressed_level = level ? 1 : 0;
 
-    ESP_LOGI(TAG, "Controls: %s, buttons active %s", mode == INPUT_MODE_FOUR_BUTTONS ? "four buttons"
-            : mode == INPUT_MODE_TOUCH ? "touch pad" : "one button", level ? "high" : "low");
+    ESP_LOGI(TAG, "Controls: %s, buttons active %s, main button GPIO %d", mode == INPUT_MODE_FOUR_BUTTONS ? "four buttons"
+            : mode == INPUT_MODE_TOUCH ? "touch pad" : "one button", level ? "high" : "low",
+            buttons[INPUT_BTN_MAIN].gpio);
 
     CHECK(source_init());
 

@@ -479,20 +479,31 @@ the state is `3` and install it with command `0x07`.
 
 ## 0x0013 Hardware settings
 
-The pins are fixed in the firmware (see the README for the reference pinout of each chip);
-the control elements connected to them are a setting. Applied after reboot (send
-[Command](#0x000c-command) `0x01`).
+The pins are fixed in the firmware (see the README for the reference pinout of each chip), except
+the Main button pin, which can be moved to one of a few pins (firmware ≥ 0.4.3); the control
+elements connected to them are a setting. Applied after reboot (send [Command](#0x000c-command)
+`0x01`).
 
-**Read**: 3 bytes
+**Read**: 3 bytes, firmware ≥ 0.4.3: `5 + N` bytes
 
 | Offset | Type | Field |
 |--------|------|-------|
 | 0      | u8   | Controls: `0` - one button (or TTP223 module), `1` - four buttons (Main, Up, Down, Reset), `2` - ESP32 touch pad |
 | 1      | u8   | Supported controls bitmask: bit N - controls `N` are supported by this chip (no touch pad on ESP32-C3) |
 | 2      | u8   | Buttons type (Main, Up, Down): `1` - active high: TTP223 touch module or a button to +3.3 V, `0` - active low: a button to GND. The internal pull resistor is enabled towards the opposite level |
+| 3      | u8   | Main button GPIO (one button, TTP223, or Main of four buttons) |
+| 4      | u8   | Number of pins `N` the Main button can be connected to |
+| 5      | N × u8 | These pins, ascending; the current one is among them |
 
-**Write**: 2 bytes - controls and buttons type (offsets 0 and 2 of the read value). An
-unsupported value is rejected (`0x13`). The Reset button (four buttons mode) is always active
+The Main button pins are inputs with internal pull-up and pull-down resistors that are not
+strapping, flash, PSRAM, USB or UART pins and not used by the matrix, the I2C bus and the other
+buttons of the four buttons mode. With the reference pinout: ESP32 - GPIO 4, 13, 14, 18, 19, 23,
+25 (default), 32, 33; ESP32-C3 - GPIO 1, 4 (default). Show the list read from the lamp, not
+these numbers: a build with other pins has another list.
+
+**Write**: 3 bytes - controls, buttons type and Main button GPIO (offsets 0, 2 and 3 of the read
+value). The 2 bytes form without the pin (older apps) keeps the pin. An unsupported value or a
+pin not in the list is rejected (`0x13`). The Reset button (four buttons mode) is always active
 low: it is the BOOT button in the reference pinout.
 
 The DS3231 RTC and the AT24Cxx EEPROM need no settings: they are detected on the I2C bus at

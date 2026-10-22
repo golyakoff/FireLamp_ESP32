@@ -9,7 +9,7 @@ esp_err_t bus_send_event(event_type_t type, void *data, size_t size) { last_t = 
 static void run_ms(int ms) { for (int i = 0; i < ms / INPUT_POLL_MS; i++) { fake_now_us += INPUT_POLL_MS * 1000; process(INPUT_BTN_MAIN, fake_now_us); } }
 int main(void)
 {
-    input_init(INPUT_MODE_ONE_BUTTON, 0);
+    input_init(INPUT_MODE_ONE_BUTTON, 0, 0);
     // idle line is high (pull-up): nothing happens
     run_ms(1000);
     assert(n == 0);

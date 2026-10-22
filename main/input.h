@@ -43,8 +43,26 @@ typedef struct
  * @param mode Control elements
  * @param button_level Pressed level of Main/Up/Down buttons: 1 - active high (TTP223),
  *                     0 - active low (button to GND); the pull resistor goes to the opposite level
+ * @param main_gpio GPIO of the Main button, 0 or a pin not allowed by input_main_gpio_allowed():
+ *                  the pin of the build (CONFIG_FL_BUTTON_MAIN_GPIO)
  */
-esp_err_t input_init(input_mode_t mode, uint8_t button_level);
+esp_err_t input_init(input_mode_t mode, uint8_t button_level, uint8_t main_gpio);
+
+/**
+ * Pins the Main button can be moved to: inputs with internal pull-up and pull-down that are not
+ * strapping, flash or UART pins and not used by the matrix, the I2C bus or the other buttons
+ *
+ * @param[out] count Number of pins
+ * @return Pins, ascending
+ */
+const uint8_t *input_main_gpios(size_t *count);
+
+bool input_main_gpio_allowed(uint8_t gpio);
+
+/**
+ * Main button GPIO the setting stands for (0: the pin of the build)
+ */
+uint8_t input_main_gpio(uint8_t setting);
 
 /**
  * Control elements in use (the touch pad falls back to one button on chips without it)

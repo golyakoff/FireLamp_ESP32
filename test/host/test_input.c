@@ -30,7 +30,21 @@ static const char *name(event_type_t t)
 
 int main(void)
 {
-    input_init(INPUT_MODE_ONE_BUTTON, 1);
+    // Main button pins (ESP32 reference pinout, see INPUT_CFG in the Makefile): candidates
+    // without the matrix, I2C and Up/Down/Reset pins; 0 or a pin not in the list - the default
+    size_t pins_count;
+    const uint8_t *pins = input_main_gpios(&pins_count);
+    static const uint8_t expected[] = { 4, 13, 14, 18, 19, 23, 25, 32, 33 };
+    assert(pins_count == sizeof(expected) && !memcmp(pins, expected, sizeof(expected)));
+    assert(input_main_gpio_allowed(25) && input_main_gpio_allowed(4) && input_main_gpio_allowed(33));
+    assert(!input_main_gpio_allowed(0) && !input_main_gpio_allowed(5) && !input_main_gpio_allowed(26)
+           && !input_main_gpio_allowed(34) && !input_main_gpio_allowed(12));
+    assert(input_main_gpio(0) == 25 && input_main_gpio(13) == 13 && input_main_gpio(5) == 25);
+    input_init(INPUT_MODE_ONE_BUTTON, 1, 13);
+    assert(buttons[INPUT_BTN_MAIN].gpio == 13);
+
+    input_init(INPUT_MODE_ONE_BUTTON, 1, 0);
+    assert(buttons[INPUT_BTN_MAIN].gpio == 25);
 
     // single click
     reset(); press(100); run_ms(500);

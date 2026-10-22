@@ -9,7 +9,8 @@ CFLAGS := -Wall -Wno-unused-function -Wno-unused-variable -std=gnu17 -D_GNU_SOUR
 # button pins and levels (the control elements are chosen at runtime)
 INPUT_CFG := -DCONFIG_FL_BUTTON_MAIN_GPIO=25 -DCONFIG_FL_BUTTON_UP_GPIO=26 \
 	-DCONFIG_FL_BUTTON_DOWN_GPIO=27 -DCONFIG_FL_BUTTON_RESET_GPIO=0 \
-	-DCONFIG_FL_BUTTON_RESET_LEVEL=0
+	-DCONFIG_FL_BUTTON_RESET_LEVEL=0 -DCONFIG_FL_MATRIX_GPIO=5 \
+	-DCONFIG_FL_I2C_SDA_GPIO=21 -DCONFIG_FL_I2C_SCL_GPIO=22
 
 TESTS := build/test_storage build/test_input build/test_input4 build/test_input_low build/test_schedule build/test_demo \
 	build/test_codes

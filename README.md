@@ -23,7 +23,7 @@ One firmware per chip fits every lamp with the reference pinout:
 | Function | ESP32 | ESP32-C3 |
 |---|---|---|
 | Matrix data | GPIO5 | GPIO5 |
-| Main button (one button mode) | GPIO25 | GPIO4 |
+| Main button (default, can be moved in the app) | GPIO25 | GPIO4 |
 | Up / Down buttons | GPIO26 / GPIO27 | GPIO6 / GPIO7 |
 | Reset button (active low) | GPIO0 (BOOT) | GPIO9 (BOOT) |
 | Touch pad | T0 = GPIO4 | - |
@@ -34,8 +34,9 @@ Reset is the board's BOOT button (active low). Everything else is detected or se
 - **DS3231** and **EEPROM** (address 0x50) are detected on the I2C bus at boot. With an EEPROM
   the settings are kept in it and survive `erase-flash`; an EEPROM added later takes over the
   settings from the internal flash.
-- **Control elements** (one button / four buttons / ESP32 touch pad) and the **buttons type**
-  (TTP223 module or a button to +3.3 V, or a button to GND) - settings in the app
+- **Control elements** (one button / four buttons / ESP32 touch pad), the **buttons type**
+  (TTP223 module or a button to +3.3 V, or a button to GND) and the **Main button pin**
+  (ESP32: GPIO 4, 13, 14, 18, 19, 23, 25, 32, 33; ESP32-C3: GPIO 1, 4) - settings in the app
   (BLE `Hardware settings`, HTTP `/api/settings/hardware`).
 - **Matrix**: size, LED type, color order, rotation, mirror, serpentine or progressive wiring,
   current limit - a setting in the app (BLE `LED settings`, HTTP `/api/settings/leds`).

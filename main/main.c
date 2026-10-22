@@ -260,7 +260,7 @@ void app_main()
     ESP_ERROR_CHECK(demo_init());
 
     // Initialize input
-    ESP_ERROR_CHECK(input_init(sys_settings.hw.input_mode, sys_settings.hw.button_level));
+    ESP_ERROR_CHECK(input_init(sys_settings.hw.input_mode, sys_settings.hw.button_level, sys_settings.hw.main_gpio));
 
     // Start scheduler
     ESP_ERROR_CHECK(scheduler_init());

@@ -1130,6 +1130,13 @@ static esp_err_t get_settings_hardware(httpd_req_t *req)
             cJSON_AddItemToArray(supported, cJSON_CreateNumber(m));
     cJSON_AddItemToObject(res, "input_modes", supported);
     cJSON_AddNumberToObject(res, "button_level", sys_settings.hw.button_level);
+    cJSON_AddNumberToObject(res, "main_gpio", input_main_gpio(sys_settings.hw.main_gpio));
+    size_t n;
+    const uint8_t *gpios = input_main_gpios(&n);
+    cJSON *pins = cJSON_CreateArray();
+    for (size_t i = 0; i < n; i++)
+        cJSON_AddItemToArray(pins, cJSON_CreateNumber(gpios[i]));
+    cJSON_AddItemToObject(res, "main_gpios", pins);
     return respond_json(req, res);
 }
 
@@ -1149,15 +1156,18 @@ static esp_err_t post_settings_hardware(httpd_req_t *req)
         goto exit;
 
     uint8_t mode = sys_settings.hw.input_mode, level = sys_settings.hw.button_level;
+    uint8_t gpio = input_main_gpio(sys_settings.hw.main_gpio);
     if (!number_parse(json, "input_mode", &mode) || !input_mode_supported(mode)
-            || !number_parse(json, "button_level", &level) || level > 1)
+            || !number_parse(json, "button_level", &level) || level > 1
+            || !number_parse(json, "main_gpio", &gpio) || !input_main_gpio_allowed(gpio))
     {
         err = ESP_ERR_INVALID_ARG;
-        msg = "Invalid or unsupported `input_mode` or `button_level`";
+        msg = "Invalid or unsupported `input_mode`, `button_level` or `main_gpio`";
         goto exit;
     }
     sys_settings.hw.input_mode = mode;
     sys_settings.hw.button_level = level;
+    sys_settings.hw.main_gpio = gpio;
     err = sys_settings_save();
     msg = err != ESP_OK ? "Error saving system settings" : "Settings saved, reboot to apply";
 
