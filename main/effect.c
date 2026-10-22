@@ -1,6 +1,6 @@
 #include "effect.h"
 #include <string.h>
-#include <esp_crc.h>
+#include "code_hash.h"
 #include "storage.h"
 #include "settings.h"
 #include "surface.h"
@@ -98,14 +98,9 @@ const size_t effects_count = sizeof(effects) / sizeof(effect_descriptor_t);
 ////////////////////////////////////////////////////////////////////////////////
 
 // Record format: sequence of entries
-//   uint16_t crc16 of effect code, uint8_t number of params N,
-//   N x (uint16_t crc16 of param code, uint8_t value)
+//   uint16_t code_hash() of effect code, uint8_t number of params N,
+//   N x (uint16_t code_hash() of param code, uint8_t value)
 // Bound to codes, so the values survive adding, removing or reordering effects and parameters.
-
-static uint16_t code_hash(const char *code)
-{
-    return esp_crc16_le(0, (const uint8_t *)code, strlen(code));
-}
 
 static effect_param_cb_t param_cb = NULL;
 

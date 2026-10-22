@@ -21,6 +21,7 @@ idf_component_register(
 		wifi.c
 		bus.c
 		effect.c
+		code_hash.c
 		surface.c
 		input.c
 		webserver.c

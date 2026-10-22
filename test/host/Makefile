@@ -11,7 +11,8 @@ INPUT_CFG := -DCONFIG_FL_BUTTON_MAIN_GPIO=25 -DCONFIG_FL_BUTTON_UP_GPIO=26 \
 	-DCONFIG_FL_BUTTON_DOWN_GPIO=27 -DCONFIG_FL_BUTTON_RESET_GPIO=0 \
 	-DCONFIG_FL_BUTTON_RESET_LEVEL=0
 
-TESTS := build/test_storage build/test_input build/test_input4 build/test_input_low build/test_schedule build/test_demo
+TESTS := build/test_storage build/test_input build/test_input4 build/test_input_low build/test_schedule build/test_demo \
+	build/test_codes
 
 .PHONY: all clean
 all: $(TESTS)
@@ -38,6 +39,13 @@ build/test_schedule: test_schedule.c $(MAIN)/schedule.c $(MAIN)/schedule.h | bui
 
 build/test_demo: test_demo.c $(MAIN)/demo_core.c $(MAIN)/demo_core.h | build
 	$(CC) -Wall -std=gnu17 -I$(MAIN) -o $@ test_demo.c $(MAIN)/demo_core.c
+
+# effect and parameter codes parsed from the firmware sources
+build/codes.h: gen_codes.py $(MAIN)/effect.c $(wildcard $(MAIN)/effects/*.[ch]) | build
+	python3 gen_codes.py $(MAIN) > $@
+
+build/test_codes: test_codes.c build/codes.h $(MAIN)/code_hash.c $(MAIN)/code_hash.h | build
+	$(CC) -Wall -std=gnu17 -Istub -I$(MAIN) -Ibuild -o $@ test_codes.c $(MAIN)/code_hash.c
 
 clean:
 	rm -rf build

@@ -2,7 +2,7 @@
 #include <string.h>
 #include <esp_timer.h>
 #include <esp_random.h>
-#include <esp_crc.h>
+#include "code_hash.h"
 #include "effect.h"
 #include "settings.h"
 #include "surface.h"
@@ -31,11 +31,6 @@ static demo_settings_t settings = {
 };
 static bool included[MAX_EFFECTS];
 static esp_timer_handle_t timer = NULL;
-
-static uint16_t code_hash(const char *code)
-{
-    return esp_crc16_le(0, (const uint8_t *)code, strlen(code));
-}
 
 static bool settings_valid(const demo_settings_t *s)
 {

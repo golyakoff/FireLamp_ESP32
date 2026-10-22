@@ -1,3 +1,7 @@
+Release 0.4.2
+
+- [x] Parameters of the "Radiant wheel" effect (`wheel`) are kept after a reboot, and excluding it or "Relax" (`relax`) from the demo mode no longer excludes both: the two codes had the same hash in the settings storage. `wheel` now has its own hash, the stored values of all other effects are kept. A host test checks that no codes share a hash
+
 Release 0.4.1
 
 - [x] Effects with palettes of 6, 7 or 13 colors (Fire, Lava, Sun, Whirls, Polar lights, Dunes with the Heat palette; Metaballs; Lava) no longer read colors past the end of the palette: the brightest spots could flash a random color
