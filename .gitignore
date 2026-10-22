@@ -12,3 +12,4 @@ release/
 release_notes.md
 __pycache__/
 .pytest_cache/
+tools/preview/build/
