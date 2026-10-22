@@ -1,3 +1,8 @@
+Release 0.2.0
+
+- [x] New effect "Starfall" (`starfall`, from GyverLamp gunner47_v2 by PalPalych): comets with tails flying diagonally; not colored, it is a snowstorm
+- [x] New effect "Thunderstorm" (`storm`, "Гроза в банке" from GyverLamp gunner47_v2): rain with splashes, clouds and lightning; the lightning flickers and lights up the clouds
+
 Release 0.1.6
 
 - [x] BLE: "Service Changed" is indicated to bonded phones after every boot, so a phone sees characteristics added by a firmware update (Android caches the attribute table of a bonded lamp)

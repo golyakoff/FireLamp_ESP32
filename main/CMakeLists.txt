@@ -60,6 +60,8 @@ idf_component_register(
 		effects/dunes.c
 		effects/octopus.c
 		effects/nuclear.c
+		effects/starfall.c
+		effects/storm.c
 
 	EMBED_FILES
 		${EMBED}/gifs/heart.gif

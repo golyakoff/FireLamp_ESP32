@@ -40,6 +40,8 @@
 #include "effects/dunes.h"
 #include "effects/octopus.h"
 #include "effects/nuclear.h"
+#include "effects/starfall.h"
+#include "effects/storm.h"
 
 const effect_descriptor_t effects[] = {
     DESCR_EFFECT_LAMP,
@@ -74,6 +76,8 @@ const effect_descriptor_t effects[] = {
     DESCR_EFFECT_DUNES,
     DESCR_EFFECT_OCTOPUS,
     DESCR_EFFECT_NUCLEAR,
+    DESCR_EFFECT_STARFALL,
+    DESCR_EFFECT_STORM,
 };
 
 const size_t effects_count = sizeof(effects) / sizeof(effect_descriptor_t);

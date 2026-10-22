@@ -94,7 +94,7 @@ the value actually changes, the lamp notifies the same triple (also for changes 
 e.g. the HTTP API). Writing the current value again gives no notification: rely on the write
 response for success.
 
-Current effects (generated from firmware v0.1.0 sources, for localization):
+Current effects (from the firmware sources, for localization; `starfall` and `storm` since 0.2.0):
 
 | Effect code | English name | Parameters: code (English name) |
 |---|---|---|
@@ -130,6 +130,8 @@ Current effects (generated from firmware v0.1.0 sources, for localization):
 | `dunes` | Colored dunes | `speed` (Speed), `palette` (Palette) |
 | `octopus` | Octopus | `speed` (Speed), `legs` (Legs), `clockwise` (Clockwise, bool) |
 | `nuclear` | Nuclear Noise | `speed` (Speed) |
+| `starfall` | Starfall | `colored` (Colored, bool), `saturation` (Saturation), `density` (Density), `tail_length` (Tail length) |
+| `storm` | Thunderstorm | `density` (Density), `lightning` (Lightning frequency), `clouds` (Clouds, bool) |
 
 ## 5. Time and time zone
 
