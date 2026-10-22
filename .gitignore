@@ -10,3 +10,5 @@ sdkconfig.old
 test/host/build/
 release/
 release_notes.md
+__pycache__/
+.pytest_cache/
