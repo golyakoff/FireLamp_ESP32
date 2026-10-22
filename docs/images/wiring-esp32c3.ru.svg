@@ -1,0 +1,152 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 640" width="900" height="640">
+  <rect width="900" height="640" rx="14" fill="#f5f7f8"/>
+  <text x="30" y="38" font-family="'Segoe UI', Helvetica, Arial, sans-serif" font-size="18" fill="#263238" text-anchor="start" font-weight="bold">FireLamp на ESP32-C3: кнопка, матрица, RTC / EEPROM по желанию</text>
+  <rect x="30" y="70" width="150" height="92" rx="6" fill="#ffffff" stroke="#263238" stroke-width="1.5"/>
+  <text x="105" y="98" font-family="'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" fill="#263238" text-anchor="middle" font-weight="bold">Блок питания 5 В</text>
+  <text x="105" y="116" font-family="'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#607d8b" text-anchor="middle" font-weight="normal">2 А для 8x8, от 4 А для 16x16</text>
+  <text x="170" y="136" font-family="'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" fill="#d32f2f" text-anchor="end" font-weight="bold">+5V</text>
+  <text x="170" y="156" font-family="'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" fill="#37474f" text-anchor="end" font-weight="bold">GND</text>
+  <polyline points="180,132 790,132" fill="none" stroke="#d32f2f" stroke-width="3" stroke-linejoin="round"/>
+  <polyline points="180,152 790,152" fill="none" stroke="#37474f" stroke-width="3" stroke-linejoin="round"/>
+  <rect x="250" y="210" width="230" height="250" rx="10" fill="#1b5e8f" stroke="#0d3c61" stroke-width="2"/>
+  <text x="365.0" y="314" font-family="'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" fill="#ffffff" text-anchor="middle" font-weight="bold">ESP32-C3</text>
+  <text x="365.0" y="332" font-family="'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#cfe3f3" text-anchor="middle" font-weight="normal">SuperMini, DevKitM</text>
+  <text x="365.0" y="352" font-family="'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#cfe3f3" text-anchor="middle" font-weight="normal">кнопка BOOT = сброс (GPIO9)</text>
+  <circle cx="250" cy="240" r="5" fill="#ffd54f" stroke="#263238" stroke-width="1.2"/>
+  <text x="262" y="244" font-family="'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" fill="#ffffff" text-anchor="start" font-weight="bold">5V / VIN</text>
+  <circle cx="250" cy="270" r="5" fill="#ffd54f" stroke="#263238" stroke-width="1.2"/>
+  <text x="262" y="274" font-family="'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" fill="#ffffff" text-anchor="start" font-weight="bold">GND</text>
+  <circle cx="480" cy="250" r="5" fill="#ffd54f" stroke="#263238" stroke-width="1.2"/>
+  <text x="468" y="254" font-family="'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" fill="#ffffff" text-anchor="end" font-weight="bold">GPIO5</text>
+  <circle cx="480" cy="390" r="5" fill="#ffd54f" stroke="#263238" stroke-width="1.2"/>
+  <text x="468" y="394" font-family="'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" fill="#ffffff" text-anchor="end" font-weight="bold">GPIO3 SDA</text>
+  <circle cx="480" cy="420" r="5" fill="#ffd54f" stroke="#263238" stroke-width="1.2"/>
+  <text x="468" y="424" font-family="'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" fill="#ffffff" text-anchor="end" font-weight="bold">GPIO10 SCL</text>
+  <circle cx="300" cy="460" r="5" fill="#ffd54f" stroke="#263238" stroke-width="1.2"/>
+  <text x="300" y="448" font-family="'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" fill="#ffffff" text-anchor="middle" font-weight="bold">3V3</text>
+  <circle cx="400" cy="460" r="5" fill="#ffd54f" stroke="#263238" stroke-width="1.2"/>
+  <text x="400" y="448" font-family="'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" fill="#ffffff" text-anchor="middle" font-weight="bold">GPIO4</text>
+  <polyline points="250,270 200,270 200,152" fill="none" stroke="#37474f" stroke-width="3" stroke-linejoin="round"/>
+  <circle cx="200" cy="152" r="4.5" fill="#37474f"/>
+  <polyline points="250,240 215,240 215,132" fill="none" stroke="#ffffff" stroke-width="9"/>
+  <polyline points="250,240 215,240 215,132" fill="none" stroke="#d32f2f" stroke-width="3" stroke-linejoin="round"/>
+  <circle cx="215" cy="132" r="4.5" fill="#d32f2f"/>
+  <rect x="640" y="210" width="170" height="170" rx="6" fill="#212121" stroke="#263238" stroke-width="2"/>
+  <circle cx="660.0" cy="230.0" r="6" fill="#3a3a3a"/>
+  <circle cx="660.0" cy="248.5" r="6" fill="#3a3a3a"/>
+  <circle cx="660.0" cy="267.0" r="6" fill="#3a3a3a"/>
+  <circle cx="660.0" cy="285.5" r="6" fill="#ffb300"/>
+  <circle cx="660.0" cy="304.0" r="6" fill="#ffa000"/>
+  <circle cx="660.0" cy="322.5" r="6" fill="#ff8f00"/>
+  <circle cx="660.0" cy="341.0" r="6" fill="#ff6f00"/>
+  <circle cx="660.0" cy="359.5" r="6" fill="#ffecb3"/>
+  <circle cx="678.5" cy="230.0" r="6" fill="#3a3a3a"/>
+  <circle cx="678.5" cy="248.5" r="6" fill="#3a3a3a"/>
+  <circle cx="678.5" cy="267.0" r="6" fill="#3a3a3a"/>
+  <circle cx="678.5" cy="285.5" r="6" fill="#ffca28"/>
+  <circle cx="678.5" cy="304.0" r="6" fill="#ffb300"/>
+  <circle cx="678.5" cy="322.5" r="6" fill="#ffa000"/>
+  <circle cx="678.5" cy="341.0" r="6" fill="#ff8f00"/>
+  <circle cx="678.5" cy="359.5" r="6" fill="#ff6f00"/>
+  <circle cx="697.0" cy="230.0" r="6" fill="#3a3a3a"/>
+  <circle cx="697.0" cy="248.5" r="6" fill="#3a3a3a"/>
+  <circle cx="697.0" cy="267.0" r="6" fill="#3a3a3a"/>
+  <circle cx="697.0" cy="285.5" r="6" fill="#ffd54f"/>
+  <circle cx="697.0" cy="304.0" r="6" fill="#ffca28"/>
+  <circle cx="697.0" cy="322.5" r="6" fill="#ffb300"/>
+  <circle cx="697.0" cy="341.0" r="6" fill="#ffa000"/>
+  <circle cx="697.0" cy="359.5" r="6" fill="#ff8f00"/>
+  <circle cx="715.5" cy="230.0" r="6" fill="#3a3a3a"/>
+  <circle cx="715.5" cy="248.5" r="6" fill="#3a3a3a"/>
+  <circle cx="715.5" cy="267.0" r="6" fill="#3a3a3a"/>
+  <circle cx="715.5" cy="285.5" r="6" fill="#ffb300"/>
+  <circle cx="715.5" cy="304.0" r="6" fill="#ffa000"/>
+  <circle cx="715.5" cy="322.5" r="6" fill="#ff8f00"/>
+  <circle cx="715.5" cy="341.0" r="6" fill="#ff6f00"/>
+  <circle cx="715.5" cy="359.5" r="6" fill="#ffecb3"/>
+  <circle cx="734.0" cy="230.0" r="6" fill="#3a3a3a"/>
+  <circle cx="734.0" cy="248.5" r="6" fill="#3a3a3a"/>
+  <circle cx="734.0" cy="267.0" r="6" fill="#3a3a3a"/>
+  <circle cx="734.0" cy="285.5" r="6" fill="#ffca28"/>
+  <circle cx="734.0" cy="304.0" r="6" fill="#ffb300"/>
+  <circle cx="734.0" cy="322.5" r="6" fill="#ffa000"/>
+  <circle cx="734.0" cy="341.0" r="6" fill="#ff8f00"/>
+  <circle cx="734.0" cy="359.5" r="6" fill="#ff6f00"/>
+  <circle cx="752.5" cy="230.0" r="6" fill="#3a3a3a"/>
+  <circle cx="752.5" cy="248.5" r="6" fill="#3a3a3a"/>
+  <circle cx="752.5" cy="267.0" r="6" fill="#3a3a3a"/>
+  <circle cx="752.5" cy="285.5" r="6" fill="#ffd54f"/>
+  <circle cx="752.5" cy="304.0" r="6" fill="#ffca28"/>
+  <circle cx="752.5" cy="322.5" r="6" fill="#ffb300"/>
+  <circle cx="752.5" cy="341.0" r="6" fill="#ffa000"/>
+  <circle cx="752.5" cy="359.5" r="6" fill="#ff8f00"/>
+  <circle cx="771.0" cy="230.0" r="6" fill="#3a3a3a"/>
+  <circle cx="771.0" cy="248.5" r="6" fill="#3a3a3a"/>
+  <circle cx="771.0" cy="267.0" r="6" fill="#3a3a3a"/>
+  <circle cx="771.0" cy="285.5" r="6" fill="#ffb300"/>
+  <circle cx="771.0" cy="304.0" r="6" fill="#ffa000"/>
+  <circle cx="771.0" cy="322.5" r="6" fill="#ff8f00"/>
+  <circle cx="771.0" cy="341.0" r="6" fill="#ff6f00"/>
+  <circle cx="771.0" cy="359.5" r="6" fill="#ffecb3"/>
+  <circle cx="789.5" cy="230.0" r="6" fill="#3a3a3a"/>
+  <circle cx="789.5" cy="248.5" r="6" fill="#3a3a3a"/>
+  <circle cx="789.5" cy="267.0" r="6" fill="#3a3a3a"/>
+  <circle cx="789.5" cy="285.5" r="6" fill="#ffca28"/>
+  <circle cx="789.5" cy="304.0" r="6" fill="#ffb300"/>
+  <circle cx="789.5" cy="322.5" r="6" fill="#ffa000"/>
+  <circle cx="789.5" cy="341.0" r="6" fill="#ff8f00"/>
+  <circle cx="789.5" cy="359.5" r="6" fill="#ff6f00"/>
+  <text x="725.0" y="402" font-family="'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" fill="#263238" text-anchor="middle" font-weight="bold">Матрица WS2812B / SK6812</text>
+  <text x="725.0" y="420" font-family="'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#607d8b" text-anchor="middle" font-weight="normal">8x8 ... 32x32, любой угол и раскладка</text>
+  <circle cx="640" cy="250" r="5" fill="#ffd54f" stroke="#263238" stroke-width="1.2"/>
+  <text x="652" y="254" font-family="'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" fill="#ffffff" text-anchor="start" font-weight="bold">DIN</text>
+  <circle cx="690" cy="210" r="5" fill="#ffd54f" stroke="#263238" stroke-width="1.2"/>
+  <circle cx="760" cy="210" r="5" fill="#ffd54f" stroke="#263238" stroke-width="1.2"/>
+  <text x="690" y="230" font-family="'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#ffffff" text-anchor="middle" font-weight="bold">+5V</text>
+  <text x="760" y="230" font-family="'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#ffffff" text-anchor="middle" font-weight="bold">GND</text>
+  <polyline points="690,210 690,132" fill="none" stroke="#ffffff" stroke-width="9"/>
+  <polyline points="690,210 690,132" fill="none" stroke="#d32f2f" stroke-width="3" stroke-linejoin="round"/>
+  <circle cx="690" cy="132" r="4.5" fill="#d32f2f"/>
+  <polyline points="760,210 760,152" fill="none" stroke="#37474f" stroke-width="3" stroke-linejoin="round"/>
+  <circle cx="760" cy="152" r="4.5" fill="#37474f"/>
+  <polyline points="690,178 720.0,178" fill="none" stroke="#d32f2f" stroke-width="3" stroke-linejoin="round"/>
+  <polyline points="730.0,178 760,178" fill="none" stroke="#37474f" stroke-width="3" stroke-linejoin="round"/>
+  <line x1="720.0" y1="166" x2="720.0" y2="190" stroke="#263238" stroke-width="3"/>
+  <line x1="730.0" y1="166" x2="730.0" y2="190" stroke="#263238" stroke-width="3"/>
+  <text x="713.0" y="170" font-family="'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" fill="#d32f2f" text-anchor="end" font-weight="bold">+</text>
+  <text x="725.0" y="206" font-family="'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" fill="#263238" text-anchor="middle" font-weight="normal">1000 µF</text>
+  <polyline points="480,250 538.0,250" fill="none" stroke="#2e7d32" stroke-width="3" stroke-linejoin="round"/>
+  <polyline points="582.0,250 640,250" fill="none" stroke="#2e7d32" stroke-width="3" stroke-linejoin="round"/>
+  <rect x="538.0" y="242" width="44" height="16" rx="3" fill="#fff8e1" stroke="#263238" stroke-width="1.5"/>
+  <text x="560.0" y="236" font-family="'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" fill="#263238" text-anchor="middle" font-weight="normal">330 Ω</text>
+  <text x="560.0" y="278" font-family="'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#607d8b" text-anchor="middle" font-weight="normal">короткий провод</text>
+  <polyline points="300,460 300,510" fill="none" stroke="#ef8f00" stroke-width="3" stroke-linejoin="round"/>
+  <polyline points="400,460 400,510" fill="none" stroke="#ef8f00" stroke-width="3" stroke-linejoin="round"/>
+  <polyline points="300,510 332.0,510" fill="none" stroke="#ef8f00" stroke-width="3" stroke-linejoin="round"/>
+  <polyline points="368.0,510 400,510" fill="none" stroke="#ef8f00" stroke-width="3" stroke-linejoin="round"/>
+  <circle cx="332.0" cy="510" r="3.5" fill="#ffffff" stroke="#263238" stroke-width="2"/>
+  <circle cx="368.0" cy="510" r="3.5" fill="#ffffff" stroke="#263238" stroke-width="2"/>
+  <line x1="328.0" y1="498" x2="372.0" y2="498" stroke="#263238" stroke-width="2.5"/>
+  <line x1="350.0" y1="498" x2="350.0" y2="488" stroke="#263238" stroke-width="2.5"/>
+  <line x1="342.0" y1="488" x2="358.0" y2="488" stroke="#263238" stroke-width="2.5"/>
+  <text x="350.0" y="532" font-family="'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" fill="#263238" text-anchor="middle" font-weight="normal">кнопка или выход TTP223</text>
+  <text x="350" y="550" font-family="'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#607d8b" text-anchor="middle" font-weight="normal">подтяжка к GND внутри GPIO4; пин меняется в приложении</text>
+  <rect x="560" y="455" width="300" height="88" rx="6" fill="#ffffff" stroke="#1565c0" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <text x="710" y="479" font-family="'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" fill="#263238" text-anchor="middle" font-weight="bold">Часы DS3231 / EEPROM AT24Cxx</text>
+  <text x="710" y="497" font-family="'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#607d8b" text-anchor="middle" font-weight="normal">по желанию, находятся сами</text>
+  <text x="710" y="517" font-family="'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#607d8b" text-anchor="middle" font-weight="normal">VCC → 3V3, GND → GND</text>
+  <text x="710" y="533" font-family="'Segoe UI', Helvetica, Arial, sans-serif" font-size="10" fill="#607d8b" text-anchor="middle" font-weight="normal">на SDA, SCL подтяжки 4,7 кОм (на модулях обычно есть)</text>
+  <polyline points="480,390 530,390 530,485 560,485" fill="none" stroke="#1565c0" stroke-width="3" stroke-linejoin="round" stroke-dasharray="7 5"/>
+  <polyline points="480,420 515,420 515,510 560,510" fill="none" stroke="#1565c0" stroke-width="3" stroke-linejoin="round" stroke-dasharray="7 5"/>
+  <line x1="30" y1="600" x2="54" y2="600" stroke="#d32f2f" stroke-width="4"/>
+  <text x="60" y="604" font-family="'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" fill="#263238" text-anchor="start" font-weight="normal">+5 В</text>
+  <line x1="165" y1="600" x2="189" y2="600" stroke="#37474f" stroke-width="4"/>
+  <text x="195" y="604" font-family="'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" fill="#263238" text-anchor="start" font-weight="normal">GND</text>
+  <line x1="300" y1="600" x2="324" y2="600" stroke="#ef8f00" stroke-width="4"/>
+  <text x="330" y="604" font-family="'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" fill="#263238" text-anchor="start" font-weight="normal">3,3 В</text>
+  <line x1="435" y1="600" x2="459" y2="600" stroke="#2e7d32" stroke-width="4"/>
+  <text x="465" y="604" font-family="'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" fill="#263238" text-anchor="start" font-weight="normal">данные матрицы</text>
+  <line x1="570" y1="600" x2="594" y2="600" stroke="#1565c0" stroke-width="4"/>
+  <text x="600" y="604" font-family="'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" fill="#263238" text-anchor="start" font-weight="normal">I2C (по желанию)</text>
+  <text x="30" y="625" font-family="'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#607d8b" text-anchor="start" font-weight="normal">Общий GND у блока питания, платы и матрицы. Матрицу питать от блока, а не с платы.</text>
+</svg>

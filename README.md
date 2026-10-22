@@ -1,144 +1,303 @@
 # FireLamp ESP32
 
-Firmware for an LED matrix "fire lamp" on ESP32 / ESP32-C3, controlled from a phone over
-Bluetooth Low Energy. Based on [EvLamp](https://github.com/UncleRus/EvLamp) by Ruslan V. Uss
-(~30 effects in pure C on ESP-IDF); BLE control follows the approach of
-[Matrix_Clock_ESP32](https://github.com/golyakoff/Matrix_Clock_ESP32).
+[![Build](https://github.com/golyakoff/FireLamp_ESP32/actions/workflows/build.yml/badge.svg)](https://github.com/golyakoff/FireLamp_ESP32/actions/workflows/build.yml)
+[![Release](https://img.shields.io/github/v/release/golyakoff/FireLamp_ESP32)](https://github.com/golyakoff/FireLamp_ESP32/releases/latest)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-> **Status: work in progress.** The EvLamp core is ported to a single matrix and builds for both
-> targets; settings storage (NVS or external EEPROM), buttons/touch, time (optional DS3231 RTC),
-> schedules, demo mode, BLE control, the optional WiFi client, firmware update from the phone
-> or from the internet, CI and releases are done. Not yet tested on real hardware.
+**Русский** | [English](README.en.md)
 
-## Hardware
+Прошивка «огненной лампы» — светодиодной матрицы на ESP32 или ESP32-C3, которой управляют с
+телефона по Bluetooth Low Energy. Без облака и аккаунтов; WiFi не обязателен.
 
-- ESP32 (e.g. ESP32-WROOM-32D) or ESP32-C3 (e.g. ESP32-C3-FH4), 4 MB flash
-- One WS2812B / SK6812 / WS2811 LED matrix, 16x16 recommended (up to 1024 LEDs)
-- Controls: one button (or a TTP223 touch module), four buttons, or the ESP32 built-in touch pad
-- Optional DS3231 RTC (keeps time while unpowered) and AT24C32..AT24C512 EEPROM for settings,
-  on the I2C bus
+Управляющее приложение для Android: **[FireLamp Android](https://github.com/golyakoff/FireLamp_Android)**
+([скачать APK](https://github.com/golyakoff/FireLamp_Android/releases/latest)).
 
-One firmware per chip fits every lamp with the reference pinout:
+Основа — [EvLamp](https://github.com/UncleRus/EvLamp) Руслана Усса (эффекты на чистом C под
+ESP-IDF), часть эффектов — из [GyverLamp gunner47_v2](https://github.com/nikitakiselev/gunner47_v2),
+управление по BLE сделано по образцу [Matrix_Clock_ESP32](https://github.com/golyakoff/Matrix_Clock_ESP32).
 
-| Function | ESP32 | ESP32-C3 |
+- 40 эффектов: огонь, лава, водопад, матрица, звездопад, гроза, светлячки, GIF-анимации и другие
+- Параметры каждого эффекта и «Темп» с плавным замедлением без потери частоты кадров
+- Демо-режим, расписание включения и выключения, «рассвет», яркость по часам
+- Матрица от 8x8 до 32x32: любой угол подключения, змейка или построчно, ограничение тока
+- Одна кнопка (или сенсор TTP223), четыре кнопки или сенсорная площадка ESP32
+- Часы DS3231 и EEPROM AT24Cxx по желанию — находятся сами
+- Обновление прошивки с телефона по BLE или самой лампой из интернета, с автоматическим откатом
+
+## Содержание
+
+- [Эффекты](#эффекты)
+- [Быстрый старт](#быстрый-старт)
+- [Что нужно](#что-нужно)
+- [Подключение](#подключение)
+- [Настройка матрицы](#настройка-матрицы)
+- [Прошивка](#прошивка)
+- [Управление кнопкой](#управление-кнопкой)
+- [Приложение и протокол](#приложение-и-протокол)
+- [Возможности](#возможности)
+- [Сборка из исходников](#сборка-из-исходников)
+- [Лицензия](#лицензия)
+
+## Эффекты
+
+Превью на матрице 16x16 с параметрами по умолчанию, кадры замедлены. Полный список с кодами — в
+[preview/README.md](preview/README.md).
+
+<table>
+<tr>
+<td align="center"><img src="preview/lamp.gif" width="112" alt="Цветная лампа"><br><sub>Цветная лампа</sub></td>
+<td align="center"><img src="preview/fire.gif" width="112" alt="Огонь"><br><sub>Огонь</sub></td>
+<td align="center"><img src="preview/sparkles.gif" width="112" alt="Искры"><br><sub>Искры</sub></td>
+<td align="center"><img src="preview/lava.gif" width="112" alt="Лава"><br><sub>Лава</sub></td>
+<td align="center"><img src="preview/waterfall.gif" width="112" alt="Водопад"><br><sub>Водопад</sub></td>
+</tr>
+<tr>
+<td align="center"><img src="preview/plasma_waves.gif" width="112" alt="Плазменные волны"><br><sub>Плазменные волны</sub></td>
+<td align="center"><img src="preview/dna.gif" width="112" alt="Спираль ДНК"><br><sub>Спираль ДНК</sub></td>
+<td align="center"><img src="preview/matrix.gif" width="112" alt="Матрица"><br><sub>Матрица</sub></td>
+<td align="center"><img src="preview/crazybees.gif" width="112" alt="Безумные пчёлы"><br><sub>Безумные пчёлы</sub></td>
+<td align="center"><img src="preview/rain.gif" width="112" alt="Дождь"><br><sub>Дождь</sub></td>
+</tr>
+<tr>
+<td align="center"><img src="preview/rainbow.gif" width="112" alt="Радуга"><br><sub>Радуга</sub></td>
+<td align="center"><img src="preview/rays.gif" width="112" alt="Лучи"><br><sub>Лучи</sub></td>
+<td align="center"><img src="preview/metaballs.gif" width="112" alt="Метаболы"><br><sub>Метаболы</sub></td>
+<td align="center"><img src="preview/water.gif" width="112" alt="Вода"><br><sub>Вода</sub></td>
+<td align="center"><img src="preview/holiday.gif" width="112" alt="Гирлянда"><br><sub>Гирлянда</sub></td>
+</tr>
+<tr>
+<td align="center"><img src="preview/hoop.gif" width="112" alt="Обруч"><br><sub>Обруч</sub></td>
+<td align="center"><img src="preview/twister.gif" width="112" alt="Твистер"><br><sub>Твистер</sub></td>
+<td align="center"><img src="preview/flower.gif" width="112" alt="Цветок"><br><sub>Цветок</sub></td>
+<td align="center"><img src="preview/polar_lights.gif" width="112" alt="Северное сияние"><br><sub>Северное сияние</sub></td>
+<td align="center"><img src="preview/gif.gif" width="112" alt="GIF-картинка"><br><sub>GIF-картинка</sub></td>
+</tr>
+<tr>
+<td align="center"><img src="preview/relax.gif" width="112" alt="Релакс"><br><sub>Релакс</sub></td>
+<td align="center"><img src="preview/wheel.gif" width="112" alt="Сияющее колесо"><br><sub>Сияющее колесо</sub></td>
+<td align="center"><img src="preview/peacock.gif" width="112" alt="Павлиний хвост"><br><sub>Павлиний хвост</sub></td>
+<td align="center"><img src="preview/diagonals.gif" width="112" alt="Диагонали"><br><sub>Диагонали</sub></td>
+<td align="center"><img src="preview/whirls.gif" width="112" alt="Вихри"><br><sub>Вихри</sub></td>
+</tr>
+<tr>
+<td align="center"><img src="preview/sun.gif" width="112" alt="Солнечное излучение"><br><sub>Солнечное излучение</sub></td>
+<td align="center"><img src="preview/spaceships.gif" width="112" alt="Полёт кораблей"><br><sub>Полёт кораблей</sub></td>
+<td align="center"><img src="preview/fireflies.gif" width="112" alt="Светлячки"><br><sub>Светлячки</sub></td>
+<td align="center"><img src="preview/tunnel.gif" width="112" alt="Туннель"><br><sub>Туннель</sub></td>
+<td align="center"><img src="preview/dunes.gif" width="112" alt="Цветные дюны"><br><sub>Цветные дюны</sub></td>
+</tr>
+<tr>
+<td align="center"><img src="preview/octopus.gif" width="112" alt="Осьминог"><br><sub>Осьминог</sub></td>
+<td align="center"><img src="preview/nuclear.gif" width="112" alt="Ядерный шум"><br><sub>Ядерный шум</sub></td>
+<td align="center"><img src="preview/starfall.gif" width="112" alt="Звездопад"><br><sub>Звездопад</sub></td>
+<td align="center"><img src="preview/storm.gif" width="112" alt="Гроза в банке"><br><sub>Гроза в банке</sub></td>
+<td align="center"><img src="preview/twinkles.gif" width="112" alt="Мерцание"><br><sub>Мерцание</sub></td>
+</tr>
+<tr>
+<td align="center"><img src="preview/butterflies.gif" width="112" alt="Мотыльки"><br><sub>Мотыльки</sub></td>
+<td align="center"><img src="preview/rainbow_snake.gif" width="112" alt="Радужный змей"><br><sub>Радужный змей</sub></td>
+<td align="center"><img src="preview/soaring_fire.gif" width="112" alt="Парящий огонь"><br><sub>Парящий огонь</sub></td>
+<td align="center"><img src="preview/trail_fireflies.gif" width="112" alt="Светлячки со шлейфом"><br><sub>Светлячки со шлейфом</sub></td>
+<td align="center"><img src="preview/glass_drops.gif" width="112" alt="Капли на стекле"><br><sub>Капли на стекле</sub></td>
+</tr>
+</table>
+
+## Быстрый старт
+
+1. **Соберите** лампу по [схеме](#подключение): плата, матрица, блок питания 5 В, кнопка.
+2. **Прошейте** плату из [последнего релиза](https://github.com/golyakoff/FireLamp_ESP32/releases/latest):
+   распакуйте zip для своего чипа и запустите `flash_esp32.bat` (или `flash_esp32c3.bat`), см.
+   [Прошивка](#прошивка).
+3. **Установите** [приложение](https://github.com/golyakoff/FireLamp_Android/releases/latest) на телефон.
+4. **Подключитесь** в течение 2 минут после включения лампы: приложение найдёт лампу `FireLamp-XXXX`
+   и предложит спарить. Позже окно спаривания открывают 5 кликов кнопкой.
+5. **Настройте матрицу** в приложении: «Система» → «Светодиодная матрица» (размер, поворот,
+   раскладка, ограничение тока) и перезагрузите лампу.
+
+## Что нужно
+
+| | Что | Замечания |
 |---|---|---|
-| Matrix data | GPIO5 | GPIO5 |
-| Main button (default, can be moved in the app) | GPIO25 | GPIO4 |
-| Up / Down buttons | GPIO26 / GPIO27 | GPIO6 / GPIO7 |
-| Reset button (active low) | GPIO0 (BOOT) | GPIO9 (BOOT) |
-| Touch pad | T0 = GPIO4 | - |
-| I2C SDA / SCL | GPIO21 / GPIO22 | GPIO3 / GPIO10 |
+| Плата | ESP32 (ESP32-WROOM-32D и т. п.) или ESP32-C3 (SuperMini, ESP32-C3-FH4) | 4 МБ flash |
+| Матрица | WS2812B, SK6812 или WS2811, от 8x8 до 32x32 (до 1024 светодиодов) | рекомендуется 16x16 |
+| Питание | блок 5 В | 8x8 — от 2 А, 16x16 — от 4 А; ток ограничивается в настройках |
+| Мелочи | резистор 330 Ом, конденсатор 1000 мкФ 6,3–10 В | на линии данных и на питании матрицы |
+| Управление | кнопка без фиксации или модуль TTP223 | или 4 кнопки, или сенсор ESP32 |
+| По желанию | модуль DS3231 и/или EEPROM AT24C32…AT24C512 (адрес 0x50) | часы без питания, настройки вне flash |
 
-Reset is the board's BOOT button (active low). Everything else is detected or set at runtime:
+## Подключение
 
-- **DS3231** and **EEPROM** (address 0x50) are detected on the I2C bus at boot. With an EEPROM
-  the settings are kept in it and survive `erase-flash`; an EEPROM added later takes over the
-  settings from the internal flash.
-- **Control elements** (one button / four buttons / ESP32 touch pad), the **buttons type**
-  (TTP223 module or a button to +3.3 V, or a button to GND) and the **Main button pin**
-  (ESP32: GPIO 4, 13, 14, 18, 19, 23, 25, 32, 33; ESP32-C3: GPIO 1, 4) - settings in the app
-  (BLE `Hardware settings`, HTTP `/api/settings/hardware`).
-- **Matrix**: size, LED type, color order, rotation, mirror, serpentine or progressive wiring,
-  current limit - a setting in the app (BLE `LED settings`, HTTP `/api/settings/leds`).
+### ESP32
 
-A board with other pins needs its own build (menuconfig), see [Build variant](#build-variant).
+![Схема подключения ESP32](docs/images/wiring-esp32.ru.svg)
 
-LED output uses [espressif/led_strip](https://components.espressif.com/components/espressif/led_strip):
-SPI with DMA by default on ESP32-C3 (its RMT has no DMA), RMT by default on ESP32.
-The previous frame is transmitted while the next one is computed.
+### ESP32-C3
 
-## Controls
+![Схема подключения ESP32-C3](docs/images/wiring-esp32c3.ru.svg)
 
-One button / touch pad:
+### Пины
 
-| Lamp | Gesture | Action |
-|------|---------|--------|
-| off  | click | turn on |
-| off  | hold 10 s | reset all settings to defaults and reboot |
-| on   | click | turn off |
-| on   | double click | next effect |
-| on   | triple click | previous effect |
-| on   | hold | change brightness; direction alternates with every hold |
-| any  | 5 clicks | open the BLE pairing window for 2 minutes (short blue blink) |
+Одна прошивка на чип подходит для любой лампы с этой распиновкой:
 
-Four buttons (as in EvLamp): **Main** - click: next effect, 5 clicks: BLE pairing window,
-hold 1.5 s: turn on/off; **Up/Down** - brightness, hold to repeat; **Reset** - hold 3 s:
-reset all settings.
+| Назначение | ESP32 | ESP32-C3 |
+|---|---|---|
+| Данные матрицы (через 330 Ом) | GPIO5 | GPIO5 |
+| Основная кнопка (меняется в приложении) | GPIO25 | GPIO4 |
+| Кнопки «+» / «−» (режим 4 кнопок) | GPIO26 / GPIO27 | GPIO6 / GPIO7 |
+| Кнопка сброса (на GND) | GPIO0 (BOOT) | GPIO9 (BOOT) |
+| Сенсорная площадка | T0 = GPIO4 | — |
+| I2C SDA / SCL (DS3231, EEPROM) | GPIO21 / GPIO22 | GPIO3 / GPIO10 |
 
-In the demo mode next/previous effect switch to the next included effect and the demo goes on.
+Основную кнопку можно перенести в приложении («Система» → «Управление» → «Пин кнопки») на любой
+свободный вход с внутренней подтяжкой: на ESP32 — GPIO 4, 13, 14, 18, 19, 23, 25, 32, 33,
+на ESP32-C3 — GPIO 1, 4.
 
-## BLE control
+### Советы по сборке
 
-The lamp is controlled from the phone app over Bluetooth Low Energy, see
-[docs/BLE_PROTOCOL.md](docs/BLE_PROTOCOL.md): lamp state, effects and their parameters, time,
-schedules, demo mode, LED and WiFi settings, firmware update. Notes for the app developer:
-[docs/APP_INTEGRATION.md](docs/APP_INTEGRATION.md).
+- **Общий GND** у блока питания, платы и матрицы обязателен, иначе матрица мерцает или показывает мусор.
+- **Матрицу питайте прямо от блока**, а не через плату: на USB у платы диод и тонкие дорожки.
+  Для 16x16 и больше подводите питание к матрице с двух сторон.
+- **Резистор 330 Ом** ставьте на линии данных ближе к входу DIN, **конденсатор 1000 мкФ** — на
+  питание матрицы. Без них бывают «случайные» цвета и зависания.
+- **3,3 В на DIN** для WS2812B обычно хватает при коротком проводе (до 20–30 см). Если есть сбои —
+  поставьте преобразователь уровня (74AHCT125 с питанием 5 В).
+- **Кнопка** по умолчанию подключается между пином и 3,3 В (подтяжка к GND включается внутри),
+  модуль TTP223 — так же, выходом на пин. Кнопку на GND тоже можно: выберите «На GND» в
+  приложении («Система» → «Управление»).
+- **Режим четырёх кнопок** и **сенсор ESP32** включаются в приложении там же.
+- **DS3231 и EEPROM** подключаются к I2C и находятся при загрузке сами. С EEPROM настройки
+  хранятся в ней и переживают полную очистку flash; EEPROM, добавленная позже, забирает настройки
+  из flash.
 
-- Effects and parameters are identified by text codes (`fire`, `plasma_waves`, `speed`, ...),
-  so app and firmware versions do not depend on the order of effects.
-- Only paired phones can control the lamp. A new phone can pair during 2 minutes after power on
-  or after 5 clicks of the main button; up to 4 phones are remembered.
-- Firmware update from the phone: the app uploads the release `.bin`; the update is verified
-  (optionally with SHA-256) and rolled back automatically if the new firmware does not start.
+## Настройка матрицы
 
-## Demo mode
+Найдите, к какому светодиоду подходит вход DIN и куда от него идёт лента, и выставьте в приложении
+«Поворот» и «Отразить по горизонтали»:
 
-Plays the included effects one after another: sequentially or in random order, each for a set
-duration plus an optional random addition. Effects can be excluded. It is a mode, not an effect:
-turned on and off via the lamp state (BLE or HTTP API) and resumed after reboot.
+![Ориентация матрицы](docs/images/matrix-orientation.ru.svg)
 
-## WiFi (optional)
+Там же задаются размер, тип светодиодов, порядок цветов (GRB/RGB), раскладка (змейкой или
+построчно) и ограничение тока всех светодиодов — не больше, чем даёт блок питания. Настройки
+матрицы применяются после перезагрузки. Удобная проверка — эффект «Огонь»: пламя должно
+подниматься снизу вверх.
 
-The lamp works without WiFi. When configured (from the app over BLE, or in menuconfig), it
-connects to a home network as a client:
+## Прошивка
 
-- **periodic**: every N hours (1..24) connects, syncs time by SNTP and disconnects;
-- **always on**: stays connected; the [HTTP API](API.md) is available.
+В каждом [релизе](https://github.com/golyakoff/FireLamp_ESP32/releases/latest) для каждого чипа есть
+zip с отдельными образами и скриптом `flash_<чип>.bat`, а также единый образ `*_full.bin`.
 
-There is no access point mode: the network is configured over BLE.
+**Windows.** Поставьте [Python 3](https://www.python.org/downloads/) (с галкой «Add python.exe to
+PATH»), подключите плату по USB, распакуйте zip и запустите `flash_esp32.bat` (или
+`flash_esp32c3.bat COM5`, чтобы указать порт). Скрипт сам поставит esptool. Если зависает на
+`Connecting...` — держите кнопку BOOT при подключении USB. Нет COM-порта — поставьте драйвер
+CP210x или CH340 (ESP32-C3 с родным USB драйвер не нужен).
 
-## Firmware update
+**Linux / macOS:**
 
-- **From the phone over BLE**: the app uploads the release `.bin`, no WiFi needed.
-- **From the internet**: on every WiFi session the lamp reads the release manifest
-  (`manifest.json` of the latest GitHub release, URL in menuconfig) and reports whether a newer
-  version is available. It installs the update **only on request** from the app (or
-  `POST /api/update`).
+```bash
+python3 -m pip install --upgrade esptool
+python3 -m esptool --chip esp32 write-flash --flash-mode dio --flash-size 4MB --flash-freq 80m \
+  0x1000 firelamp_vX.Y.Z_esp32_bootloader.bin 0x8000 firelamp_vX.Y.Z_esp32_pt.bin \
+  0xe000 firelamp_vX.Y.Z_esp32_otadata.bin 0x20000 firelamp_vX.Y.Z_esp32_fw.bin
+```
 
-Both ways verify the image (and its SHA-256 when known) and roll back automatically if the new
-firmware does not start. The manifest is generated by `tools/make_manifest.py`.
+Для ESP32-C3 загрузчик пишется по адресу `0x0`, а не `0x1000`; точные команды для обоих чипов —
+на странице релиза.
 
-## Settings storage
+**Из браузера.** Единый образ `*_full.bin` прошивается по адресу `0x0` через
+[ESP Web Flasher](https://espressif.github.io/esptool-js/). Он стирает и настройки лампы, поэтому
+подходит для первой установки, а не для обновления.
 
-Settings are kept in an external AT24Cxx EEPROM when one is found on the I2C bus at boot (it
-survives `erase-flash` and module replacement), otherwise in the internal flash (NVS).
+Скрипт `.bat` настройки не трогает: раздел `nvs` (`0x9000`) с настройками и спаренными телефонами
+сохраняется. Уже работающую лампу удобнее обновлять из приложения.
 
-- Every record has a magic number, size and CRC. In the EEPROM each record has two slots that are
-  written alternately, so a power loss during a write keeps the previous copy.
-- Frequently changed values (brightness, current effect, effect parameters) are written
-  15 seconds after the last change, and on reboot.
-- Effect parameters are stored by effect name, so they survive firmware updates that add or
-  reorder effects.
+> **Ошибка `MD5 of file does not match data in flash`.** На некоторых дешёвых модулях flash
+> защищена от записи битом в регистре статуса — стирание «проходит» мгновенно, а запись не
+> сходится. Защита снимается так:
+> `python -m esptool --chip esp32 --port COM3 write_flash_status --non-volatile --bytes 2 0x0200`
 
-## Time and schedules
+## Управление кнопкой
 
-The lamp keeps UTC and a POSIX time zone string (daylight saving time is handled). Time comes from
-the optional DS3231 RTC at boot, then from the phone (BLE), the internet (SNTP) or the HTTP API;
-when the RTC is present it is updated by these sources and corrects the system clock hourly.
-Without RTC and before the time is set the lamp works normally, only schedules wait.
+Одна кнопка, модуль TTP223 или сенсор ESP32:
 
-Schedules (see [API.md](API.md#get-schedule)):
+| Лампа | Жест | Действие |
+|---|---|---|
+| выключена | клик | включить |
+| выключена | удержание 10 с | сброс всех настроек и перезагрузка |
+| включена | клик | выключить |
+| включена | двойной клик | следующий эффект |
+| включена | тройной клик | предыдущий эффект |
+| включена | удержание | яркость; направление меняется с каждым удержанием |
+| любая | 5 кликов | открыть окно спаривания на 2 минуты (короткая синяя вспышка) |
 
-- **Power on / power off** at a given time on selected days of week
-- **Dawn alarm**: turns the lamp on with a chosen effect and raises brightness over 1..120
-  minutes, reaching the full brightness at the alarm time; manual control stops it
-- **Hourly brightness**: 24 values, applied when the lamp is on and at every hour change
+Четыре кнопки (как в EvLamp): **основная** — клик: следующий эффект, 5 кликов: окно
+спаривания, удержание 1,5 с: вкл/выкл; **«+» / «−»** — яркость, удержание повторяет; **сброс** —
+удержание 3 с: сброс всех настроек.
 
-Automatic brightness changes (dawn ramp, hourly) are not written to the settings storage.
+В демо-режиме следующий/предыдущий эффект переключает на соседний включённый эффект, и демо
+продолжается.
 
-## Building
+## Приложение и протокол
 
-Requires ESP-IDF v5.5.x.
+Лампой управляет приложение [FireLamp Android](https://github.com/golyakoff/FireLamp_Android):
+эффекты и их параметры, демо-режим, расписание, настройки матрицы, кнопок, WiFi, имя лампы,
+обновление прошивки. Описание и скриншоты — в его README.
+
+<p align="center">
+  <a href="https://github.com/golyakoff/FireLamp_Android"><img src="https://raw.githubusercontent.com/golyakoff/FireLamp_Android/main/docs/screenshots/lamp.png" width="160" alt="Лампа: эффекты"></a>
+  <a href="https://github.com/golyakoff/FireLamp_Android"><img src="https://raw.githubusercontent.com/golyakoff/FireLamp_Android/main/docs/screenshots/effect.png" width="160" alt="Параметры эффекта"></a>
+  <a href="https://github.com/golyakoff/FireLamp_Android"><img src="https://raw.githubusercontent.com/golyakoff/FireLamp_Android/main/docs/screenshots/system.png" width="160" alt="Система"></a>
+</p>
+
+Для разработчиков своих клиентов:
+
+- [docs/BLE_PROTOCOL.md](docs/BLE_PROTOCOL.md) — протокол BLE: характеристики и байты;
+- [docs/APP_INTEGRATION.md](docs/APP_INTEGRATION.md) — порядок работы приложения: поиск,
+  спаривание, кеширование, обновление;
+- [API.md](API.md) — HTTP API (JSON) в режиме «WiFi всегда включён».
+
+Эффекты и параметры обозначаются текстовыми кодами (`fire`, `plasma_waves`, `speed`), поэтому
+версии приложения и прошивки не зависят от порядка эффектов. Лампа принимает только спаренные
+телефоны; новый — в течение 2 минут после включения или после 5 кликов, всего помнит 4 телефона.
+
+## Возможности
+
+**Эффекты и «Темп».** У эффектов без собственной скорости есть параметр «Темп» (10–100 %): лампа
+сохраняет частоту кадров и плавно смешивает кадры между шагами эффекта, поэтому замедленный эффект
+не дёргается. Эффекты идут по своим часам, так что все их части замедляются вместе.
+
+**Демо-режим.** Включённые эффекты по очереди или в случайном порядке, каждый — заданное время
+плюс случайная добавка. Эффекты можно исключать. Режим переживает перезагрузку.
+
+**Время и расписание.** Лампа хранит UTC и часовой пояс POSIX (летнее время учитывается). Время
+приходит из DS3231 при загрузке, с телефона, из интернета (SNTP) или по HTTP API; DS3231, если он
+есть, подстраивается по ним. Расписание:
+
+- включение и выключение по времени и дням недели;
+- «рассвет»: лампа включается с выбранным эффектом и плавно набирает яркость за 1–120 минут к
+  заданному времени; любое ручное управление его останавливает;
+- яркость по часам: 24 значения, применяются при включении и в начале каждого часа.
+
+**WiFi (по желанию).** Лампа работает и без WiFi. Если сеть настроена (из приложения), лампа
+подключается клиентом: **периодически** (раз в 1–24 часа: синхронизирует время, проверяет
+обновления и отключается) или **постоянно** (доступен [HTTP API](API.md)). Точки доступа нет:
+сеть настраивается по BLE.
+
+**Обновление прошивки.** С телефона по BLE (приложение загружает `.bin` из релиза) или самой
+лампой из интернета: при каждой WiFi-сессии лампа читает `manifest.json` последнего релиза и
+сообщает о новой версии, а ставит её **только по запросу** из приложения. Образ проверяется (и его
+SHA-256, если известен); если новая прошивка не запустится, загрузчик откатится на старую.
+
+**Хранение настроек.** В EEPROM, если она есть, иначе во внутренней flash (NVS). У каждой записи
+есть сигнатура, размер и CRC; в EEPROM у записи две копии, которые пишутся по очереди, так что
+пропадание питания во время записи оставляет прежнюю. Часто меняющиеся значения (яркость, эффект,
+параметры) записываются через 15 секунд после последнего изменения и при перезагрузке. Параметры
+эффектов хранятся по коду эффекта и переживают обновления, которые добавляют или переставляют
+эффекты.
+
+## Сборка из исходников
+
+Нужен ESP-IDF v5.5.x (с v6 проект не собирается).
 
 ```bash
 . ~/esp/esp-idf-v5.5.6/export.sh
@@ -148,73 +307,60 @@ idf.py -B build-esp32 -DSDKCONFIG=build-esp32/sdkconfig -DIDF_TARGET=esp32 build
 # ESP32-C3
 idf.py -B build-esp32c3 -DSDKCONFIG=build-esp32c3/sdkconfig -DIDF_TARGET=esp32c3 build
 
-# configure / flash / monitor (same -B/-DSDKCONFIG arguments)
+# настройки / прошивка / монитор (те же аргументы -B/-DSDKCONFIG)
 idf.py -B build-esp32c3 -DSDKCONFIG=build-esp32c3/sdkconfig menuconfig
 idf.py -B build-esp32c3 -DSDKCONFIG=build-esp32c3/sdkconfig -p /dev/ttyACM0 flash monitor
 ```
 
-Each target keeps its own build directory and sdkconfig, so both can be built side by side.
-Project options are in `menuconfig` → `*** FireLamp configuration ***`.
+У каждого чипа своя папка сборки и свой sdkconfig, так что их можно собирать рядом. Настройки
+проекта — в `menuconfig` → `*** FireLamp configuration ***`. Вывод на матрицу —
+[espressif/led_strip](https://components.espressif.com/components/espressif/led_strip): на ESP32-C3
+SPI с DMA, на ESP32 RMT; предыдущий кадр передаётся, пока считается следующий.
 
-### Effects benchmark
-
-Enable `Benchmark all effects at boot` in menuconfig to have the firmware run every effect for
-100 frames at boot and log the average/maximum computation time per frame. Useful to check the
-CPU headroom on ESP32-C3 (single core, no FPU).
-
-### Host tests
-
-Hardware independent logic (settings storage with simulated EEPROM and power loss, button
-gestures) is covered by unit tests that run on the PC:
+**Тесты на ПК** — хранение настроек с имитацией EEPROM и пропадания питания, жесты кнопок,
+расписание, демо-режим, уникальность хэшей кодов эффектов:
 
 ```bash
 make -C test/host
 ```
 
-## Releases
+**Тесты на железе** — ПК играет роль телефона по BLE и читает лог лампы по USB, см.
+[test/hil/README.md](test/hil/README.md).
 
-Every push builds the firmware for both chips and runs the host tests
-([.github/workflows/build.yml](.github/workflows/build.yml)).
+**Бенчмарк эффектов.** `Benchmark all effects at boot` в menuconfig: при загрузке каждый эффект
+отрабатывает 100 кадров, в лог пишется среднее и максимальное время кадра.
 
-To make a release, bump `version.txt`, add the notes to [CHANGELOG.md](CHANGELOG.md), commit and
-push a tag `v<version>` (it must match `version.txt`). The release workflow builds both chips and
-publishes per chip: separate flash images, a merged image, a Windows `.bat` and a zip, plus
-`manifest.json` for the internet update ([tools/make_release.sh](tools/make_release.sh) also
-writes the release page text). The release can be checked locally:
+**Превью и схемы.** GIF эффектов — `tools/preview/make_previews.py`, схемы этого README —
+`tools/docs/diagrams.py`.
 
-```bash
-tools/make_release.sh v$(cat version.txt)   # after building both targets, needs esptool >= 5
-```
+### Релизы
 
-### Build variant
+Каждый push собирает прошивку для обоих чипов и запускает тесты
+([build.yml](.github/workflows/build.yml)). Для релиза поднимите `version.txt`, добавьте раздел в
+[CHANGELOG.md](CHANGELOG.md), закоммитьте и запушьте тег `v<версия>` (он должен совпадать с
+`version.txt`). Workflow соберёт оба чипа и опубликует образы, единый образ, `.bat`, zip и
+`manifest.json` для обновления из интернета ([tools/make_release.sh](tools/make_release.sh)).
 
-Releases contain one build per chip with the reference pinout, build variant `default`. A lamp
-with other pins needs its own build: set the pins and a variant name of your own in menuconfig
-(`*** FireLamp configuration ***` → `Build variant name`). The internet update installs only a
-build of the same chip and variant, so official releases are never installed on such a lamp.
-The variant is also reported over BLE (Device info).
+### Свой вариант сборки
 
-## Flash layout (4 MB)
+В релизах одна сборка на чип со стандартной распиновкой (вариант `default`). Лампе с другими
+пинами нужна своя сборка: задайте пины и своё имя варианта в menuconfig
+(`*** FireLamp configuration ***` → `Build variant name`). Обновление из интернета ставит только
+сборку того же чипа и варианта, поэтому официальный релиз на такую лампу не встанет.
 
-| Partition | Offset     | Size      |
-|-----------|------------|-----------|
-| nvs       | `0x9000`   | 20 KB     |
-| otadata   | `0xe000`   | 8 KB      |
-| phy_init  | `0x10000`  | 4 KB      |
-| ota_0     | `0x20000`  | 1920 KB   |
-| ota_1     | `0x200000` | 1920 KB   |
+### Разметка flash (4 МБ)
 
-The bootloader is written at `0x1000` on ESP32 and at `0x0` on ESP32-C3.
+| Раздел | Адрес | Размер |
+|---|---|---|
+| nvs | `0x9000` | 20 КБ |
+| otadata | `0xe000` | 8 КБ |
+| phy_init | `0x10000` | 4 КБ |
+| ota_0 | `0x20000` | 1920 КБ |
+| ota_1 | `0x200000` | 1920 КБ |
 
-## HTTP API
+Загрузчик — по адресу `0x1000` на ESP32 и `0x0` на ESP32-C3.
 
-The JSON API of EvLamp is kept (the web UI is removed) and available in the "always on" WiFi
-mode, see [API.md](API.md).
-LED settings now describe a single matrix: `width`, `height`, `type`
-(0 = WS2812, 1 = SK6812, 2 = WS2811), `color_order` (0 = GRB, 1 = RGB), `rotation`, `mirror`,
-`current_limit`.
+## Лицензия
 
-## License
-
-MIT, see [LICENSE](LICENSE). Bundled [libnsgif](components/libnsgif/libnsgif) is MIT licensed
-(see its `COPYING`).
+MIT, см. [LICENSE](LICENSE). Входящая в проект [libnsgif](components/libnsgif/libnsgif) — под
+лицензией MIT (см. её `COPYING`).
