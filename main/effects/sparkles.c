@@ -8,9 +8,10 @@
 #define P_COUNT   0
 #define P_FADEOUT 1
 
-EFFECT_PARAMS(sparkles, 2) = {
+EFFECT_PARAMS(sparkles, 3) = {
     DECL_PARAM_RANGE(P_COUNT, "sparkles", "Number of sparkles", 1, 50, 10),
     DECL_PARAM_RANGE(P_FADEOUT, "fadeout", "Fadeout speed", 10, 150, 80),
+    DECL_PARAM_TEMPO(2, 14),
 };
 
 esp_err_t effect_sparkles_run(framebuffer_t *fb)

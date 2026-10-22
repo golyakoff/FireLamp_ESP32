@@ -6,7 +6,7 @@
 
 #include "effect.h"
 
-extern EFFECT_PARAMS(rain, 4);
+extern EFFECT_PARAMS(rain, 5);
 
 esp_err_t effect_rain_prepare(framebuffer_t *fb);
 

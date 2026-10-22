@@ -16,11 +16,12 @@
 #define P_DENSITY    2
 #define P_TAIL       3
 
-EFFECT_PARAMS(starfall, 4) = {
+EFFECT_PARAMS(starfall, 5) = {
     DECL_PARAM_BOOL(P_COLORED, "colored", "Colored", 1),
     DECL_PARAM_RANGE(P_SATURATION, "saturation", "Saturation", 0, 255, 140),
     DECL_PARAM_RANGE(P_DENSITY, "density", "Density", 1, 100, 50),
     DECL_PARAM_RANGE(P_TAIL, "tail_length", "Tail length", 0, 100, 50),
+    DECL_PARAM_TEMPO(4, 30),
 };
 
 static bool is_off(framebuffer_t *fb, size_t x, size_t y)

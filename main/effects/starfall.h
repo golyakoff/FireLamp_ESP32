@@ -6,7 +6,7 @@
 
 #include "effect.h"
 
-extern EFFECT_PARAMS(starfall, 4);
+extern EFFECT_PARAMS(starfall, 5);
 
 esp_err_t effect_starfall_run(framebuffer_t *fb);
 

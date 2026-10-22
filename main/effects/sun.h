@@ -8,7 +8,7 @@
 
 #include "effect.h"
 
-extern EFFECT_PARAMS(sun, 2);
+extern EFFECT_PARAMS(sun, 3);
 
 esp_err_t effect_sun_prepare(framebuffer_t *fb);
 

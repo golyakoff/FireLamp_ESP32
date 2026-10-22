@@ -197,6 +197,11 @@ Parameter:
 | u8   | Default |
 | u8   | Current value |
 
+The parameter `tempo` (firmware ≥ 0.5.0) is common to the effects without their own speed
+parameter and is always their last one: range `10..100`, the default depends on the effect, percent of the normal
+speed. The lamp keeps its FPS and blends the frames between the effect steps. Changing it does not
+restart the effect.
+
 Reading the whole list: write `0x00, 0`, read; take the count from the answer; then for
 positions `1 .. count-1`: write `0x00, i`, read. The descriptions (except current values and the
 demo flag) do not change while the firmware version is the same, so the app may cache them.

@@ -19,11 +19,12 @@
 #define P_COOLING  2
 #define P_SPARKING 3
 
-EFFECT_PARAMS(waterfall, 4) = {
+EFFECT_PARAMS(waterfall, 5) = {
     DECL_PARAM_RANGE(P_MODE, "mode", "Mode", 0, 2, 0),
     DECL_PARAM_RANGE(P_HUE, "color", "Color", 0, 255, 160),
     DECL_PARAM_RANGE(P_COOLING, "cooling", "Cooling", 5, 100, 10),
     DECL_PARAM_RANGE(P_SPARKING, "sparking", "Sparking", 20, 200, 60),
+    DECL_PARAM_TEMPO(4, 50),
 };
 
 enum {

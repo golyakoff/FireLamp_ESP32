@@ -6,8 +6,8 @@
 
 #include "effect.h"
 
-extern EFFECT_PARAMS(rainbow_snake, 2);
-extern EFFECT_PARAMS(soaring_fire, 1);
+extern EFFECT_PARAMS(rainbow_snake, 3);
+extern EFFECT_PARAMS(soaring_fire, 2);
 
 esp_err_t effect_rainbow_snake_prepare(framebuffer_t *fb);
 esp_err_t effect_rainbow_snake_run(framebuffer_t *fb);

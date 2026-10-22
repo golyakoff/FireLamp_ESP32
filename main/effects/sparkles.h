@@ -6,7 +6,7 @@
 
 #include "effect.h"
 
-extern EFFECT_PARAMS(sparkles, 2);
+extern EFFECT_PARAMS(sparkles, 3);
 
 esp_err_t effect_sparkles_run(framebuffer_t *fb);
 

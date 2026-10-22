@@ -20,7 +20,7 @@ EFFECT_PARAMS(whirls, 5) = {
     DECL_PARAM_RANGE(P_SCALE, "scale", "Scale", 5, 50, 26),
     DECL_PARAM_RANGE(P_PALETTE, "palette", "Palette", PALETTE_FIRE, PALETTE_MAX - 1, 0),
     DECL_PARAM_RANGE(P_FADEOUT, "fadeout", "Fadeout", 10, 250, 50),
-    DECL_PARAM_RANGE(P_TIME_SCALE, "time_scale", "Time scale", 1, 10, 10),
+    DECL_PARAM_RANGE(P_TIME_SCALE, "time_scale", "Time scale", 1, 10, 8),
 };
 
 typedef struct

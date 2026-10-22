@@ -12,7 +12,7 @@
 #define P_PALETTE 1
 
 EFFECT_PARAMS(dunes, 2) = {
-    DECL_PARAM_RANGE(P_SPEED, "speed", "Speed", 1, 40, 5),
+    DECL_PARAM_RANGE(P_SPEED, "speed", "Tempo", 1, 10, 3),
     DECL_PARAM_RANGE(P_PALETTE, "palette", "Palette", 0, PALETTE_MAX - 1, PALETTE_WOOD_FIRE),
 };
 

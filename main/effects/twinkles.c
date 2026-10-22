@@ -21,9 +21,10 @@
 #define P_PALETTE 0
 #define P_DENSITY 1
 
-EFFECT_PARAMS(twinkles, 2) = {
+EFFECT_PARAMS(twinkles, 3) = {
     DECL_PARAM_RANGE(P_PALETTE, "palette", "Palette", 0, PALETTE_RAINBOW, PALETTE_RAINBOW),
     DECL_PARAM_RANGE(P_DENSITY, "density", "Density", 1, 11, 8),
+    DECL_PARAM_TEMPO(2, 100),
 };
 
 typedef struct

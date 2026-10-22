@@ -83,3 +83,8 @@ idf_component_register(
 		${EMBED}/gifs/cutebear.gif
 )
 
+
+# The effects read the effect clock instead of the uptime (see effects/effect_time.h)
+file(GLOB effect_sources ${CMAKE_CURRENT_SOURCE_DIR}/effects/*.c)
+set_source_files_properties(${effect_sources} PROPERTIES
+	COMPILE_OPTIONS "-include;${CMAKE_CURRENT_SOURCE_DIR}/effects/effect_time.h")

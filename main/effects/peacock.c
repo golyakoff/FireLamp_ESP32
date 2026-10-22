@@ -12,7 +12,7 @@
 #define P_SATURATION 2
 
 EFFECT_PARAMS(peacock, 3) = {
-    DECL_PARAM_RANGE(P_SPEED, "speed", "Speed", 1, 255, 200),
+    DECL_PARAM_RANGE(P_SPEED, "speed", "Tempo", 1, 255, 200),
     DECL_PARAM_RANGE(P_SCALE, "scale", "Scale", 1, 10, 4),
     DECL_PARAM_RANGE(P_SATURATION, "saturation", "Saturation", 0, 255, 255),
 };

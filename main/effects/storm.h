@@ -6,7 +6,7 @@
 
 #include "effect.h"
 
-extern EFFECT_PARAMS(storm, 3);
+extern EFFECT_PARAMS(storm, 4);
 
 esp_err_t effect_storm_prepare(framebuffer_t *fb);
 

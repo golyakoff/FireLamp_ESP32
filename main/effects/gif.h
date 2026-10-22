@@ -3,7 +3,7 @@
 
 #include "effect.h"
 
-extern EFFECT_PARAMS(gif, 1);
+extern EFFECT_PARAMS(gif, 2);
 
 esp_err_t effect_gif_prepare(framebuffer_t *fb);
 

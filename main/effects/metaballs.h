@@ -10,7 +10,7 @@
 
 #include "effect.h"
 
-extern EFFECT_PARAMS(metaballs, 2);
+extern EFFECT_PARAMS(metaballs, 3);
 
 esp_err_t effect_metaballs_prepare(framebuffer_t *fb);
 

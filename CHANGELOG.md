@@ -1,3 +1,12 @@
+Release 0.5.0
+
+- [x] Tempo: the effects without their own speed (Fire, Matrix, Rain, Starfall, Thunderstorm, Twinkles, Fireflies with trails, Drops on glass, Sparkles, Crazy bees, Metaballs, Flight of spaceships, Sun radiation, Waterfall, Rainbow snake, Soaring fire, Gif image) have the parameter `tempo`, 10..100 % of the normal speed. The FPS stays: the frames between the effect steps are blended, so a slowed effect stays smooth. Changing the tempo does not restart the effect
+- [x] Effects run on their own clock that advances with every effect step, so their time based and frame based parts stay in step at any tempo
+- [x] Default tempos: Sparkles 14 %, Matrix 42 %, Crazy bees, Waterfall, Drops on glass 50 %, Rainbow snake, Soaring fire 40 %, Starfall, Fireflies with trails 30 %, the others 100 %. Default speeds: Lava 5, Plasma waves 100, Water 40, Fireflies 70, Tunnel 70, Butterflies 35, Colored dunes 3 (and at most 10: faster it is a strobe), Whirls time scale 8. The values a lamp already stored stay; "reset effect parameters" applies the new defaults
+- [x] The `speed` parameters are named "Tempo" (the code stays `speed`)
+- [x] The Matrix effect rebooted the lamp on ESP32 (the compiler put its colors in flash where the CPU cannot read bytes)
+- [x] Flower stays inside small matrices (its radius follows the matrix size, it went off an 8x8 most of the time); Rainbow snake and Soaring fire smear and change in proportion to the matrix size, as they did on 16x16
+
 Release 0.4.3
 
 - [x] The Main button pin is a setting (BLE `Hardware settings`, HTTP `/api/settings/hardware`): the lamp lists the pins it can be moved to (inputs with internal pull resistors, no strapping, flash or UART pins, none used by the matrix, I2C or the other buttons), ESP32: GPIO 4, 13, 14, 18, 19, 23, 25, 32, 33; ESP32-C3: GPIO 1, 4. Applied after reboot, the default pin stays as before

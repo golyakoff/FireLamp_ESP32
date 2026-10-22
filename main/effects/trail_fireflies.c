@@ -16,10 +16,11 @@
 #define P_HUE     1
 #define P_FADEOUT 2
 
-EFFECT_PARAMS(trail_fireflies, 3) = {
+EFFECT_PARAMS(trail_fireflies, 4) = {
     DECL_PARAM_RANGE(P_COUNT, "fireflies", "Number of fireflies", 1, MAX_FIREFLIES, 3),
     DECL_PARAM_RANGE(P_HUE, "hue", "Hue", 0, 255, 93),
     DECL_PARAM_RANGE(P_FADEOUT, "fadeout", "Fadeout speed", 10, 200, 70),
+    DECL_PARAM_TEMPO(3, 30),
 };
 
 typedef struct

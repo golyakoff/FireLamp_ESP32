@@ -8,7 +8,7 @@
 
 #include "effect.h"
 
-extern EFFECT_PARAMS(crazybees, 3);
+extern EFFECT_PARAMS(crazybees, 4);
 
 esp_err_t effect_crazybees_prepare(framebuffer_t *fb);
 

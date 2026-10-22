@@ -24,10 +24,11 @@
 #define P_MODE  1
 #define P_HUE   2
 
-EFFECT_PARAMS(glass_drops, 3) = {
+EFFECT_PARAMS(glass_drops, 4) = {
     DECL_PARAM_RANGE(P_COUNT, "drops", "Number of drops", 1, MAX_DROPS, 16),
     DECL_PARAM_RANGE(P_MODE, "mode", "Mode", MODE_COLOR, MODE_GRAY, MODE_COLOR),
     DECL_PARAM_RANGE(P_HUE, "hue", "Hue", 0, 255, 150),
+    DECL_PARAM_TEMPO(3, 50),
 };
 
 typedef struct

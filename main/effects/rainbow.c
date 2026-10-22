@@ -12,7 +12,7 @@
 EFFECT_PARAMS(rainbow, 3) = {
     DECL_PARAM_RANGE(P_DIRECTION, "direction", "Direction", 0, 2, 0),
     DECL_PARAM_RANGE(P_SCALE, "scale", "Scale", 1, 50, 20),
-    DECL_PARAM_RANGE(P_SPEED, "speed", "Speed", 1, 40, 5),
+    DECL_PARAM_RANGE(P_SPEED, "speed", "Tempo", 1, 40, 5),
 };
 
 enum {

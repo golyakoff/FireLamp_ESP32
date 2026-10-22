@@ -6,7 +6,7 @@
 
 #include "effect.h"
 
-extern EFFECT_PARAMS(twinkles, 2);
+extern EFFECT_PARAMS(twinkles, 3);
 
 esp_err_t effect_twinkles_prepare(framebuffer_t *fb);
 

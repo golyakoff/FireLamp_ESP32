@@ -5,7 +5,7 @@
 
 #include "effect.h"
 
-extern EFFECT_PARAMS(matrix, 1);
+extern EFFECT_PARAMS(matrix, 2);
 
 esp_err_t effect_matrix_run(framebuffer_t *fb);
 

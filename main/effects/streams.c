@@ -11,6 +11,7 @@
 #include "effects/streams.h"
 
 #include <string.h>
+#include <math.h>
 #include <lib8tion.h>
 #include <noise.h>
 
@@ -21,18 +22,22 @@
 #define P_HUE    0
 #define P_ROTATE 1
 
-EFFECT_PARAMS(rainbow_snake, 2) = {
+EFFECT_PARAMS(rainbow_snake, 3) = {
     DECL_PARAM_RANGE(P_HUE, "hue", "Hue", 0, 255, 0),
     DECL_PARAM_BOOL(P_ROTATE, "rotate", "Rotate colors", 1),
+    DECL_PARAM_TEMPO(2, 40),
 };
 
 #define P_FADEOUT 0
 
-EFFECT_PARAMS(soaring_fire, 1) = {
+EFFECT_PARAMS(soaring_fire, 2) = {
     DECL_PARAM_RANGE(P_FADEOUT, "fadeout", "Fadeout", 1, 100, 15),
+    DECL_PARAM_TEMPO(1, 40),
 };
 
 static size_t width = 0, height = 0;
+// the effects were tuned for 16x16: the noise and the smearing scale with the smaller side
+static int size = 16;
 static uint8_t *noise = NULL; // width * height
 static rgb_t *buf = NULL;     // width * height
 static uint32_t nx, ny, nz;
@@ -48,6 +53,7 @@ static esp_err_t streams_prepare(framebuffer_t *fb)
         free(buf);
         width = fb->width;
         height = fb->height;
+        size = MIN(width, height);
         noise = calloc(width * height, 1);
         buf = calloc(width * height, sizeof(rgb_t));
         if (!noise || !buf)
@@ -75,10 +81,10 @@ static void fill_noise()
     nz += NOISE_STEP;
     for (size_t x = 0; x < width; x++)
     {
-        int32_t xo = NOISE_SCALE * ((int32_t)x - (int32_t)width / 2);
+        int32_t xo = NOISE_SCALE * 16 / size * ((int32_t)x - (int32_t)width / 2);
         for (size_t y = 0; y < height; y++)
         {
-            int32_t yo = NOISE_SCALE * ((int32_t)y - (int32_t)height / 2);
+            int32_t yo = NOISE_SCALE * 16 / size * ((int32_t)y - (int32_t)height / 2);
             uint8_t data = inoise16_3d(nx + xo, ny + yo, nz) >> 8;
             uint8_t *n = &noise[y * width + x];
             *n = scale8(*n, NOISE_SMOOTH) + scale8(data, 255 - NOISE_SMOOTH);
@@ -104,7 +110,7 @@ static void smear_x(framebuffer_t *fb, int amplitude, float shift)
 {
     for (size_t y = 0; y < height; y++)
     {
-        int amount = ((int)noise[y * width] - 128) * 2 * amplitude + (int)(shift * 256);
+        int amount = ((int)noise[y * width] - 128) * 2 * amplitude * size / 16 + (int)(shift * 256);
         int delta = abs(amount) >> 8;
         uint8_t fraction = abs(amount) & 255;
         for (size_t x = 0; x < width; x++)
@@ -124,7 +130,7 @@ static void smear_y(framebuffer_t *fb, int amplitude, float shift)
 {
     for (size_t x = 0; x < width; x++)
     {
-        int amount = ((int)noise[x] - 128) * 2 * amplitude + (int)(shift * 256);
+        int amount = ((int)noise[x] - 128) * 2 * amplitude * size / 16 + (int)(shift * 256);
         int delta = abs(amount) >> 8;
         uint8_t fraction = abs(amount) & 255;
         for (size_t y = 0; y < height; y++)
@@ -164,16 +170,18 @@ esp_err_t effect_rainbow_snake_run(framebuffer_t *fb)
         hue = PARAM_VAL(rainbow_snake, P_HUE);
 
     fb_fade(fb, 255 - 96);
-    // 2x2 squares every 5 pixels; one in the middle of a tiny matrix, 2 per line from 8 pixels
-    size_t first_x = width < 4 ? 0 : (width < 8 ? width / 2 - 1 : (width < 16 ? 1 : 2));
-    size_t first_y = height < 4 ? 0 : (height < 8 ? height / 2 - 1 : (height < 16 ? 1 : 2));
-    for (size_t y = first_y; y == first_y || y + 1 < height; y += 5)
-        for (size_t x = first_x; x == first_x || x + 1 < width; x += 5)
+    // a 3x3 grid of squares at any size, as on 16x16: 2x2 squares at 2, 7, 12 there, single
+    // pixels at 1, 4, 6 on 8x8; the colors are those of the 16x16 positions
+    int sq = MAX(1, size / 8);
+    for (int j = 0; j < 3; j++)
+        for (int i = 0; i < 3; i++)
         {
-            add_hsv(fb, x, y, x * y + hue);
-            add_hsv(fb, x + 1, y, (x + 4) * y + hue);
-            add_hsv(fb, x, y + 1, x * (y + 4) + hue);
-            add_hsv(fb, x + 1, y + 1, (x + 4) * (y + 4) + hue);
+            int x0 = MIN(MAX((int)lroundf((2 * i + 1) * width / 6.0f - sq / 2.0f), 0), (int)width - sq);
+            int y0 = MIN(MAX((int)lroundf((2 * j + 1) * height / 6.0f - sq / 2.0f), 0), (int)height - sq);
+            int vx = x0 * 16 / (int)width, vy = y0 * 16 / (int)height;
+            for (int dy = 0; dy < sq; dy++)
+                for (int dx = 0; dx < sq; dx++)
+                    add_hsv(fb, x0 + dx, y0 + dy, (vx + dx * 8 / sq) * (vy + dy * 8 / sq) + hue);
         }
 
     fill_noise();

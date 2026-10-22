@@ -23,6 +23,15 @@ static surface_state_cb_t state_cb = NULL;
 static volatile int64_t flash_until = 0;
 static rgb_t flash_color;
 
+// Effect clock (effects/effect_time.h): one nominal frame period per effect step
+static volatile int64_t effect_us = 0;
+// Tempo: an effect step every time the accumulator passes EFFECT_TEMPO_MAX; the output frames
+// in between blend the frames before and after the last step
+static uint32_t tempo_acc = 0;
+static rgb_t *prev_frame = NULL, *blend_frame = NULL;
+// the next frame starts the effect afresh: no blending with what was shown before
+static volatile bool blend_restart = true;
+
 static const led_model_t led_models[LED_TYPE_MAX] = {
     [LED_TYPE_WS2812] = LED_MODEL_WS2812,
     [LED_TYPE_SK6812] = LED_MODEL_SK6812,
@@ -101,8 +110,16 @@ static esp_err_t strip_init()
 }
 
 // frame renderer, framebuffer -> LED strip
+int64_t effect_time_us(void)
+{
+    return effect_us;
+}
+
+// arg: the pixels to show instead of fb->data (a blended frame), or NULL
 static esp_err_t render_frame(framebuffer_t *fb, void *arg)
 {
+    const rgb_t *data = arg ? (const rgb_t *)arg : fb->data;
+
     // previous frame is sent by DMA/RMT while the effect computes the next one
     if (strip_busy)
     {
@@ -120,7 +137,7 @@ static esp_err_t render_frame(framebuffer_t *fb, void *arg)
         uint8_t brightness = scale8_video(vol_settings.brightness, max_brightness);
         for (size_t i = 0; i < num_leds; i++)
         {
-            rgb_t c = rgb_scale_video(fb->data[i], brightness);
+            rgb_t c = rgb_scale_video(data[i], brightness);
             CHECK(led_strip_set_pixel(strip, led_map[i], c.r, c.g, c.b));
         }
     }
@@ -184,6 +201,14 @@ static void surface_task(void *arg)
     // init framebuffer
     memset(&framebuffer, 0, sizeof(framebuffer_t));
     ESP_ERROR_CHECK(fb_init(&framebuffer, fb_width, fb_height, render_frame));
+    prev_frame = calloc(fb_width * fb_height, sizeof(rgb_t));
+    blend_frame = calloc(fb_width * fb_height, sizeof(rgb_t));
+    if (!prev_frame || !blend_frame)
+    {
+        ESP_LOGE(TAG, "Not enough memory for frame blending");
+        abort();
+    }
+    effect_us = esp_timer_get_time();
 
 #if CONFIG_FL_EFFECTS_BENCHMARK
     benchmark();
@@ -200,10 +225,41 @@ static void surface_task(void *arg)
 
         TickType_t last_wake_time = xTaskGetTickCount();
 
-        esp_err_t res = effects[vol_settings.effect].run(&framebuffer);
+        size_t effect = vol_settings.effect;
+        uint8_t tempo = effect_tempo(effect);
+        bool restart = blend_restart;
+        esp_err_t res = ESP_OK;
+
+        tempo_acc += tempo;
+        if (restart || tempo_acc >= EFFECT_TEMPO_MAX)
+        {
+            tempo_acc = restart ? 0 : tempo_acc - EFFECT_TEMPO_MAX;
+            memcpy(prev_frame, framebuffer.data, fb_width * fb_height * sizeof(rgb_t));
+            effect_us += 1000000 / vol_settings.fps;
+            res = effects[effect].run(&framebuffer);
+            if (restart)
+            {
+                memcpy(prev_frame, framebuffer.data, fb_width * fb_height * sizeof(rgb_t));
+                blend_restart = false;
+            }
+        }
+
         if (res == ESP_OK)
         {
-            res = fb_render(&framebuffer, NULL);
+            rgb_t *out = NULL;
+            if (tempo < EFFECT_TEMPO_MAX)
+            {
+                // from the frame before the last step to the frame after it until the next step
+                fract8 amount = tempo_acc * 255 / EFFECT_TEMPO_MAX;
+                for (size_t i = 0; i < fb_width * fb_height; i++)
+                {
+                    blend_frame[i].r = blend8(prev_frame[i].r, framebuffer.data[i].r, amount);
+                    blend_frame[i].g = blend8(prev_frame[i].g, framebuffer.data[i].g, amount);
+                    blend_frame[i].b = blend8(prev_frame[i].b, framebuffer.data[i].b, amount);
+                }
+                out = blend_frame;
+            }
+            res = fb_render(&framebuffer, out);
             if (res != ESP_OK)
                 ESP_LOGW(TAG, "Frame rendering error %d (%s)", res, esp_err_to_name(res));
         } else
@@ -320,6 +376,7 @@ static esp_err_t surface_play_unlocked()
     if (surface_is_playing())
         return ESP_OK;
 
+    blend_restart = true;
     xEventGroupSetBits(state, BIT_PLAYING);
     ESP_LOGI(TAG, "Animation started");
     surface_state_changed();

@@ -24,7 +24,8 @@ for f in sorted(os.listdir(effects_dir)):
             descr[name] = code
     elif f.endswith('.c'):
         for code, body in re.findall(r'EFFECT_PARAMS\(\s*(\w+)\s*,\s*\d+\s*\)\s*=\s*\{(.*?)\};', text, re.S):
-            params[code] = re.findall(r'DECL_PARAM_\w+\(\s*\w+\s*,\s*"([^"]*)"', body)
+            params[code] = [m[0] or 'tempo' for m in re.findall(
+                r'DECL_PARAM_\w+\(\s*\w+\s*,\s*"([^"]*)"|(DECL_PARAM_TEMPO)\(', body)]
 
 table = open(os.path.join(main, 'effect.c'), encoding='utf-8').read()
 table = table[table.index('const effect_descriptor_t effects[]'):table.index('const size_t effects_count')]

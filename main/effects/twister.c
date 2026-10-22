@@ -19,7 +19,7 @@
 #define P_IRIDESCENT 2
 
 EFFECT_PARAMS(twister, 3) = {
-    DECL_PARAM_RANGE(P_SPEED, "speed", "Speed", 0, 40, 30),
+    DECL_PARAM_RANGE(P_SPEED, "speed", "Tempo", 0, 40, 30),
     DECL_PARAM_BOOL(P_BORDER, "black_border", "Add black border", 1),
     DECL_PARAM_BOOL(P_IRIDESCENT, "iridescent", "Iridescent colors", 0),
 };

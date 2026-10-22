@@ -18,6 +18,13 @@ typedef enum {
 
 #define PARAM_VAL(name, X) (effect_ ##name## _params[(X)].value)
 
+// Tempo, percent: effect steps per output frame. Below 100 the frames between the steps are
+// blended (surface.c), so a slower effect stays smooth at the same FPS. Only for the effects
+// without their own speed parameter; the others always run at EFFECT_TEMPO_MAX.
+#define EFFECT_TEMPO_MIN 10
+#define EFFECT_TEMPO_MAX 100
+#define DECL_PARAM_TEMPO(ID, DEF) DECL_PARAM_RANGE(ID, "tempo", "Tempo", EFFECT_TEMPO_MIN, EFFECT_TEMPO_MAX, DEF)
+
 // Effect code is the C identifier of the effect, e.g. `fire`, `plasma_waves`
 #define DECL_EFFECT_FULL(CODE, NAME) { \
         .code = #CODE, \
@@ -87,6 +94,11 @@ int effect_param_find(size_t effect, const char *code);
  * Check that a string is a valid code: 1..EFFECT_CODE_MAX_LEN characters a-z, 0-9, '_'
  */
 bool effect_code_valid(const char *code);
+
+/**
+ * Tempo of the effect: its `tempo` parameter, EFFECT_TEMPO_MAX for the effects without it
+ */
+uint8_t effect_tempo(size_t effect);
 
 typedef void (*effect_param_cb_t)(size_t effect, size_t param);
 

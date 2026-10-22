@@ -12,7 +12,7 @@
 #define P_DIAMETER 1
 
 EFFECT_PARAMS(flower, 2) = {
-    DECL_PARAM_RANGE(P_SPEED, "speed", "Speed", 1, 255, 100),
+    DECL_PARAM_RANGE(P_SPEED, "speed", "Tempo", 1, 255, 100),
     DECL_PARAM_RANGE(P_DIAMETER, "diameter", "Diameter", 50, 150, 128),
 };
 
@@ -33,7 +33,10 @@ esp_err_t effect_flower_run(framebuffer_t *fb)
 
     float n = triwave8(counter) * 2.2f;
     float a = n * angle;
-    float r = PARAM_VAL(flower, P_DIAMETER) / 255.0f * sqrt16(n);
+    // the radius follows the matrix size: at the default diameter the farthest petals reach the
+    // edge and a bit into the corners (the original reached 12 pixels, half of a turn outside 8x8)
+    float r = PARAM_VAL(flower, P_DIAMETER) / 128.0f * sqrt16(n) / sqrt16(255 * 2.2f)
+        * MIN(fb->width, fb->height) * 0.6f;
     float x = r * cosf(a) + (float)fb->width / 2.0f;
     float y = r * sinf(a) + (float)fb->height / 2.0f;
 

@@ -104,6 +104,9 @@ const size_t effects_count = sizeof(effects) / sizeof(effect_descriptor_t);
 
 static effect_param_cb_t param_cb = NULL;
 
+// index of the `tempo` parameter of every effect, -1 if it has none (effects_init())
+static int8_t tempo_param[MAX_EFFECTS] = { [0 ... MAX_EFFECTS - 1] = -1 };
+
 void effect_set_param_cb(effect_param_cb_t cb)
 {
     param_cb = cb;
@@ -168,10 +171,18 @@ esp_err_t effect_param_set(size_t effect, size_t param, uint8_t value)
     if (param_cb)
         param_cb(effect, param);
 
-    if (effect == vol_settings.effect)
+    // the tempo is read by the surface every frame, restarting the effect is not needed
+    if (effect == vol_settings.effect && (int)param != tempo_param[effect])
         CHECK_LOGE(surface_prepare_effect(effect), "Could not prepare effect");
 
     return ESP_OK;
+}
+
+uint8_t effect_tempo(size_t effect)
+{
+    if (effect >= effects_count || tempo_param[effect] < 0)
+        return EFFECT_TEMPO_MAX;
+    return PARAM(effect, tempo_param[effect]).value;
 }
 
 static void apply_stored_params(size_t e, const uint8_t *entry, size_t count)
@@ -284,6 +295,9 @@ static void check_codes()
 esp_err_t effects_init()
 {
     check_codes();
+
+    for (size_t e = 0; e < effects_count && e < MAX_EFFECTS; e++)
+        tempo_param[e] = effect_param_find(e, "tempo");
 
     esp_err_t res = effect_params_load();
     if (res != ESP_OK)

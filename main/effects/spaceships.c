@@ -11,9 +11,10 @@
 #define P_COUNT 0
 #define P_DIRECTION_TIME 1
 
-EFFECT_PARAMS(spaceships, 2) = {
+EFFECT_PARAMS(spaceships, 3) = {
     DECL_PARAM_RANGE(P_COUNT, "ships", "Number of ships", 2, 16, 8),
     DECL_PARAM_RANGE(P_DIRECTION_TIME, "turn_time", "Direction change time", 1, 60, 5),
+    DECL_PARAM_TEMPO(2, 100),
 };
 
 typedef enum {

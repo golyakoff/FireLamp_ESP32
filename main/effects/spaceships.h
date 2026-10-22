@@ -9,7 +9,7 @@
 
 #include "effect.h"
 
-extern EFFECT_PARAMS(spaceships, 2);
+extern EFFECT_PARAMS(spaceships, 3);
 
 esp_err_t effect_spaceships_run(framebuffer_t *fb);
 

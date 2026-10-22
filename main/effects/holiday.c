@@ -13,7 +13,7 @@
 
 EFFECT_PARAMS(holiday, 2) = {
     DECL_PARAM_RANGE(P_MODE, "mode", "Mode", 0, 3, 0),
-    DECL_PARAM_RANGE(P_SPEED, "speed", "Speed", 1, 20, 8),
+    DECL_PARAM_RANGE(P_SPEED, "speed", "Tempo", 1, 20, 8),
 };
 
 static uint8_t hue = 0;

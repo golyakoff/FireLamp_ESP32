@@ -14,7 +14,7 @@
 
 #include "effect.h"
 
-extern EFFECT_PARAMS(waterfall, 4);
+extern EFFECT_PARAMS(waterfall, 5);
 
 esp_err_t effect_waterfall_prepare(framebuffer_t *fb);
 

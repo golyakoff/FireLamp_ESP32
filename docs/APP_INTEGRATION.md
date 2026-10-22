@@ -94,50 +94,57 @@ the value actually changes, the lamp notifies the same triple (also for changes 
 e.g. the HTTP API). Writing the current value again gives no notification: rely on the write
 response for success.
 
-Current effects (from the firmware sources, for localization; `starfall` and `storm` since 0.2.0, `twinkles`, `butterflies`, `rainbow_snake`, `soaring_fire` since 0.3.0, `trail_fireflies`, `glass_drops` since 0.4.0):
+**Tempo** (firmware ≥ 0.5.0): the effects without their own speed parameter have the parameter
+`tempo` (Tempo, `10..100`, the default depends on the effect), always the last one: percent of the normal speed. The
+lamp keeps its FPS and blends the frames in between, so a slow effect stays smooth. Show it as a
+slider; to look the same as the effects' own `speed` (named "Tempo" too, its own range, e.g. `0..50`), show both as percent of the parameter's maximum ("Tempo 30 %"); a change applies at once and, unlike the other
+parameters, does not restart the effect. The effects with `speed`, `rotation_speed` or
+`time_scale` have no `tempo`.
+
+Current effects (from the firmware sources, for localization; `starfall` and `storm` since 0.2.0, `twinkles`, `butterflies`, `rainbow_snake`, `soaring_fire` since 0.3.0, `trail_fireflies`, `glass_drops` since 0.4.0; `tempo` since 0.5.0):
 
 | Effect code | English name | Parameters: code (English name) |
 |---|---|---|
 | `lamp` | Color lamp | `red` (Red), `green` (Green), `blue` (Blue) |
-| `fire` | Fire | `palette` (Palette), `scale` (Scale) |
-| `sparkles` | Sparkles | `sparkles` (Number of sparkles), `fadeout` (Fadeout speed) |
-| `lava` | Lava | `scale` (Scale), `speed` (Speed), `mode` (Mode), `palette` (Palette) |
-| `waterfall` | Waterfall | `mode` (Mode), `color` (Color), `cooling` (Cooling), `sparking` (Sparking) |
-| `plasma_waves` | Plasma waves | `speed` (Speed) |
+| `fire` | Fire | `palette` (Palette), `scale` (Scale), `tempo` (Tempo, since 0.5.0) |
+| `sparkles` | Sparkles | `sparkles` (Number of sparkles), `fadeout` (Fadeout speed), `tempo` (Tempo, since 0.5.0) |
+| `lava` | Lava | `scale` (Scale), `speed` (Tempo), `mode` (Mode), `palette` (Palette) |
+| `waterfall` | Waterfall | `mode` (Mode), `color` (Color), `cooling` (Cooling), `sparking` (Sparking), `tempo` (Tempo, since 0.5.0) |
+| `plasma_waves` | Plasma waves | `speed` (Tempo) |
 | `dna` | DNA helix | `rotation_speed` (Rotation speed), `spiral_size` (Spiral size), `white_border` (Add white border, bool) |
-| `matrix` | Matrix | `density` (Density) |
-| `crazybees` | Crazy bees | `bees` (Number of bees), `bee_hue` (Bee hue), `bee_saturation` (Bee saturation) |
-| `rain` | Rain | `colored` (Colored, bool), `hue` (Hue), `density` (Density), `tail_length` (Tail length) |
-| `rainbow` | Rainbow | `direction` (Direction), `scale` (Scale), `speed` (Speed) |
-| `rays` | Rays | `speed` (Speed), `min_rays` (Min rays), `max_rays` (Max rays) |
-| `metaballs` | Metaballs | `palette` (Palette), `balls` (Balls) |
-| `water` | Water | `hue` (Hue), `saturation` (Saturation), `speed` (Speed) |
-| `holiday` | Holiday lights | `mode` (Mode), `speed` (Speed) |
-| `hoop` | Hoop | `speed` (Speed) |
-| `twister` | Twister | `speed` (Speed), `black_border` (Add black border, bool), `iridescent` (Iridescent colors, bool) |
-| `flower` | Flower | `speed` (Speed), `diameter` (Diameter) |
-| `polar_lights` | Polar lights | `speed` (Speed), `scale` (Scale), `palette` (Palette), `height` (Height adjustment) |
-| `gif` | Gif image | `file` (File) |
-| `relax` | Relax | `speed` (Speed), `start_hue` (Start hue), `saturation` (Saturation), `pixels` (Pixels to update) |
+| `matrix` | Matrix | `density` (Density), `tempo` (Tempo, since 0.5.0) |
+| `crazybees` | Crazy bees | `bees` (Number of bees), `bee_hue` (Bee hue), `bee_saturation` (Bee saturation), `tempo` (Tempo, since 0.5.0) |
+| `rain` | Rain | `colored` (Colored, bool), `hue` (Hue), `density` (Density), `tail_length` (Tail length), `tempo` (Tempo, since 0.5.0) |
+| `rainbow` | Rainbow | `direction` (Direction), `scale` (Scale), `speed` (Tempo) |
+| `rays` | Rays | `speed` (Tempo), `min_rays` (Min rays), `max_rays` (Max rays) |
+| `metaballs` | Metaballs | `palette` (Palette), `balls` (Balls), `tempo` (Tempo, since 0.5.0) |
+| `water` | Water | `hue` (Hue), `saturation` (Saturation), `speed` (Tempo) |
+| `holiday` | Holiday lights | `mode` (Mode), `speed` (Tempo) |
+| `hoop` | Hoop | `speed` (Tempo) |
+| `twister` | Twister | `speed` (Tempo), `black_border` (Add black border, bool), `iridescent` (Iridescent colors, bool) |
+| `flower` | Flower | `speed` (Tempo), `diameter` (Diameter) |
+| `polar_lights` | Polar lights | `speed` (Tempo), `scale` (Scale), `palette` (Palette), `height` (Height adjustment) |
+| `gif` | Gif image | `file` (File), `tempo` (Tempo, since 0.5.0) |
+| `relax` | Relax | `speed` (Tempo), `start_hue` (Start hue), `saturation` (Saturation), `pixels` (Pixels to update) |
 | `wheel` | Radiant wheel | `rotation_speed` (Rotation speed), `hue_1` (Hue 1), `saturation_1` (Saturation 1), `hue_2` (Hue 2), `saturation_2` (Saturation 2), `rays` (Number of rays) |
-| `peacock` | Peacock tail | `speed` (Speed), `scale` (Scale), `saturation` (Saturation) |
-| `diagonals` | Diagonal movements | `speed` (Speed) |
+| `peacock` | Peacock tail | `speed` (Tempo), `scale` (Scale), `saturation` (Saturation) |
+| `diagonals` | Diagonal movements | `speed` (Tempo) |
 | `whirls` | Whirls | `count` (Count), `scale` (Scale), `palette` (Palette), `fadeout` (Fadeout), `time_scale` (Time scale) |
-| `sun` | Sun radiation | `size` (Size), `palette` (Palette) |
-| `spaceships` | Flight of spaceships | `ships` (Number of ships), `turn_time` (Direction change time) |
-| `fireflies` | Fireflies | `fireflies` (Number of fireflies), `chaotic` (Chaotic movement, bool), `speed` (Speed), `update_time` (Update time) |
-| `tunnel` | Tunnel | `speed` (Speed) |
-| `dunes` | Colored dunes | `speed` (Speed), `palette` (Palette) |
-| `octopus` | Octopus | `speed` (Speed), `legs` (Legs), `clockwise` (Clockwise, bool) |
-| `nuclear` | Nuclear Noise | `speed` (Speed) |
-| `starfall` | Starfall | `colored` (Colored, bool), `saturation` (Saturation), `density` (Density), `tail_length` (Tail length) |
-| `storm` | Thunderstorm | `density` (Density), `lightning` (Lightning frequency), `clouds` (Clouds, bool) |
-| `twinkles` | Twinkles | `palette` (Palette; the last value is rainbow colors), `density` (Density) |
-| `butterflies` | Butterflies | `lamp` (Lamp with butterflies, bool), `butterflies` (Number of butterflies), `speed` (Speed), `wings` (Flapping wings, bool), `hue` (Lamp hue), `saturation` (Lamp saturation) |
-| `rainbow_snake` | Rainbow snake | `hue` (Hue), `rotate` (Rotate colors, bool) |
-| `soaring_fire` | Soaring fire | `fadeout` (Fadeout) |
-| `trail_fireflies` | Fireflies with trails | `fireflies` (Number of fireflies), `hue` (Hue), `fadeout` (Fadeout speed) |
-| `glass_drops` | Drops on glass | `drops` (Number of drops, per 16x16), `mode` (Mode: 0 color, 1 changing colors, 2 gray), `hue` (Hue) |
+| `sun` | Sun radiation | `size` (Size), `palette` (Palette), `tempo` (Tempo, since 0.5.0) |
+| `spaceships` | Flight of spaceships | `ships` (Number of ships), `turn_time` (Direction change time), `tempo` (Tempo, since 0.5.0) |
+| `fireflies` | Fireflies | `fireflies` (Number of fireflies), `chaotic` (Chaotic movement, bool), `speed` (Tempo), `update_time` (Update time) |
+| `tunnel` | Tunnel | `speed` (Tempo) |
+| `dunes` | Colored dunes | `speed` (Tempo), `palette` (Palette) |
+| `octopus` | Octopus | `speed` (Tempo), `legs` (Legs), `clockwise` (Clockwise, bool) |
+| `nuclear` | Nuclear Noise | `speed` (Tempo) |
+| `starfall` | Starfall | `colored` (Colored, bool), `saturation` (Saturation), `density` (Density), `tail_length` (Tail length), `tempo` (Tempo, since 0.5.0) |
+| `storm` | Thunderstorm | `density` (Density), `lightning` (Lightning frequency), `clouds` (Clouds, bool), `tempo` (Tempo, since 0.5.0) |
+| `twinkles` | Twinkles | `palette` (Palette; the last value is rainbow colors), `density` (Density), `tempo` (Tempo, since 0.5.0) |
+| `butterflies` | Butterflies | `lamp` (Lamp with butterflies, bool), `butterflies` (Number of butterflies), `speed` (Tempo), `wings` (Flapping wings, bool), `hue` (Lamp hue), `saturation` (Lamp saturation) |
+| `rainbow_snake` | Rainbow snake | `hue` (Hue), `rotate` (Rotate colors, bool), `tempo` (Tempo, since 0.5.0) |
+| `soaring_fire` | Soaring fire | `fadeout` (Fadeout), `tempo` (Tempo, since 0.5.0) |
+| `trail_fireflies` | Fireflies with trails | `fireflies` (Number of fireflies), `hue` (Hue), `fadeout` (Fadeout speed), `tempo` (Tempo, since 0.5.0) |
+| `glass_drops` | Drops on glass | `drops` (Number of drops, per 16x16), `mode` (Mode: 0 color, 1 changing colors, 2 gray), `hue` (Hue), `tempo` (Tempo, since 0.5.0) |
 
 ## 5. Time and time zone
 

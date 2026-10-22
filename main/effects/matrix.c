@@ -4,8 +4,9 @@
 
 #define P_DENSITY 0
 
-EFFECT_PARAMS(matrix, 1) = {
+EFFECT_PARAMS(matrix, 2) = {
     DECL_PARAM_RANGE(P_DENSITY, "density", "Density", 0, 255, 150),
+    DECL_PARAM_TEMPO(1, 42),
 };
 
 #define MATRIX_START_COLOR   0x9bf800
@@ -14,6 +15,14 @@ EFFECT_PARAMS(matrix, 1) = {
 #define MATRIX_ALMOST_OFF    0x050800
 #define MATRIX_OFF_THRESH    0x030000
 #define MATRIX_DIMMEST_COLOR 0x020300
+
+// The colors go through this function on purpose: with a constant code GCC 14 keeps the 3 byte
+// rgb_t in the literal pool of effect_matrix_run in flash and reads it with 8/16 bit loads,
+// which the ESP32 instruction bus does not allow (LoadStoreError, the lamp rebooted)
+__attribute__((noipa)) static void set_code(framebuffer_t *fb, size_t x, size_t y, uint32_t code)
+{
+    fb_set_pixel_rgb(fb, x, y, rgb_from_code(code));
+}
 
 esp_err_t effect_matrix_run(framebuffer_t *fb)
 {
@@ -38,21 +47,21 @@ esp_err_t effect_matrix_run(framebuffer_t *fb)
                 fb_set_pixel_rgb(fb, x, y, upper_color);
             // if current pixel is off, light up new tails with some probability
             else if (cur_code == 0 && random8_to(PARAM_VAL(matrix, P_DENSITY)) == 0)
-                fb_set_pixel_rgb(fb, x, y, rgb_from_code(MATRIX_START_COLOR));
+                set_code(fb, x, y, MATRIX_START_COLOR);
             // if current pixel is almost off, try to make the fading out slower
             else if (cur_code <= MATRIX_ALMOST_OFF)
             {
                 if (cur_code >= MATRIX_OFF_THRESH)
-                    fb_set_pixel_rgb(fb, x, y, rgb_from_code(MATRIX_DIMMEST_COLOR));
+                    set_code(fb, x, y, MATRIX_DIMMEST_COLOR);
                 else if (cur_code != 0)
-                    fb_set_pixel_rgb(fb, x, y, rgb_from_code(0));
+                    set_code(fb, x, y, 0);
             }
             else if (cur_code == MATRIX_START_COLOR)
                 // first step of tail fading
-                fb_set_pixel_rgb(fb, x, y, rgb_from_code(MATRIX_DIM_COLOR));
+                set_code(fb, x, y, MATRIX_DIM_COLOR);
             else
                 // otherwise, just lower the brightness one step
-                fb_set_pixel_rgb(fb, x, y, rgb_from_code(cur_code - MATRIX_STEP));
+                set_code(fb, x, y, cur_code - MATRIX_STEP);
         }
 
         // upper line processing
@@ -64,22 +73,22 @@ esp_err_t effect_matrix_run(framebuffer_t *fb)
         if (cur_code == 0)
         {
             if (random8_to(PARAM_VAL(matrix, P_DENSITY)) == 0)
-                fb_set_pixel_rgb(fb, x, fb->height - 1, rgb_from_code(MATRIX_START_COLOR));
+                set_code(fb, x, fb->height - 1, MATRIX_START_COLOR);
         }
         // if current pixel is almost off, try to make the fading out slower
         else if (cur_code <= MATRIX_ALMOST_OFF)
         {
             if (cur_code >= MATRIX_OFF_THRESH)
-                fb_set_pixel_rgb(fb, x, fb->height - 1, rgb_from_code(MATRIX_DIMMEST_COLOR));
+                set_code(fb, x, fb->height - 1, MATRIX_DIMMEST_COLOR);
             else
-                fb_set_pixel_rgb(fb, x, fb->height - 1, rgb_from_code(0));
+                set_code(fb, x, fb->height - 1, 0);
         }
         else if (cur_code == MATRIX_START_COLOR)
             // first step of tail fading
-            fb_set_pixel_rgb(fb, x, fb->height - 1, rgb_from_code(MATRIX_DIM_COLOR));
+            set_code(fb, x, fb->height - 1, MATRIX_DIM_COLOR);
         else
             // otherwise just lower the brightness one step
-            fb_set_pixel_rgb(fb, x, fb->height - 1, rgb_from_code(cur_code - MATRIX_STEP));
+            set_code(fb, x, fb->height - 1, cur_code - MATRIX_STEP);
     }
 
     return fb_end(fb);

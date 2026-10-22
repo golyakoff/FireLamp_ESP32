@@ -16,9 +16,10 @@
 #define P_PALETTE 0
 #define P_COUNT   1
 
-EFFECT_PARAMS(metaballs, 2) = {
+EFFECT_PARAMS(metaballs, 3) = {
     DECL_PARAM_RANGE(P_PALETTE, "palette", "Palette", 0, MAX_PALETTES - 1, 0),
     DECL_PARAM_RANGE(P_COUNT, "balls", "Balls", 2, MAX_BALLS, 3),
+    DECL_PARAM_TEMPO(2, 100),
 };
 
 enum {

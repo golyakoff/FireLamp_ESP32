@@ -24,7 +24,7 @@
 EFFECT_PARAMS(butterflies, 6) = {
     DECL_PARAM_BOOL(P_LAMP, "lamp", "Lamp with butterflies", 0),
     DECL_PARAM_RANGE(P_COUNT, "butterflies", "Number of butterflies", 1, MAX_BUTTERFLIES, 20),
-    DECL_PARAM_RANGE(P_SPEED, "speed", "Speed", 1, 255, 53),
+    DECL_PARAM_RANGE(P_SPEED, "speed", "Tempo", 1, 255, 35),
     DECL_PARAM_BOOL(P_WINGS, "wings", "Flapping wings", 1),
     DECL_PARAM_RANGE(P_HUE, "hue", "Lamp hue", 0, 255, 31),
     DECL_PARAM_RANGE(P_SATURATION, "saturation", "Lamp saturation", 0, 255, 170),

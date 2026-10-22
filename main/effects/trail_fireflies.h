@@ -6,7 +6,7 @@
 
 #include "effect.h"
 
-extern EFFECT_PARAMS(trail_fireflies, 3);
+extern EFFECT_PARAMS(trail_fireflies, 4);
 
 esp_err_t effect_trail_fireflies_prepare(framebuffer_t *fb);
 

@@ -16,7 +16,7 @@
 EFFECT_PARAMS(water, 3) = {
     DECL_PARAM_RANGE(P_HUE, "hue", "Hue", 0, 255, 150),
     DECL_PARAM_RANGE(P_SAT, "saturation", "Saturation", 0, 255, 255),
-    DECL_PARAM_RANGE(P_SPEED, "speed", "Speed", 0, 54, 30),
+    DECL_PARAM_RANGE(P_SPEED, "speed", "Tempo", 0, 54, 40),
 };
 
 #define PALETTE_SIZE 16

@@ -20,10 +20,11 @@
 #define P_LIGHTNING 1
 #define P_CLOUDS    2
 
-EFFECT_PARAMS(storm, 3) = {
+EFFECT_PARAMS(storm, 4) = {
     DECL_PARAM_RANGE(P_DENSITY, "density", "Density", 1, 100, 25),
     DECL_PARAM_RANGE(P_LIGHTNING, "lightning", "Lightning frequency", 0, 100, 50),
     DECL_PARAM_BOOL(P_CLOUDS, "clouds", "Clouds", 1),
+    DECL_PARAM_TEMPO(3, 100),
 };
 
 #define DROP_MIN       60  // drop brightness, cells below are empty

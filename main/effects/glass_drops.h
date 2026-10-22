@@ -6,7 +6,7 @@
 
 #include "effect.h"
 
-extern EFFECT_PARAMS(glass_drops, 3);
+extern EFFECT_PARAMS(glass_drops, 4);
 
 esp_err_t effect_glass_drops_prepare(framebuffer_t *fb);
 
