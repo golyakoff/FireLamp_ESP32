@@ -45,6 +45,8 @@
 #include "effects/twinkles.h"
 #include "effects/butterflies.h"
 #include "effects/streams.h"
+#include "effects/trail_fireflies.h"
+#include "effects/glass_drops.h"
 
 const effect_descriptor_t effects[] = {
     DESCR_EFFECT_LAMP,
@@ -85,6 +87,8 @@ const effect_descriptor_t effects[] = {
     DESCR_EFFECT_BUTTERFLIES,
     DESCR_EFFECT_RAINBOW_SNAKE,
     DESCR_EFFECT_SOARING_FIRE,
+    DESCR_EFFECT_TRAIL_FIREFLIES,
+    DESCR_EFFECT_GLASS_DROPS,
 };
 
 const size_t effects_count = sizeof(effects) / sizeof(effect_descriptor_t);

@@ -1,3 +1,9 @@
+Release 0.4.0
+
+- [x] New effects from GyverLamp gunner47_v2:
+  - "Fireflies with trails" (`trail_fireflies`, "Светлячки со шлейфом"): dots fly and bounce off the edges leaving long trails
+  - "Drops on glass" (`glass_drops`, "Капли на стекле", from FireLamp_JeeUI): drops run down the glass and sometimes jump aside; one color, changing colors or gray; the number of drops follows the matrix size
+
 Release 0.3.0
 
 - [x] New effects from GyverLamp gunner47_v2:
