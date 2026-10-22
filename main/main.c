@@ -111,9 +111,9 @@ static void process_one_button(event_t *e)
     {
         case EVENT_BUTTON_CLICKED:
             if (ie->clicks == 1)
-                demo_next_effect(1);
-            else if (ie->clicks == 2)
                 surface_stop();
+            else if (ie->clicks == 2)
+                demo_next_effect(1);
             else if (ie->clicks == 3)
                 demo_next_effect(-1);
             break;

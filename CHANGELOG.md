@@ -1,5 +1,6 @@
 Release 0.4.2
 
+- [x] One button / touch pad: click turns the lamp on and off, double click - next effect, triple click - previous effect (were: click - next effect, double click - off)
 - [x] Parameters of the "Radiant wheel" effect (`wheel`) are kept after a reboot, and excluding it or "Relax" (`relax`) from the demo mode no longer excludes both: the two codes had the same hash in the settings storage. `wheel` now has its own hash, the stored values of all other effects are kept. A host test checks that no codes share a hash
 
 Release 0.4.1

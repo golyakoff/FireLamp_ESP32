@@ -54,8 +54,8 @@ One button / touch pad:
 |------|---------|--------|
 | off  | click | turn on |
 | off  | hold 10 s | reset all settings to defaults and reboot |
-| on   | click | next effect |
-| on   | double click | turn off |
+| on   | click | turn off |
+| on   | double click | next effect |
 | on   | triple click | previous effect |
 | on   | hold | change brightness; direction alternates with every hold |
 | any  | 5 clicks | open the BLE pairing window for 2 minutes (short blue blink) |
