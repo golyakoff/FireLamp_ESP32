@@ -1,3 +1,7 @@
+Release 0.5.1
+
+- [x] Gif image showed a black screen on ESP32 and its parameters could not be changed: the GIF decoder asked for 29 KB of heap in one block, which an ESP32 with WiFi and BLE often does not have. Its LZW table is now 1024 entries (7 KB), enough for the frames of the built-in 16x16 GIFs; the decoding is the same. A GIF that cannot be loaded logs the free heap and the largest free block
+
 Release 0.5.0
 
 - [x] Tempo: the effects without their own speed (Fire, Matrix, Rain, Starfall, Thunderstorm, Twinkles, Fireflies with trails, Drops on glass, Sparkles, Crazy bees, Metaballs, Flight of spaceships, Sun radiation, Waterfall, Rainbow snake, Soaring fire, Gif image) have the parameter `tempo`, 10..100 % of the normal speed. The FPS stays: the frames between the effect steps are blended, so a slowed effect stays smooth. Changing the tempo does not restart the effect

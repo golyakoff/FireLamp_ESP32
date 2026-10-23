@@ -18,7 +18,9 @@
  */
 
 /** Maximum LZW code size in bits */
+#ifndef LZW_CODE_MAX
 #define LZW_CODE_MAX 12
+#endif
 
 /* Declare lzw internal context structure */
 struct lzw_ctx;

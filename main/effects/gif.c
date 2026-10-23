@@ -1,5 +1,6 @@
 #include "effects/gif.h"
 #include <nsgif.h>
+#include <esp_heap_caps.h>
 
 // TODO upload custom gif files in web browser, store in NVS
 
@@ -40,6 +41,11 @@ static embed_gif_t gifs[] = {
     USE_EMBED_GIF(zombie),
     USE_EMBED_GIF(cutebear),
 };
+
+// libnsgif is built with 10 bit LZW codes (components/libnsgif/CMakeLists.txt): 1024 table
+// entries. Every code of a frame adds at most one entry to the 2^8 + 2 initial ones, and there are
+// no more codes than pixels, so the frames up to 1024 - 258 pixels always fit.
+#define GIF_MAX_PIXELS (1024 - 258)
 
 #define P_FILE 0
 
@@ -108,12 +114,21 @@ esp_err_t effect_gif_prepare(framebuffer_t *fb)
     {
         nsgif_destroy(gif);
         gif = NULL;
-        ESP_LOGE(TAG, "Error loading GIF: %d (%s)", res, nsgif_strerror(res));
+        ESP_LOGE(TAG, "Error loading GIF: %d (%s), free heap %u, largest block %u", res, nsgif_strerror(res),
+                heap_caps_get_free_size(MALLOC_CAP_8BIT), heap_caps_get_largest_free_block(MALLOC_CAP_8BIT));
         return ESP_FAIL;
     }
 
     gif_info = nsgif_get_info(gif);
     ESP_LOGI(TAG, "GIF frame_count=%lu, width=%lu, height=%lu", gif_info->frame_count, gif_info->width, gif_info->height);
+
+    if (gif_info->width * gif_info->height > GIF_MAX_PIXELS)
+    {
+        nsgif_destroy(gif);
+        gif = NULL;
+        ESP_LOGE(TAG, "GIF is too large: %lux%lu, at most %d pixels", gif_info->width, gif_info->height, GIF_MAX_PIXELS);
+        return ESP_FAIL;
+    }
 
     if (gif_info->width * fb->height <= gif_info->height * fb->width)
     {
