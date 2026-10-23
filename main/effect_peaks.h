@@ -2,8 +2,10 @@
 // or a built-in GIF changes.
 // Brightest frame of every effect, percent of the full white matrix, with a margin.
 // EFFECT_PEAK(code, percent)
-EFFECT_PEAK(lamp, 97)
 EFFECT_PEAK(fire, 50)
+EFFECT_PEAK(gyver_fire, 25)
+EFFECT_PEAK(petrick_fire, 12)
+EFFECT_PEAK(lamp, 97)
 EFFECT_PEAK(sparkles, 18)
 EFFECT_PEAK(lava, 100)
 EFFECT_PEAK(waterfall, 95)

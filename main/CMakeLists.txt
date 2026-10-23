@@ -32,6 +32,8 @@ idf_component_register(
 		effects/crazybees.c
 		effects/dna.c
 		effects/fire.c
+		effects/gyver_fire.c
+		effects/petrick_fire.c
 		effects/lamp.c
 		effects/lava.c
 		effects/matrix.c

@@ -1,3 +1,11 @@
+Release 0.7.0
+
+- [x] Fire is named Turbin fire (after Yaroslaw Turbin, ldirko, the author of the algorithm; the code stays `fire`) and has sparks from "Огонь 2020" by SottNick (gunner47_v2): they rise from the bottom of the flame with its colour, parameter `sparks`, on by default
+- [x] Effect Gyver fire (`gyver_fire`): the classic fire of GyverLamp (gunner47_v2 version), flame from brightness and hue masks with sparks above it. `hue` and `saturation` (0 is the white fire), `sparks`, `tempo`. The flame takes the bottom half of the matrix, so it works on 8x8 too
+- [x] Effect Petrick fire (`petrick_fire`): "Огонь 2018", the heat map of Stefan Petrick over two layers of Perlin noise (SottNick's adaptation from gunner47_v2). `shade` from red (1) to yellow (100), `tempo`
+- [x] The fires go first: Turbin fire, Gyver fire, Petrick fire, then Color lamp and the others. Turbin fire stays the default effect after a settings reset
+- [x] Effect previews (preview/) made again: the new fires, and the effects whose default speeds changed in 0.5.0
+
 Release 0.6.0
 
 - [x] The current limit is of the whole lamp (the power supply): 300 mA are kept for the controller with WiFi and BLE and 1 mA for every unlit LED (Kconfig `FL_CONTROLLER_CURRENT_MA`, `FL_LED_IDLE_CURRENT_UA`). Before, the limit was all for the LED colours, and a light effect could take more than the supply gives

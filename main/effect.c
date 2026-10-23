@@ -11,6 +11,8 @@
 #include "effects/crazybees.h"
 #include "effects/dna.h"
 #include "effects/fire.h"
+#include "effects/gyver_fire.h"
+#include "effects/petrick_fire.h"
 #include "effects/lamp.h"
 #include "effects/lava.h"
 #include "effects/matrix.h"
@@ -49,8 +51,10 @@
 #include "effects/glass_drops.h"
 
 const effect_descriptor_t effects[] = {
-    DESCR_EFFECT_LAMP,
     DESCR_EFFECT_FIRE,
+    DESCR_EFFECT_GYVER_FIRE,
+    DESCR_EFFECT_PETRICK_FIRE,
+    DESCR_EFFECT_LAMP,
     DESCR_EFFECT_SPARKLES,
     DESCR_EFFECT_LAVA,
     DESCR_EFFECT_WATERFALL,

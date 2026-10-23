@@ -16,7 +16,7 @@
 ESP-IDF), часть эффектов — из [GyverLamp gunner47_v2](https://github.com/nikitakiselev/gunner47_v2),
 управление по BLE сделано по образцу [Matrix_Clock_ESP32](https://github.com/golyakoff/Matrix_Clock_ESP32).
 
-- 40 эффектов: огонь, лава, водопад, матрица, звездопад, гроза, светлячки, GIF-анимации и другие
+- 42 эффекта: три вида огня, лава, водопад, матрица, звездопад, гроза, светлячки, GIF-анимации и другие
 - Параметры каждого эффекта и «Темп» с плавным замедлением без потери частоты кадров
 - Демо-режим, расписание включения и выключения, «рассвет», яркость по часам
 - Матрица от 8x8 до 32x32: любой угол подключения, змейка или построчно, ограничение тока
@@ -45,58 +45,62 @@ ESP-IDF), часть эффектов — из [GyverLamp gunner47_v2](https://g
 
 <table>
 <tr>
+<td align="center"><img src="preview/fire.gif" width="112" alt="Огонь Турбина"><br><sub>Огонь Турбина</sub></td>
+<td align="center"><img src="preview/gyver_fire.gif" width="112" alt="Огонь Гайвера"><br><sub>Огонь Гайвера</sub></td>
+<td align="center"><img src="preview/petrick_fire.gif" width="112" alt="Огонь Петрика"><br><sub>Огонь Петрика</sub></td>
 <td align="center"><img src="preview/lamp.gif" width="112" alt="Цветная лампа"><br><sub>Цветная лампа</sub></td>
-<td align="center"><img src="preview/fire.gif" width="112" alt="Огонь"><br><sub>Огонь</sub></td>
 <td align="center"><img src="preview/sparkles.gif" width="112" alt="Искры"><br><sub>Искры</sub></td>
-<td align="center"><img src="preview/lava.gif" width="112" alt="Лава"><br><sub>Лава</sub></td>
-<td align="center"><img src="preview/waterfall.gif" width="112" alt="Водопад"><br><sub>Водопад</sub></td>
 </tr>
 <tr>
+<td align="center"><img src="preview/lava.gif" width="112" alt="Лава"><br><sub>Лава</sub></td>
+<td align="center"><img src="preview/waterfall.gif" width="112" alt="Водопад"><br><sub>Водопад</sub></td>
 <td align="center"><img src="preview/plasma_waves.gif" width="112" alt="Плазменные волны"><br><sub>Плазменные волны</sub></td>
 <td align="center"><img src="preview/dna.gif" width="112" alt="Спираль ДНК"><br><sub>Спираль ДНК</sub></td>
 <td align="center"><img src="preview/matrix.gif" width="112" alt="Матрица"><br><sub>Матрица</sub></td>
-<td align="center"><img src="preview/crazybees.gif" width="112" alt="Безумные пчёлы"><br><sub>Безумные пчёлы</sub></td>
-<td align="center"><img src="preview/rain.gif" width="112" alt="Дождь"><br><sub>Дождь</sub></td>
 </tr>
 <tr>
+<td align="center"><img src="preview/crazybees.gif" width="112" alt="Безумные пчёлы"><br><sub>Безумные пчёлы</sub></td>
+<td align="center"><img src="preview/rain.gif" width="112" alt="Дождь"><br><sub>Дождь</sub></td>
 <td align="center"><img src="preview/rainbow.gif" width="112" alt="Радуга"><br><sub>Радуга</sub></td>
 <td align="center"><img src="preview/rays.gif" width="112" alt="Лучи"><br><sub>Лучи</sub></td>
 <td align="center"><img src="preview/metaballs.gif" width="112" alt="Метаболы"><br><sub>Метаболы</sub></td>
-<td align="center"><img src="preview/water.gif" width="112" alt="Вода"><br><sub>Вода</sub></td>
-<td align="center"><img src="preview/holiday.gif" width="112" alt="Гирлянда"><br><sub>Гирлянда</sub></td>
 </tr>
 <tr>
+<td align="center"><img src="preview/water.gif" width="112" alt="Вода"><br><sub>Вода</sub></td>
+<td align="center"><img src="preview/holiday.gif" width="112" alt="Гирлянда"><br><sub>Гирлянда</sub></td>
 <td align="center"><img src="preview/hoop.gif" width="112" alt="Обруч"><br><sub>Обруч</sub></td>
 <td align="center"><img src="preview/twister.gif" width="112" alt="Твистер"><br><sub>Твистер</sub></td>
 <td align="center"><img src="preview/flower.gif" width="112" alt="Цветок"><br><sub>Цветок</sub></td>
-<td align="center"><img src="preview/polar_lights.gif" width="112" alt="Северное сияние"><br><sub>Северное сияние</sub></td>
-<td align="center"><img src="preview/gif.gif" width="112" alt="GIF-картинка"><br><sub>GIF-картинка</sub></td>
 </tr>
 <tr>
+<td align="center"><img src="preview/polar_lights.gif" width="112" alt="Северное сияние"><br><sub>Северное сияние</sub></td>
+<td align="center"><img src="preview/gif.gif" width="112" alt="GIF-картинка"><br><sub>GIF-картинка</sub></td>
 <td align="center"><img src="preview/relax.gif" width="112" alt="Релакс"><br><sub>Релакс</sub></td>
 <td align="center"><img src="preview/wheel.gif" width="112" alt="Сияющее колесо"><br><sub>Сияющее колесо</sub></td>
 <td align="center"><img src="preview/peacock.gif" width="112" alt="Павлиний хвост"><br><sub>Павлиний хвост</sub></td>
-<td align="center"><img src="preview/diagonals.gif" width="112" alt="Диагонали"><br><sub>Диагонали</sub></td>
-<td align="center"><img src="preview/whirls.gif" width="112" alt="Вихри"><br><sub>Вихри</sub></td>
 </tr>
 <tr>
+<td align="center"><img src="preview/diagonals.gif" width="112" alt="Диагонали"><br><sub>Диагонали</sub></td>
+<td align="center"><img src="preview/whirls.gif" width="112" alt="Вихри"><br><sub>Вихри</sub></td>
 <td align="center"><img src="preview/sun.gif" width="112" alt="Солнечное излучение"><br><sub>Солнечное излучение</sub></td>
 <td align="center"><img src="preview/spaceships.gif" width="112" alt="Полёт кораблей"><br><sub>Полёт кораблей</sub></td>
 <td align="center"><img src="preview/fireflies.gif" width="112" alt="Светлячки"><br><sub>Светлячки</sub></td>
-<td align="center"><img src="preview/tunnel.gif" width="112" alt="Туннель"><br><sub>Туннель</sub></td>
-<td align="center"><img src="preview/dunes.gif" width="112" alt="Цветные дюны"><br><sub>Цветные дюны</sub></td>
 </tr>
 <tr>
+<td align="center"><img src="preview/tunnel.gif" width="112" alt="Туннель"><br><sub>Туннель</sub></td>
+<td align="center"><img src="preview/dunes.gif" width="112" alt="Цветные дюны"><br><sub>Цветные дюны</sub></td>
 <td align="center"><img src="preview/octopus.gif" width="112" alt="Осьминог"><br><sub>Осьминог</sub></td>
 <td align="center"><img src="preview/nuclear.gif" width="112" alt="Ядерный шум"><br><sub>Ядерный шум</sub></td>
 <td align="center"><img src="preview/starfall.gif" width="112" alt="Звездопад"><br><sub>Звездопад</sub></td>
-<td align="center"><img src="preview/storm.gif" width="112" alt="Гроза в банке"><br><sub>Гроза в банке</sub></td>
-<td align="center"><img src="preview/twinkles.gif" width="112" alt="Мерцание"><br><sub>Мерцание</sub></td>
 </tr>
 <tr>
+<td align="center"><img src="preview/storm.gif" width="112" alt="Гроза в банке"><br><sub>Гроза в банке</sub></td>
+<td align="center"><img src="preview/twinkles.gif" width="112" alt="Мерцание"><br><sub>Мерцание</sub></td>
 <td align="center"><img src="preview/butterflies.gif" width="112" alt="Мотыльки"><br><sub>Мотыльки</sub></td>
 <td align="center"><img src="preview/rainbow_snake.gif" width="112" alt="Радужный змей"><br><sub>Радужный змей</sub></td>
 <td align="center"><img src="preview/soaring_fire.gif" width="112" alt="Парящий огонь"><br><sub>Парящий огонь</sub></td>
+</tr>
+<tr>
 <td align="center"><img src="preview/trail_fireflies.gif" width="112" alt="Светлячки со шлейфом"><br><sub>Светлячки со шлейфом</sub></td>
 <td align="center"><img src="preview/glass_drops.gif" width="112" alt="Капли на стекле"><br><sub>Капли на стекле</sub></td>
 </tr>
@@ -180,7 +184,7 @@ ESP-IDF), часть эффектов — из [GyverLamp gunner47_v2](https://g
 построчно) и ограничение тока. Ограничение тока — это ток блока питания: лампа оставляет часть
 на контроллер и погашенные светодиоды и ограничивает яркость каждого эффекта по его самому
 яркому кадру, поэтому тёмный эффект при том же ограничении ярче, чем сплошной белый. Настройки
-матрицы применяются после перезагрузки. Удобная проверка — эффект «Огонь»: пламя должно
+матрицы применяются после перезагрузки. Удобная проверка — эффект «Огонь Турбина»: пламя должно
 подниматься снизу вверх.
 
 ## Прошивка

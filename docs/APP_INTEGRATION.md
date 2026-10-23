@@ -101,12 +101,14 @@ slider; to look the same as the effects' own `speed` (named "Tempo" too, its own
 parameters, does not restart the effect. The effects with `speed`, `rotation_speed` or
 `time_scale` have no `tempo`.
 
-Current effects (from the firmware sources, for localization; `starfall` and `storm` since 0.2.0, `twinkles`, `butterflies`, `rainbow_snake`, `soaring_fire` since 0.3.0, `trail_fireflies`, `glass_drops` since 0.4.0; `tempo` since 0.5.0):
+Current effects (from the firmware sources, for localization; `starfall` and `storm` since 0.2.0, `twinkles`, `butterflies`, `rainbow_snake`, `soaring_fire` since 0.3.0, `trail_fireflies`, `glass_drops` since 0.4.0; `tempo` since 0.5.0; `gyver_fire`, `petrick_fire` and `fire.sparks` since 0.7.0, `fire` is the first effect since 0.7.0):
 
 | Effect code | English name | Parameters: code (English name) |
 |---|---|---|
+| `fire` | Turbin fire (Fire before 0.7.0) | `palette` (Palette), `scale` (Scale), `sparks` (Sparks, bool, since 0.7.0), `tempo` (Tempo, since 0.5.0) |
+| `gyver_fire` | Gyver fire | `hue` (Hue), `saturation` (Saturation; 0 is the white fire), `sparks` (Sparks, bool), `tempo` (Tempo) |
+| `petrick_fire` | Petrick fire | `shade` (Shade: red at 1, yellow at 100), `tempo` (Tempo) |
 | `lamp` | Color lamp | `red` (Red), `green` (Green), `blue` (Blue) |
-| `fire` | Fire | `palette` (Palette), `scale` (Scale), `tempo` (Tempo, since 0.5.0) |
 | `sparkles` | Sparkles | `sparkles` (Number of sparkles), `fadeout` (Fadeout speed), `tempo` (Tempo, since 0.5.0) |
 | `lava` | Lava | `scale` (Scale), `speed` (Tempo), `mode` (Mode), `palette` (Palette) |
 | `waterfall` | Waterfall | `mode` (Mode), `color` (Color), `cooling` (Cooling), `sparking` (Sparking), `tempo` (Tempo, since 0.5.0) |

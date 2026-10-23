@@ -16,7 +16,7 @@ Based on [EvLamp](https://github.com/UncleRus/EvLamp) by Ruslan V. Uss (effects 
 ESP-IDF), some effects come from [GyverLamp gunner47_v2](https://github.com/nikitakiselev/gunner47_v2),
 the BLE control follows [Matrix_Clock_ESP32](https://github.com/golyakoff/Matrix_Clock_ESP32).
 
-- 40 effects: fire, lava, waterfall, matrix, starfall, thunderstorm, fireflies, GIF animations and more
+- 42 effects: three kinds of fire, lava, waterfall, matrix, starfall, thunderstorm, fireflies, GIF animations and more
 - Parameters of every effect and a Tempo that slows an effect down smoothly at the same frame rate
 - Demo mode, power on/off schedule, dawn alarm, brightness by the hour
 - Matrices from 8x8 to 32x32: any corner of the input, serpentine or progressive, current limit
@@ -45,58 +45,62 @@ is in [preview/README.md](preview/README.md).
 
 <table>
 <tr>
+<td align="center"><img src="preview/fire.gif" width="112" alt="Turbin fire"><br><sub>Turbin fire</sub></td>
+<td align="center"><img src="preview/gyver_fire.gif" width="112" alt="Gyver fire"><br><sub>Gyver fire</sub></td>
+<td align="center"><img src="preview/petrick_fire.gif" width="112" alt="Petrick fire"><br><sub>Petrick fire</sub></td>
 <td align="center"><img src="preview/lamp.gif" width="112" alt="Color lamp"><br><sub>Color lamp</sub></td>
-<td align="center"><img src="preview/fire.gif" width="112" alt="Fire"><br><sub>Fire</sub></td>
 <td align="center"><img src="preview/sparkles.gif" width="112" alt="Sparkles"><br><sub>Sparkles</sub></td>
-<td align="center"><img src="preview/lava.gif" width="112" alt="Lava"><br><sub>Lava</sub></td>
-<td align="center"><img src="preview/waterfall.gif" width="112" alt="Waterfall"><br><sub>Waterfall</sub></td>
 </tr>
 <tr>
+<td align="center"><img src="preview/lava.gif" width="112" alt="Lava"><br><sub>Lava</sub></td>
+<td align="center"><img src="preview/waterfall.gif" width="112" alt="Waterfall"><br><sub>Waterfall</sub></td>
 <td align="center"><img src="preview/plasma_waves.gif" width="112" alt="Plasma waves"><br><sub>Plasma waves</sub></td>
 <td align="center"><img src="preview/dna.gif" width="112" alt="DNA helix"><br><sub>DNA helix</sub></td>
 <td align="center"><img src="preview/matrix.gif" width="112" alt="Matrix"><br><sub>Matrix</sub></td>
-<td align="center"><img src="preview/crazybees.gif" width="112" alt="Crazy bees"><br><sub>Crazy bees</sub></td>
-<td align="center"><img src="preview/rain.gif" width="112" alt="Rain"><br><sub>Rain</sub></td>
 </tr>
 <tr>
+<td align="center"><img src="preview/crazybees.gif" width="112" alt="Crazy bees"><br><sub>Crazy bees</sub></td>
+<td align="center"><img src="preview/rain.gif" width="112" alt="Rain"><br><sub>Rain</sub></td>
 <td align="center"><img src="preview/rainbow.gif" width="112" alt="Rainbow"><br><sub>Rainbow</sub></td>
 <td align="center"><img src="preview/rays.gif" width="112" alt="Rays"><br><sub>Rays</sub></td>
 <td align="center"><img src="preview/metaballs.gif" width="112" alt="Metaballs"><br><sub>Metaballs</sub></td>
-<td align="center"><img src="preview/water.gif" width="112" alt="Water"><br><sub>Water</sub></td>
-<td align="center"><img src="preview/holiday.gif" width="112" alt="Holiday lights"><br><sub>Holiday lights</sub></td>
 </tr>
 <tr>
+<td align="center"><img src="preview/water.gif" width="112" alt="Water"><br><sub>Water</sub></td>
+<td align="center"><img src="preview/holiday.gif" width="112" alt="Holiday lights"><br><sub>Holiday lights</sub></td>
 <td align="center"><img src="preview/hoop.gif" width="112" alt="Hoop"><br><sub>Hoop</sub></td>
 <td align="center"><img src="preview/twister.gif" width="112" alt="Twister"><br><sub>Twister</sub></td>
 <td align="center"><img src="preview/flower.gif" width="112" alt="Flower"><br><sub>Flower</sub></td>
-<td align="center"><img src="preview/polar_lights.gif" width="112" alt="Polar lights"><br><sub>Polar lights</sub></td>
-<td align="center"><img src="preview/gif.gif" width="112" alt="Gif image"><br><sub>Gif image</sub></td>
 </tr>
 <tr>
+<td align="center"><img src="preview/polar_lights.gif" width="112" alt="Polar lights"><br><sub>Polar lights</sub></td>
+<td align="center"><img src="preview/gif.gif" width="112" alt="Gif image"><br><sub>Gif image</sub></td>
 <td align="center"><img src="preview/relax.gif" width="112" alt="Relax"><br><sub>Relax</sub></td>
 <td align="center"><img src="preview/wheel.gif" width="112" alt="Radiant wheel"><br><sub>Radiant wheel</sub></td>
 <td align="center"><img src="preview/peacock.gif" width="112" alt="Peacock tail"><br><sub>Peacock tail</sub></td>
-<td align="center"><img src="preview/diagonals.gif" width="112" alt="Diagonal movements"><br><sub>Diagonal movements</sub></td>
-<td align="center"><img src="preview/whirls.gif" width="112" alt="Whirls"><br><sub>Whirls</sub></td>
 </tr>
 <tr>
+<td align="center"><img src="preview/diagonals.gif" width="112" alt="Diagonal movements"><br><sub>Diagonal movements</sub></td>
+<td align="center"><img src="preview/whirls.gif" width="112" alt="Whirls"><br><sub>Whirls</sub></td>
 <td align="center"><img src="preview/sun.gif" width="112" alt="Sun radiation"><br><sub>Sun radiation</sub></td>
 <td align="center"><img src="preview/spaceships.gif" width="112" alt="Flight of spaceships"><br><sub>Flight of spaceships</sub></td>
 <td align="center"><img src="preview/fireflies.gif" width="112" alt="Fireflies"><br><sub>Fireflies</sub></td>
-<td align="center"><img src="preview/tunnel.gif" width="112" alt="Tunnel"><br><sub>Tunnel</sub></td>
-<td align="center"><img src="preview/dunes.gif" width="112" alt="Colored dunes"><br><sub>Colored dunes</sub></td>
 </tr>
 <tr>
+<td align="center"><img src="preview/tunnel.gif" width="112" alt="Tunnel"><br><sub>Tunnel</sub></td>
+<td align="center"><img src="preview/dunes.gif" width="112" alt="Colored dunes"><br><sub>Colored dunes</sub></td>
 <td align="center"><img src="preview/octopus.gif" width="112" alt="Octopus"><br><sub>Octopus</sub></td>
 <td align="center"><img src="preview/nuclear.gif" width="112" alt="Nuclear Noise"><br><sub>Nuclear Noise</sub></td>
 <td align="center"><img src="preview/starfall.gif" width="112" alt="Starfall"><br><sub>Starfall</sub></td>
-<td align="center"><img src="preview/storm.gif" width="112" alt="Thunderstorm"><br><sub>Thunderstorm</sub></td>
-<td align="center"><img src="preview/twinkles.gif" width="112" alt="Twinkles"><br><sub>Twinkles</sub></td>
 </tr>
 <tr>
+<td align="center"><img src="preview/storm.gif" width="112" alt="Thunderstorm"><br><sub>Thunderstorm</sub></td>
+<td align="center"><img src="preview/twinkles.gif" width="112" alt="Twinkles"><br><sub>Twinkles</sub></td>
 <td align="center"><img src="preview/butterflies.gif" width="112" alt="Butterflies"><br><sub>Butterflies</sub></td>
 <td align="center"><img src="preview/rainbow_snake.gif" width="112" alt="Rainbow snake"><br><sub>Rainbow snake</sub></td>
 <td align="center"><img src="preview/soaring_fire.gif" width="112" alt="Soaring fire"><br><sub>Soaring fire</sub></td>
+</tr>
+<tr>
 <td align="center"><img src="preview/trail_fireflies.gif" width="112" alt="Fireflies with trails"><br><sub>Fireflies with trails</sub></td>
 <td align="center"><img src="preview/glass_drops.gif" width="112" alt="Drops on glass"><br><sub>Drops on glass</sub></td>
 </tr>
@@ -179,7 +183,7 @@ The size, LED type, color order (GRB/RGB), wiring (serpentine or progressive) an
 limit are set there too. The current limit is the current of the power supply: the lamp keeps
 a part for the controller and the unlit LEDs and caps the brightness of every effect by its
 brightest frame, so a dark effect is brighter than a full white one at the same limit. The
-matrix settings apply after a reboot. An easy check is the Fire effect: the flames must rise from the bottom.
+matrix settings apply after a reboot. An easy check is the Turbin fire effect: the flames must rise from the bottom.
 
 ## Flashing
 
