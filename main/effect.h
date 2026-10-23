@@ -100,6 +100,12 @@ bool effect_code_valid(const char *code);
  */
 uint8_t effect_tempo(size_t effect);
 
+/**
+ * Brightest frame of the effect, percent of the full white matrix (main/effect_peaks.h).
+ * The brightness of the effect is capped by it, see surface.c
+ */
+uint8_t effect_peak(size_t effect);
+
 typedef void (*effect_param_cb_t)(size_t effect, size_t param);
 
 /**

@@ -12,8 +12,6 @@ import re
 import subprocess
 import sys
 
-from PIL import Image, ImageDraw
-
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, '..', '..'))
 BUILD = os.path.join(HERE, 'build')
@@ -108,6 +106,9 @@ def capture(code):
 
 
 def draw(frame):
+    # imported here: the build and the simulator are used without Pillow (effect_peaks.py)
+    from PIL import Image, ImageDraw
+
     img = Image.new('RGB', (W * CELL, H * CELL), (12, 12, 12))
     d = ImageDraw.Draw(img)
     for y in range(H):

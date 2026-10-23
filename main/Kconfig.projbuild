@@ -171,8 +171,21 @@ menu "*** FireLamp configuration ***"
 				default 33
 
 			config FL_MATRIX_MAX_CURRENT
-				int "Restrict maximal current consuming by all LEDs, mA"
+				int "Current limit of the whole lamp (power supply), mA"
 				default 5000
+
+			config FL_CONTROLLER_CURRENT_MA
+				int "Current of the controller with WiFi and BLE (peaks), mA"
+				default 300
+				help
+					Subtracted from the current limit before the LEDs get the rest.
+
+			config FL_LED_IDLE_CURRENT_UA
+				int "Current of an unlit pixel, uA"
+				default 1000
+				help
+					WS2812 and the like take about 1 mA even when black; subtracted from the
+					current limit for every pixel.
 
 			choice FL_MATRIX_ROTATION_C
 				prompt "Default surface rotation"

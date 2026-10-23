@@ -176,8 +176,10 @@ and Mirror in the app:
 ![Matrix orientation](docs/images/matrix-orientation.svg)
 
 The size, LED type, color order (GRB/RGB), wiring (serpentine or progressive) and the current
-limit of all LEDs (not more than the supply gives) are set there too. The matrix settings apply
-after a reboot. An easy check is the Fire effect: the flames must rise from the bottom.
+limit are set there too. The current limit is the current of the power supply: the lamp keeps
+a part for the controller and the unlit LEDs and caps the brightness of every effect by its
+brightest frame, so a dark effect is brighter than a full white one at the same limit. The
+matrix settings apply after a reboot. An easy check is the Fire effect: the flames must rise from the bottom.
 
 ## Flashing
 

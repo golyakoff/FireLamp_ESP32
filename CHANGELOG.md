@@ -1,3 +1,9 @@
+Release 0.6.0
+
+- [x] The current limit is of the whole lamp (the power supply): 300 mA are kept for the controller with WiFi and BLE and 1 mA for every unlit LED (Kconfig `FL_CONTROLLER_CURRENT_MA`, `FL_LED_IDLE_CURRENT_UA`). Before, the limit was all for the LED colours, and a light effect could take more than the supply gives
+- [x] The brightness of every effect is capped by its brightest frame, measured on a PC for 16x16 and 8x8 with all the parameters (`tools/preview/effect_peaks.py` writes `main/effect_peaks.h`, +10 % margin). A dark effect is brighter at the same limit: Rain, Sparkles, Starfall up to the full brightness, Thunderstorm twice as bright on 16x16 at 2 A, and its lightning is as bright as before against the rain. The effects that light the whole matrix (Lava, Relax, Colored dunes) stay at the full white cap
+- [x] Gif image: the light backgrounds of heart2, girl and hairyman are black, disk, coin and cutebear are dimmed (`tools/gifs/fit_power.py`): the brightest frame of any GIF is at most 35 % of the full white matrix instead of 83 %. The lamp rebooted on heart2 with a 2 A power supply
+
 Release 0.5.1
 
 - [x] Gif image showed a black screen on ESP32 and its parameters could not be changed: the GIF decoder asked for 29 KB of heap in one block, which an ESP32 with WiFi and BLE often does not have. Its LZW table is now 1024 entries (7 KB), enough for the frames of the built-in 16x16 GIFs; the decoding is the same. A GIF that cannot be loaded logs the free heap and the largest free block

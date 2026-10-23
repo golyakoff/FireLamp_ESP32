@@ -107,6 +107,17 @@ static effect_param_cb_t param_cb = NULL;
 // index of the `tempo` parameter of every effect, -1 if it has none (effects_init())
 static int8_t tempo_param[MAX_EFFECTS] = { [0 ... MAX_EFFECTS - 1] = -1 };
 
+// brightest frame of every effect, percent of the full white matrix (effects_init())
+static const struct {
+    const char *code;
+    uint8_t peak;
+} peak_table[] = {
+#define EFFECT_PEAK(CODE, PERCENT) { #CODE, PERCENT },
+#include "effect_peaks.h"
+#undef EFFECT_PEAK
+};
+static uint8_t peaks[MAX_EFFECTS] = { [0 ... MAX_EFFECTS - 1] = 100 };
+
 void effect_set_param_cb(effect_param_cb_t cb)
 {
     param_cb = cb;
@@ -183,6 +194,11 @@ uint8_t effect_tempo(size_t effect)
     if (effect >= effects_count || tempo_param[effect] < 0)
         return EFFECT_TEMPO_MAX;
     return PARAM(effect, tempo_param[effect]).value;
+}
+
+uint8_t effect_peak(size_t effect)
+{
+    return effect < effects_count && effect < MAX_EFFECTS ? peaks[effect] : 100;
 }
 
 static void apply_stored_params(size_t e, const uint8_t *entry, size_t count)
@@ -297,7 +313,17 @@ esp_err_t effects_init()
     check_codes();
 
     for (size_t e = 0; e < effects_count && e < MAX_EFFECTS; e++)
+    {
         tempo_param[e] = effect_param_find(e, "tempo");
+
+        size_t i = 0;
+        while (i < sizeof(peak_table) / sizeof(peak_table[0]) && strcmp(peak_table[i].code, effects[e].code))
+            i++;
+        if (i < sizeof(peak_table) / sizeof(peak_table[0]))
+            peaks[e] = peak_table[i].peak;
+        else
+            ESP_LOGW(TAG, "No peak of effect '%s' (run tools/preview/effect_peaks.py), capped as full white", effects[e].code);
+    }
 
     esp_err_t res = effect_params_load();
     if (res != ESP_OK)

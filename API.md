@@ -152,8 +152,10 @@ dropped after the response.
   "color_order": <Integer, order of color components. 0 - GRB, 1 - RGB>,
   "rotation": <Integer, surface rotation. 0 - none, 1 - 90, 2 - 180, 3 - 270 degrees>,
   "mirror": <Boolean, mirror surface horizontally>,
-  "current_limit": <Integer, Approximate limit of current consumed by all LEDs in milliamps.
-                   The larger this value, the higher the maximum brightness.>,
+  "current_limit": <Integer, current limit of the whole lamp (power supply) in milliamps. A part is
+                   kept for the controller and the unlit LEDs, the brightness of every effect is
+                   capped by its brightest frame. The larger this value, the higher the maximum
+                   brightness.>,
   "wiring": <Integer, 0 - serpentine (rows go back and forth), 1 - progressive (every row starts at the same side)>
 }
 ```
@@ -194,8 +196,10 @@ Settings are applied after reboot.
   "color_order": <Integer, order of color components. 0 - GRB, 1 - RGB>,
   "rotation": <Integer, surface rotation. 0 - none, 1 - 90, 2 - 180, 3 - 270 degrees>,
   "mirror": <Boolean, mirror surface horizontally>,
-  "current_limit": <Integer, Approximate limit of current consumed by all LEDs in milliamps.
-                   The larger this value, the higher the maximum brightness.>,
+  "current_limit": <Integer, current limit of the whole lamp (power supply) in milliamps. A part is
+                   kept for the controller and the unlit LEDs, the brightness of every effect is
+                   capped by its brightest frame. The larger this value, the higher the maximum
+                   brightness.>,
   "wiring": <Integer, 0 - serpentine (rows go back and forth), 1 - progressive (every row starts at the same side)>
 }
 ```

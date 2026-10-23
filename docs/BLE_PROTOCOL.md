@@ -304,7 +304,7 @@ Behaviour:
 | 3      | u8   | Color order: `0` - GRB, `1` - RGB |
 | 4      | u8   | Rotation: `0` - none, `1` - 90°, `2` - 180°, `3` - 270° |
 | 5      | u8   | Mirror horizontally: `0` / `1` |
-| 6      | u16  | Current limit for all LEDs, mA |
+| 6      | u16  | Current limit of the whole lamp (power supply), mA: the brightness of every effect is capped so that its brightest frame fits |
 | 8      | u8   | Wiring: `0` - serpentine (rows go back and forth), `1` - progressive (every row starts at the same side) |
 
 The first LED is at the bottom left corner, the strip goes along the rows. Other layouts are

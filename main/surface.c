@@ -13,7 +13,9 @@
 static led_strip_handle_t strip = NULL;
 static bool strip_busy = false;
 static uint16_t *led_map = NULL; // framebuffer pixel offset -> LED index in the strip
-static uint8_t max_brightness = 255;
+// brightness at which the full white matrix takes the current left for the LEDs, x256 (it can
+// exceed 255); every effect is capped by its own peak: brightness_cap()
+static uint32_t white_brightness = 255 * 256;
 static size_t num_leds, fb_width, fb_height;
 static framebuffer_t framebuffer;
 static EventGroupHandle_t state;
@@ -109,6 +111,13 @@ static esp_err_t strip_init()
     return ESP_OK;
 }
 
+// Maximal brightness of the effect: its brightest frame takes the current left for the LEDs
+static uint8_t brightness_cap(size_t effect)
+{
+    uint64_t cap = (uint64_t)white_brightness * 100 / effect_peak(effect) / 256;
+    return cap > 255 ? 255 : cap < 1 ? 1 : cap;
+}
+
 // frame renderer, framebuffer -> LED strip
 int64_t effect_time_us(void)
 {
@@ -134,7 +143,7 @@ static esp_err_t render_frame(framebuffer_t *fb, void *arg)
     }
     else
     {
-        uint8_t brightness = scale8_video(vol_settings.brightness, max_brightness);
+        uint8_t brightness = scale8_video(vol_settings.brightness, brightness_cap(vol_settings.effect));
         for (size_t i = 0; i < num_leds; i++)
         {
             rgb_t c = rgb_scale_video(data[i], brightness);
@@ -286,9 +295,13 @@ esp_err_t surface_init()
 
     num_leds = sys_settings.leds.width * sys_settings.leds.height;
 
-    int limit = (int)(((float)sys_settings.leds.current_limit / (float)num_leds) / (float)CONFIG_FL_SINGLE_LED_CURRENT_MA * 256.0f);
-    max_brightness = limit > 255 ? 255 : limit;
-    ESP_LOGI(TAG, "Maximal LED brightness: %d", max_brightness);
+    // the current limit is of the whole lamp: the controller and the unlit LEDs take their part
+    int leds_ma = (int)sys_settings.leds.current_limit - CONFIG_FL_CONTROLLER_CURRENT_MA
+            - (int)(num_leds * CONFIG_FL_LED_IDLE_CURRENT_UA / 1000);
+    if (leds_ma < 0)
+        leds_ma = 0;
+    white_brightness = (uint32_t)((float)leds_ma / num_leds / CONFIG_FL_SINGLE_LED_CURRENT_MA * 255.0f * 256.0f);
+    ESP_LOGI(TAG, "Current for the LEDs: %d mA, full white brightness: %lu", leds_ma, white_brightness / 256);
 
     if (sys_settings.leds.rotation == MATRIX_ROTATION_90 || sys_settings.leds.rotation == MATRIX_ROTATION_270)
     {
