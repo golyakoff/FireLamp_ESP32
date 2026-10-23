@@ -74,4 +74,21 @@ void ota_report(ota_state_t state, ota_error_t err);
 
 bool ota_in_progress();
 
+/**
+ * Firmware in the other OTA slot, the one the lamp can go back to.
+ *
+ * @param version Its version, e.g. `0.6.0`
+ * @return false if the slot holds no firmware to go back to: never written (flashed over USB),
+ *         erased by an update, or failed to start before
+ */
+bool ota_previous_version(char *version, size_t size);
+
+/**
+ * Boot the firmware of the other OTA slot next time (see ota_previous_version()). The caller
+ * reboots.
+ *
+ * @return ESP_ERR_NOT_FOUND if there is none, ESP_ERR_INVALID_STATE during an update
+ */
+esp_err_t ota_rollback();
+
 #endif /* EVLAMP_OTA_H_ */

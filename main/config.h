@@ -132,6 +132,8 @@
 #define RESET_HOLD_OFF_MS 10000    // 1 button/touch: hold time while the lamp is off
 #define PAIRING_CLICKS 5           // clicks of the main button to open the BLE pairing window
 #define PAIRING_BLINK_MS 300
+#define ROLLBACK_HOLD_MS 5000      // Main button held at power on: back to the previous firmware
+#define ROLLBACK_BLINK_MS 1000
 
 ////////////////////////////////////////////////////////////////////////////////
 /// Main task

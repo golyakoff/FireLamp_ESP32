@@ -113,6 +113,7 @@ Read only, constant for the connection.
 | 9      | str8   | Firmware version, e.g. `0.5.0` |
 | ...    | str8   | Build date and time, e.g. `Oct 21 2026 12:00:00` |
 | ...    | str8   | Build variant, `default` for official releases (hardware configuration, see README) |
+| ...    | str8   | Previous firmware: the version in the other OTA slot that [Command](#0x000c-command) `0x09` goes back to, empty if there is none (flashed over USB, slot erased by an update, or that firmware failed to start). Firmware ≥ 0.8.0; older ones end after the build variant |
 
 Features bitmask:
 
@@ -373,6 +374,7 @@ Write; the first byte is the command:
 | 0x06 | Check for a firmware update on the internet now; the result comes in [Update info](#0x0012-update-info). Needs WiFi configured (otherwise `0x13`); in the periodic WiFi mode the lamp connects right away |
 | 0x07 | Install the firmware update from the internet, if a newer version is released; progress comes in [OTA control](#0x0010-ota-control) notifications. Needs WiFi configured (otherwise `0x13`) |
 | 0x08 | Scan for WiFi networks, see [WiFi networks](#0x0014-wifi-networks) (firmware ≥ 0.1.5). Works in any WiFi mode. `0x13` during a firmware upload over BLE; a repeated command while scanning is accepted and does nothing |
+| 0x09 | Go back to the previous firmware (the version in [Device info](#0x0001-device-info)) and reboot; the settings stay (firmware ≥ 0.8.0). `0x13` if there is none or during an update. The same without a phone: hold the Main button while powering the lamp on, 5 s |
 
 ---
 

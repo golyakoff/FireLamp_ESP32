@@ -9,7 +9,7 @@ static const struct
     const char *code;
     uint16_t hash;
 } overrides[] = {
-    { "wheel", 0x289b }, // CRC16 0x1813 is taken by `relax`
+    { "wheel", 0x289b }, // CRC16 0x1813 was taken by `relax` (removed in 0.8.0)
 };
 
 uint16_t code_hash(const char *code)

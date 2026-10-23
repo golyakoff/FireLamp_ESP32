@@ -32,8 +32,6 @@ TUNE = {
     'plasma_waves': (240, 3, []), 'dna': (240, 3, []), 'rays': (240, 3, []), 'crazybees': (240, 4, []),
     'metaballs': (240, 4, []), 'nuclear': (240, 4, []), 'octopus': (240, 4, []), 'wheel': (240, 4, []),
     'tunnel': (240, 6, []), 'gif': (30, 15, []),
-    # the hue changes once in ~17 s
-    'relax': (2000, 6000, []),
 }
 # effects with rare events: move the capture until one of the middle frames has a channel this bright
 EVENT = {'storm': 200}

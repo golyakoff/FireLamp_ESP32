@@ -25,8 +25,9 @@ int main(void)
     int failures = 0;
     size_t params = 0;
 
-    // the known collision is resolved
+    // the known collision is resolved, and the values stored for `wheel` stay its own
     assert(code_hash("relax") != code_hash("wheel"));
+    assert(code_hash("wheel") == 0x289b);
 
     for (size_t e = 0; e < COUNT; e++)
     {

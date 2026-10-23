@@ -1,3 +1,10 @@
+Release 0.8.0
+
+- [x] Going back to the previous firmware: after an update the previous version stays in the other OTA slot. The app can go back to it (BLE Command `0x09`; its version is the new last field of Device info, empty when there is none), and a lamp the phone cannot reach goes back with the Main button held at power on for 5 s: a yellow blink, then the reboot. The button is read before the effects start, so it works on a lamp that reboots on a bright effect. A red blink: no previous firmware (flashed over USB); the buttons then wait for the release, so the hold does not go on to a factory reset. Not with the ESP32 touch pad
+- [x] New order of the effects, similar looking ones next to each other (the app and the sequential demo mode follow it): Turbin fire, Gyver fire, Petrick fire, Whirls, Soaring fire, Lava, Metaballs, Sun radiation, Peacock tail, Plasma waves, Hoop, Twister, DNA helix, Octopus, Rainbow snake, Nuclear noise, Colored dunes, Polar lights, Rays, Radiant wheel, Flower, Tunnel, Gif image, Water, Waterfall, Drops on glass, Matrix, Rain, Thunderstorm, Starfall, Sparkles, Twinkles, Fireflies, Fireflies with trails, Crazy bees, Butterflies, Flight of spaceships, Diagonal movements, Holiday lights, Color lamp
+- [x] Effects Rainbow and Relax removed. A lamp that was showing one of them switches to the default effect, their stored parameters are dropped
+- [x] The system settings of a newer firmware (more fields at the end) are read instead of reset, so going back from a later version keeps the matrix, buttons, WiFi and the name
+
 Release 0.7.0
 
 - [x] Fire is named Turbin fire (after Yaroslaw Turbin, ldirko, the author of the algorithm; the code stays `fire`) and has sparks from "Огонь 2020" by SottNick (gunner47_v2): they rise from the bottom of the flame with its colour, parameter `sparks`, on by default

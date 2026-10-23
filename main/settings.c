@@ -217,11 +217,13 @@ esp_err_t sys_settings_load()
 
     uint32_t version;
     memcpy(&version, buf, sizeof(version));
-    if (version == SYS_SETTINGS_VERSION && size >= SYS_SETTINGS_MIN_SIZE && size <= sizeof(system_settings_t))
+    if (version == SYS_SETTINGS_VERSION && size >= SYS_SETTINGS_MIN_SIZE)
     {
-        // defaults for the fields missing in a record of an older firmware
+        // defaults for the fields missing in a record of an older firmware; a newer firmware's
+        // record (the lamp went back to this one) has more fields at the end: they are not ours
+        // and stay stored until these settings change
         memcpy(&sys_settings, &sys_defaults, sizeof(system_settings_t));
-        memcpy(&sys_settings, buf, size);
+        memcpy(&sys_settings, buf, MIN(size, sizeof(system_settings_t)));
         if (!input_mode_supported(sys_settings.hw.input_mode))
             sys_settings.hw.input_mode = DEFAULT_INPUT_MODE;
         if (sys_settings.hw.wiring >= MATRIX_WIRING_MAX)
@@ -230,7 +232,7 @@ esp_err_t sys_settings_load()
             sys_settings.hw.button_level = CONFIG_FL_BUTTON_LEVEL;
         if (sys_settings.hw.main_gpio && !input_main_gpio_allowed(sys_settings.hw.main_gpio))
             sys_settings.hw.main_gpio = 0;
-        if (size == sizeof(system_settings_t))
+        if (size >= sizeof(system_settings_t))
             return ESP_OK;
         ESP_LOGW(TAG, "System settings upgraded from %d to %d bytes", size, sizeof(system_settings_t));
     }

@@ -18,7 +18,6 @@
 #include "effects/matrix.h"
 #include "effects/plasma_waves.h"
 #include "effects/rain.h"
-#include "effects/rainbow.h"
 #include "effects/rays.h"
 #include "effects/sparkles.h"
 #include "effects/waterfall.h"
@@ -30,7 +29,6 @@
 #include "effects/flower.h"
 #include "effects/polar_lights.h"
 #include "effects/gif.h"
-#include "effects/relax.h"
 #include "effects/wheel.h"
 #include "effects/peacock.h"
 #include "effects/diagonals.h"
@@ -51,48 +49,47 @@
 #include "effects/glass_drops.h"
 
 const effect_descriptor_t effects[] = {
+    // similar looking effects next to each other: the app and the sequential demo mode go in this order
     DESCR_EFFECT_FIRE,
     DESCR_EFFECT_GYVER_FIRE,
     DESCR_EFFECT_PETRICK_FIRE,
-    DESCR_EFFECT_LAMP,
-    DESCR_EFFECT_SPARKLES,
+    DESCR_EFFECT_WHIRLS,
+    DESCR_EFFECT_SOARING_FIRE,
     DESCR_EFFECT_LAVA,
-    DESCR_EFFECT_WATERFALL,
-    DESCR_EFFECT_PLASMA_WAVES,
-    DESCR_EFFECT_DNA,
-    DESCR_EFFECT_MATRIX,
-    DESCR_EFFECT_CRAZYBEES,
-    DESCR_EFFECT_RAIN,
-    DESCR_EFFECT_RAINBOW,
-    DESCR_EFFECT_RAYS,
     DESCR_EFFECT_METABALLS,
-    DESCR_EFFECT_WATER,
-    DESCR_EFFECT_HOLIDAY,
+    DESCR_EFFECT_SUN,
+    DESCR_EFFECT_PEACOCK,
+    DESCR_EFFECT_PLASMA_WAVES,
     DESCR_EFFECT_HOOP,
     DESCR_EFFECT_TWISTER,
-    DESCR_EFFECT_FLOWER,
-    DESCR_EFFECT_POLAR_LIGHTS,
-    DESCR_EFFECT_GIF,
-    DESCR_EFFECT_RELAX,
-    DESCR_EFFECT_WHEEL,
-    DESCR_EFFECT_PEACOCK,
-    DESCR_EFFECT_DIAGONALS,
-    DESCR_EFFECT_WHIRLS,
-    DESCR_EFFECT_SUN,
-    DESCR_EFFECT_SPACESHIPS,
-    DESCR_EFFECT_FIREFLIES,
-    DESCR_EFFECT_TUNNEL,
-    DESCR_EFFECT_DUNES,
+    DESCR_EFFECT_DNA,
     DESCR_EFFECT_OCTOPUS,
-    DESCR_EFFECT_NUCLEAR,
-    DESCR_EFFECT_STARFALL,
-    DESCR_EFFECT_STORM,
-    DESCR_EFFECT_TWINKLES,
-    DESCR_EFFECT_BUTTERFLIES,
     DESCR_EFFECT_RAINBOW_SNAKE,
-    DESCR_EFFECT_SOARING_FIRE,
-    DESCR_EFFECT_TRAIL_FIREFLIES,
+    DESCR_EFFECT_NUCLEAR,
+    DESCR_EFFECT_DUNES,
+    DESCR_EFFECT_POLAR_LIGHTS,
+    DESCR_EFFECT_RAYS,
+    DESCR_EFFECT_WHEEL,
+    DESCR_EFFECT_FLOWER,
+    DESCR_EFFECT_TUNNEL,
+    DESCR_EFFECT_GIF,
+    DESCR_EFFECT_WATER,
+    DESCR_EFFECT_WATERFALL,
     DESCR_EFFECT_GLASS_DROPS,
+    DESCR_EFFECT_MATRIX,
+    DESCR_EFFECT_RAIN,
+    DESCR_EFFECT_STORM,
+    DESCR_EFFECT_STARFALL,
+    DESCR_EFFECT_SPARKLES,
+    DESCR_EFFECT_TWINKLES,
+    DESCR_EFFECT_FIREFLIES,
+    DESCR_EFFECT_TRAIL_FIREFLIES,
+    DESCR_EFFECT_CRAZYBEES,
+    DESCR_EFFECT_BUTTERFLIES,
+    DESCR_EFFECT_SPACESHIPS,
+    DESCR_EFFECT_DIAGONALS,
+    DESCR_EFFECT_HOLIDAY,
+    DESCR_EFFECT_LAMP,
 };
 
 const size_t effects_count = sizeof(effects) / sizeof(effect_descriptor_t);

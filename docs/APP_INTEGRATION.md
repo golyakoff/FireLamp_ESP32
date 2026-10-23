@@ -101,7 +101,7 @@ slider; to look the same as the effects' own `speed` (named "Tempo" too, its own
 parameters, does not restart the effect. The effects with `speed`, `rotation_speed` or
 `time_scale` have no `tempo`.
 
-Current effects (from the firmware sources, for localization; `starfall` and `storm` since 0.2.0, `twinkles`, `butterflies`, `rainbow_snake`, `soaring_fire` since 0.3.0, `trail_fireflies`, `glass_drops` since 0.4.0; `tempo` since 0.5.0; `gyver_fire`, `petrick_fire` and `fire.sparks` since 0.7.0, `fire` is the first effect since 0.7.0):
+Current effects (from the firmware sources, for localization; `starfall` and `storm` since 0.2.0, `twinkles`, `butterflies`, `rainbow_snake`, `soaring_fire` since 0.3.0, `trail_fireflies`, `glass_drops` since 0.4.0; `tempo` since 0.5.0; `gyver_fire`, `petrick_fire` and `fire.sparks` since 0.7.0, `fire` is the first effect since 0.7.0; `rainbow` and `relax` removed and the effects reordered in 0.8.0, the table is not in the lamp's order):
 
 | Effect code | English name | Parameters: code (English name) |
 |---|---|---|
@@ -117,7 +117,6 @@ Current effects (from the firmware sources, for localization; `starfall` and `st
 | `matrix` | Matrix | `density` (Density), `tempo` (Tempo, since 0.5.0) |
 | `crazybees` | Crazy bees | `bees` (Number of bees), `bee_hue` (Bee hue), `bee_saturation` (Bee saturation), `tempo` (Tempo, since 0.5.0) |
 | `rain` | Rain | `colored` (Colored, bool), `hue` (Hue), `density` (Density), `tail_length` (Tail length), `tempo` (Tempo, since 0.5.0) |
-| `rainbow` | Rainbow | `direction` (Direction), `scale` (Scale), `speed` (Tempo) |
 | `rays` | Rays | `speed` (Tempo), `min_rays` (Min rays), `max_rays` (Max rays) |
 | `metaballs` | Metaballs | `palette` (Palette), `balls` (Balls), `tempo` (Tempo, since 0.5.0) |
 | `water` | Water | `hue` (Hue), `saturation` (Saturation), `speed` (Tempo) |
@@ -127,7 +126,6 @@ Current effects (from the firmware sources, for localization; `starfall` and `st
 | `flower` | Flower | `speed` (Tempo), `diameter` (Diameter) |
 | `polar_lights` | Polar lights | `speed` (Tempo), `scale` (Scale), `palette` (Palette), `height` (Height adjustment) |
 | `gif` | Gif image | `file` (File), `tempo` (Tempo, since 0.5.0) |
-| `relax` | Relax | `speed` (Tempo), `start_hue` (Start hue), `saturation` (Saturation), `pixels` (Pixels to update) |
 | `wheel` | Radiant wheel | `rotation_speed` (Rotation speed), `hue_1` (Hue 1), `saturation_1` (Saturation 1), `hue_2` (Hue 2), `saturation_2` (Saturation 2), `rays` (Number of rays) |
 | `peacock` | Peacock tail | `speed` (Tempo), `scale` (Scale), `saturation` (Saturation) |
 | `diagonals` | Diagonal movements | `speed` (Tempo) |
@@ -258,6 +256,13 @@ info (`MAJOR.MINOR.PATCH`, numerically).
 `03` aborts. A disconnect also aborts the BLE upload; the old firmware keeps running. (An
 internet update started with `0x07` goes on when the phone disconnects.) If the new
 firmware does not start, the lamp rolls back to the previous one by itself.
+
+**Going back** (firmware ≥ 0.8.0). Device info ends with the version of the previous firmware,
+the one in the other OTA slot (empty: none). The app can offer "Go back to X.Y.Z": Command
+`0x09`, the lamp reboots into it in 0.5 s with the settings kept; reconnect and check the version.
+A lamp the phone cannot reach goes back with the Main button held at power on for 5 s (yellow
+blink; red: no previous firmware). The previous firmware may be older than 0.8.0 and then has no
+way back to the newer one except an update.
 
 **B. From the internet by the lamp itself** (WiFi configured):
 

@@ -59,6 +59,7 @@ CMD_PREV_EFFECT = 0x05
 CMD_CHECK_UPDATE = 0x06
 CMD_INSTALL_UPDATE = 0x07
 CMD_WIFI_SCAN = 0x08
+CMD_ROLLBACK = 0x09
 
 MASK_ON, MASK_EFFECT, MASK_BRIGHTNESS, MASK_FPS, MASK_DEMO = 1, 2, 4, 8, 16
 
@@ -148,6 +149,7 @@ class DeviceInfo:
     version: str
     build_date: str
     variant: str
+    previous: str  # firmware in the other OTA slot, empty if none (firmware >= 0.8.0)
 
 
 @dataclass
@@ -191,7 +193,7 @@ class Network:
 def parse_device_info(d):
     r = Reader(d)
     v = DeviceInfo(r.u8(), r.u8(), r.u8(), r.u16(), r.u8(), r.u8(), r.u8(), r.u8(),
-                   r.str8(), r.str8(), r.str8())
+                   r.str8(), r.str8(), r.str8(), r.str8())
     r.end()
     return v
 

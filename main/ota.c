@@ -282,3 +282,44 @@ bool ota_in_progress()
 {
     return started;
 }
+
+static const esp_partition_t *previous_partition(esp_app_desc_t *desc)
+{
+    const esp_partition_t *p = esp_ota_get_next_update_partition(NULL);
+    if (!p || p == esp_ota_get_running_partition())
+        return NULL;
+
+    // a firmware that did not start properly is not offered again
+    esp_ota_img_states_t state;
+    if (esp_ota_get_state_partition(p, &state) == ESP_OK
+            && (state == ESP_OTA_IMG_INVALID || state == ESP_OTA_IMG_ABORTED))
+        return NULL;
+
+    esp_app_desc_t d;
+    if (esp_ota_get_partition_description(p, desc ? desc : &d) != ESP_OK)
+        return NULL;
+    return p;
+}
+
+bool ota_previous_version(char *version, size_t size)
+{
+    esp_app_desc_t desc;
+    // the slot is being written
+    if (started || !previous_partition(&desc))
+        return false;
+    strlcpy(version, desc.version, size);
+    return true;
+}
+
+esp_err_t ota_rollback()
+{
+    if (started)
+        return ESP_ERR_INVALID_STATE;
+    const esp_partition_t *p = previous_partition(NULL);
+    if (!p)
+        return ESP_ERR_NOT_FOUND;
+    // checks the whole image
+    CHECK_LOGE(esp_ota_set_boot_partition(p), "Could not switch to the previous firmware");
+    ESP_LOGW(TAG, "Going back to the previous firmware in '%s'", p->label);
+    return ESP_OK;
+}

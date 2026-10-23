@@ -10,7 +10,10 @@
 #include "scheduler.h"
 #include "demo.h"
 #include "ble_server.h"
+#include "ota.h"
 #include <esp_ota_ops.h>
+#include <driver/gpio.h>
+#include <esp_timer.h>
 
 static void factory_reset()
 {
@@ -21,6 +24,53 @@ static void factory_reset()
     ble_server_forget_bonds();
     ESP_ERROR_CHECK(sys_settings_reset());
     ESP_ERROR_CHECK(vol_settings_reset());
+    esp_restart();
+}
+
+// Main button held at power on for ROLLBACK_HOLD_MS. Read before the effects start, so a lamp
+// that reboots on a bright effect (weak power supply) still gets here. Not with the touch pad.
+static bool rollback_requested()
+{
+    if (sys_settings.hw.input_mode == INPUT_MODE_TOUCH)
+        return false;
+
+    gpio_num_t gpio = sys_settings.hw.main_gpio;
+    uint8_t level = sys_settings.hw.button_level;
+    gpio_config_t cfg = {
+        .pin_bit_mask = BIT64(gpio),
+        .mode = GPIO_MODE_INPUT,
+        .pull_up_en = level == 0,
+        .pull_down_en = level == 1,
+        .intr_type = GPIO_INTR_DISABLE,
+    };
+    if (gpio_config(&cfg) != ESP_OK)
+        return false;
+    vTaskDelay(pdMS_TO_TICKS(10)); // the pull resistor settles
+
+    for (int64_t start = esp_timer_get_time(); esp_timer_get_time() - start < ROLLBACK_HOLD_MS * 1000LL;)
+    {
+        if (gpio_get_level(gpio) != level)
+            return false;
+        vTaskDelay(pdMS_TO_TICKS(20));
+    }
+    return true;
+}
+
+// Yellow blink and reboot into the previous firmware, or a red blink when there is none
+static void rollback()
+{
+    esp_err_t res = ota_rollback();
+    if (res != ESP_OK)
+    {
+        ESP_LOGW(TAG, "No previous firmware to go back to: %d (%s)", res, esp_err_to_name(res));
+        surface_flash(rgb_from_values(96, 0, 0), ROLLBACK_BLINK_MS);
+        // the buttons start after the release: a hold going on would be a factory reset
+        while (gpio_get_level(sys_settings.hw.main_gpio) == sys_settings.hw.button_level)
+            vTaskDelay(pdMS_TO_TICKS(20));
+        return;
+    }
+    surface_flash(rgb_from_values(96, 64, 0), ROLLBACK_BLINK_MS);
+    vTaskDelay(pdMS_TO_TICKS(ROLLBACK_BLINK_MS));
     esp_restart();
 }
 
@@ -248,10 +298,13 @@ void app_main()
     ESP_ERROR_CHECK(vol_settings_load());
     // Load effect parameters
     ESP_ERROR_CHECK(effects_init());
+    bool go_back = rollback_requested();
     // Time zone, RTC
     ESP_ERROR_CHECK(systime_init());
     // Init surface
     ESP_ERROR_CHECK(surface_init());
+    if (go_back)
+        rollback();
 
     // Initialize bus
     ESP_ERROR_CHECK(bus_init());

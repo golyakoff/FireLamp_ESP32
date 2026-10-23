@@ -39,7 +39,6 @@ idf_component_register(
 		effects/matrix.c
 		effects/plasma_waves.c
 		effects/rain.c
-		effects/rainbow.c
 		effects/rays.c
 		effects/sparkles.c
 		effects/waterfall.c
@@ -51,7 +50,6 @@ idf_component_register(
 		effects/flower.c
 		effects/polar_lights.c
 		effects/gif.c
-		effects/relax.c
 		effects/wheel.c
 		effects/peacock.c
 		effects/diagonals.c

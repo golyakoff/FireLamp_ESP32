@@ -68,6 +68,7 @@ enum {
     CMD_CHECK_UPDATE  = 0x06,
     CMD_INSTALL_UPDATE = 0x07,
     CMD_WIFI_SCAN     = 0x08,
+    CMD_ROLLBACK      = 0x09,
 };
 
 enum {
@@ -333,6 +334,9 @@ static int chr_device_info(struct ble_gatt_access_ctxt *ctxt)
     put_str8(&b, app->version);
     put_str8(&b, date);
     put_str8(&b, CONFIG_FL_BUILD_VARIANT);
+    char previous[sizeof(app->version)] = "";
+    ota_previous_version(previous, sizeof(previous));
+    put_str8(&b, previous);
     return reply(ctxt, &b);
 }
 
@@ -777,6 +781,12 @@ static int chr_command(struct ble_gatt_access_ctxt *ctxt, reader_t *r)
             if (ble_upload)
                 return BLE_ATT_ERR_VALUE_NOT_ALLOWED;
             return wifi_scan_start() == ESP_OK ? 0 : BLE_ATT_ERR_VALUE_NOT_ALLOWED;
+        case CMD_ROLLBACK:
+            // no previous firmware or an update is running
+            if (ota_rollback() != ESP_OK)
+                return BLE_ATT_ERR_VALUE_NOT_ALLOWED;
+            esp_timer_start_once(reboot_timer, 500 * 1000);
+            return 0;
         default:
             return BLE_ATT_ERR_VALUE_NOT_ALLOWED;
     }

@@ -28,6 +28,7 @@ def test_device_info(info):
     assert re.match(r"^\d+\.\d+\.\d+", info.version)
     assert info.build_date
     assert info.variant
+    assert info.previous == "" or re.match(r"^\d+\.\d+\.\d+", info.previous)
 
 
 def test_device_info_matches_led_settings(lamp, info):
