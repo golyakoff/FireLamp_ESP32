@@ -34,7 +34,8 @@ static bool rollback_requested()
     if (sys_settings.hw.input_mode == INPUT_MODE_TOUCH)
         return false;
 
-    gpio_num_t gpio = sys_settings.hw.main_gpio;
+    // the setting 0 is the default pin, not GPIO0 (the BOOT button, pulled up on the boards)
+    gpio_num_t gpio = input_main_gpio(sys_settings.hw.main_gpio);
     uint8_t level = sys_settings.hw.button_level;
     gpio_config_t cfg = {
         .pin_bit_mask = BIT64(gpio),
@@ -64,8 +65,13 @@ static void rollback()
     {
         ESP_LOGW(TAG, "No previous firmware to go back to: %d (%s)", res, esp_err_to_name(res));
         surface_flash(rgb_from_values(96, 0, 0), ROLLBACK_BLINK_MS);
-        // the buttons start after the release: a hold going on would be a factory reset
-        while (gpio_get_level(sys_settings.hw.main_gpio) == sys_settings.hw.button_level)
+        // the buttons start after the release: a hold going on would be a factory reset. Not
+        // longer than ROLLBACK_RELEASE_WAIT_MS: a pin stuck at the pressed level must not stop
+        // the lamp from starting
+        gpio_num_t gpio = input_main_gpio(sys_settings.hw.main_gpio);
+        for (int64_t start = esp_timer_get_time();
+                gpio_get_level(gpio) == sys_settings.hw.button_level
+                && esp_timer_get_time() - start < ROLLBACK_RELEASE_WAIT_MS * 1000LL;)
             vTaskDelay(pdMS_TO_TICKS(20));
         return;
     }

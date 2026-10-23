@@ -1,3 +1,7 @@
+Release 0.8.1
+
+- [x] 0.8.0 went back to the previous firmware by itself right after the update on the lamps with the default Main button pin and active high buttons: the power on check read GPIO0 (the BOOT button, pulled up on the boards) instead of the default pin. A lamp flashed with 0.8.0 over USB could even stop at boot waiting for that "button" to be released. The check reads the real Main button pin, and the wait for the release is at most 30 s
+
 Release 0.8.0
 
 - [x] Going back to the previous firmware: after an update the previous version stays in the other OTA slot. The app can go back to it (BLE Command `0x09`; its version is the new last field of Device info, empty when there is none), and a lamp the phone cannot reach goes back with the Main button held at power on for 5 s: a yellow blink, then the reboot. The button is read before the effects start, so it works on a lamp that reboots on a bright effect. A red blink: no previous firmware (flashed over USB); the buttons then wait for the release, so the hold does not go on to a factory reset. Not with the ESP32 touch pad
