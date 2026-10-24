@@ -1,3 +1,7 @@
+Release 0.10.1
+
+- [x] Metaballs move smoothly: the balls were placed in whole pixels and jumped from one to the next, most visibly at a slow tempo. Their centers and distances are in 1/256 of a pixel now
+
 Release 0.10.0
 
 - [x] 5 effects from GyverLamp gunner47_v2, 45 in all: Top fire (after Soaring fire), Magma (after Top fire), Prismata (after DNA helix), Clouds (after Colored dunes), Snowfall (after Thunderstorm); their brightness caps are in `effect_peaks.h`

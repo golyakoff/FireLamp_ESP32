@@ -36,20 +36,42 @@ static const rgb_t _palettes[MAX_PALETTES][PALETTE_SIZE] = {
     [PAL_GREEN] = { C_BLACK, C_BLACK, C_DARK_GREEN, C_SPRING_GREEN, C_SPRING_GREEN, C_WHITE },
 };
 
+// the centers of the balls are in 1/256 of a pixel: whole pixels made them jump, most visibly
+// at a slow tempo, where the steps are rare and the blended frames smear every jump
 typedef struct {
     uint8_t bpm_x, bpm_y;
     uint8_t phase;
-    uint8_t x, y;
+    int32_t x, y;
 } ball_t;
 
 ball_t balls[MAX_BALLS];
 
-static uint8_t dist(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2)
+static uint32_t isqrt32(uint32_t v)
 {
-    int a = y2 - y1;
-    int b = x2 - x1;
-    uint16_t s = sqrt16(a * a + b * b);
-    return s ? 255 / s : 255;
+    uint32_t r = 0, bit = 1UL << 30;
+    while (bit > v)
+        bit >>= 2;
+    while (bit)
+    {
+        if (v >= r + bit)
+        {
+            v -= r + bit;
+            r = (r >> 1) + bit;
+        }
+        else
+            r >>= 1;
+        bit >>= 2;
+    }
+    return r;
+}
+
+// 255 / distance, 255 closer than a pixel; x, y and the ball in 1/256 of a pixel
+static uint8_t dist(int32_t x, int32_t y, const ball_t *b)
+{
+    int32_t dx = b->x - x;
+    int32_t dy = b->y - y;
+    uint32_t d = isqrt32(dx * dx + dy * dy);
+    return d > 256 ? 255 * 256 / d : 255;
 }
 
 esp_err_t effect_metaballs_prepare(framebuffer_t *fb)
@@ -70,8 +92,8 @@ esp_err_t effect_metaballs_run(framebuffer_t *fb)
 
     for (size_t i = 0; i < PARAM_VAL(metaballs, P_COUNT); i++)
     {
-        balls[i].x = beatsin8(balls[i].bpm_x, 0, fb->width - 1, 0, balls[i].phase);
-        balls[i].y = beatsin8(balls[i].bpm_y, 0, fb->height - 1, 0, balls[i].phase);
+        balls[i].x = beatsin16(balls[i].bpm_x, 0, (fb->width - 1) * 256, 0, balls[i].phase << 8);
+        balls[i].y = beatsin16(balls[i].bpm_y, 0, (fb->height - 1) * 256, 0, balls[i].phase << 8);
     }
 
     for (int i = 0; i < fb->width; i++)
@@ -80,7 +102,7 @@ esp_err_t effect_metaballs_run(framebuffer_t *fb)
         {
             uint8_t sum = 0;
             for (size_t b = 0; b < PARAM_VAL(metaballs, P_COUNT); b++)
-                sum = qadd8(sum, dist(i, j, balls[b].x, balls[b].y));
+                sum = qadd8(sum, dist(i * 256, j * 256, &balls[b]));
 
             fb_set_pixel_rgb(fb, i, j, palette_color_rgb(_palettes[PARAM_VAL(metaballs, P_PALETTE)], PALETTE_SIZE, qsub8(sum, 32), 255, true));
         }
