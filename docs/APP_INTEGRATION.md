@@ -101,7 +101,7 @@ slider; to look the same as the effects' own `speed` (named "Tempo" too, its own
 parameters, does not restart the effect. The effects with `speed`, `rotation_speed` or
 `time_scale` have no `tempo`.
 
-Current effects (from the firmware sources, for localization; `starfall` and `storm` since 0.2.0, `twinkles`, `butterflies`, `rainbow_snake`, `soaring_fire` since 0.3.0, `trail_fireflies`, `glass_drops` since 0.4.0; `tempo` since 0.5.0; `gyver_fire`, `petrick_fire` and `fire.sparks` since 0.7.0, `fire` is the first effect since 0.7.0; `rainbow` and `relax` removed and the effects reordered in 0.8.0, the table is not in the lamp's order):
+Current effects (from the firmware sources, for localization; `starfall` and `storm` since 0.2.0, `twinkles`, `butterflies`, `rainbow_snake`, `soaring_fire` since 0.3.0, `trail_fireflies`, `glass_drops` since 0.4.0; `tempo` since 0.5.0; `gyver_fire`, `petrick_fire` and `fire.sparks` since 0.7.0, `fire` is the first effect since 0.7.0; `rainbow` and `relax` removed and the effects reordered in 0.8.0; `top_fire`, `magma`, `prismata`, `clouds`, `snow` since 0.10.0; the table is not in the lamp's order):
 
 | Effect code | English name | Parameters: code (English name) |
 |---|---|---|
@@ -143,6 +143,11 @@ Current effects (from the firmware sources, for localization; `starfall` and `st
 | `butterflies` | Butterflies | `lamp` (Lamp with butterflies, bool), `butterflies` (Number of butterflies), `speed` (Tempo), `wings` (Flapping wings, bool), `hue` (Lamp hue), `saturation` (Lamp saturation) |
 | `rainbow_snake` | Rainbow snake | `hue` (Hue), `rotate` (Rotate colors, bool), `tempo` (Tempo, since 0.5.0) |
 | `soaring_fire` | Soaring fire | `fadeout` (Fadeout), `tempo` (Tempo, since 0.5.0) |
+| `top_fire` | Top fire | `fadeout` (Fadeout), `tempo` (Tempo) |
+| `magma` | Magma | `palette` (Palette, the fire palettes 0..7), `drops` (Number of drops), `tempo` (Tempo) |
+| `prismata` | Prismata | `palette` (Palette), `fadeout` (Fadeout), `speed` (Tempo) |
+| `clouds` | Clouds | `scale` (Scale), `speed` (Tempo) |
+| `snow` | Snowfall | `density` (Density), `tempo` (Tempo) |
 | `trail_fireflies` | Fireflies with trails | `fireflies` (Number of fireflies), `hue` (Hue), `fadeout` (Fadeout speed), `tempo` (Tempo, since 0.5.0) |
 | `glass_drops` | Drops on glass | `drops` (Number of drops, per 16x16), `mode` (Mode: 0 color, 1 changing colors, 2 gray), `hue` (Hue), `tempo` (Tempo, since 0.5.0) |
 

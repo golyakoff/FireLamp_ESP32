@@ -1,8 +1,9 @@
 /**
- * Noise streams effects: rainbow snake, soaring fire
+ * Noise streams effects: rainbow snake, soaring fire, top fire
  *
  * NoiseSmearing by Stefan Petrick, GyverLamp mod by PalPalych, from gunner47_v2:
- * "Радужный змей" (MultipleStream8) and "Парящий огонь" (MultipleStream3)
+ * "Радужный змей" (MultipleStream8), "Парящий огонь" (MultipleStream3) and "Верховой огонь"
+ * (MultipleStream5)
  * https://github.com/nikitakiselev/gunner47_v2
  *
  * A few bright dots are drawn every frame, then the picture is smeared by rows and columns,
@@ -33,6 +34,11 @@ EFFECT_PARAMS(rainbow_snake, 3) = {
 EFFECT_PARAMS(soaring_fire, 2) = {
     DECL_PARAM_RANGE(P_FADEOUT, "fadeout", "Fadeout", 1, 100, 15),
     DECL_PARAM_TEMPO(1, 40),
+};
+
+EFFECT_PARAMS(top_fire, 2) = {
+    DECL_PARAM_RANGE(P_FADEOUT, "fadeout", "Fadeout", 1, 100, 15),
+    DECL_PARAM_TEMPO(1, 25),
 };
 
 static size_t width = 0, height = 0;
@@ -211,6 +217,30 @@ esp_err_t effect_soaring_fire_run(framebuffer_t *fb)
     fill_noise();
     smear_y(fb, 3, 0);
     smear_x(fb, 3, 0);
+
+    return fb_end(fb);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+esp_err_t effect_top_fire_prepare(framebuffer_t *fb)
+{
+    return streams_prepare(fb);
+}
+
+esp_err_t effect_top_fire_run(framebuffer_t *fb)
+{
+    CHECK(fb_begin(fb));
+
+    fb_blur2d(fb, 20);
+    fb_fade(fb, PARAM_VAL(top_fire, P_FADEOUT) * 2);
+    // dots along the top line, the picture drifts down
+    for (size_t x = 1; x < width; x += 2)
+        add_hsv(fb, x, height - 1, x * 2);
+
+    fill_noise();
+    smear_y(fb, 2, 1);
+    smear_x(fb, 2, 0);
 
     return fb_end(fb);
 }

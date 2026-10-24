@@ -1,3 +1,8 @@
+Release 0.10.0
+
+- [x] 5 effects from GyverLamp gunner47_v2, 45 in all: Top fire (after Soaring fire), Magma (after Top fire), Prismata (after DNA helix), Clouds (after Colored dunes), Snowfall (after Thunderstorm); their brightness caps are in `effect_peaks.h`
+- [x] README: previews of all the effects in the lamp's order, the number of effects
+
 Release 0.9.1
 
 - [x] A supply sagging during the calibration (or under a bright effect) left the controller hung instead of rebooting: alive but without Bluetooth, the matrix still lit, which kept the supply down. The brownout detector resets earlier (2.80 V on ESP32, 2.76 V on ESP32-C3 instead of the lowest threshold), before the radio and the flash fail

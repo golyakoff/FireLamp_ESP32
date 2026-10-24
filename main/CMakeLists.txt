@@ -69,6 +69,10 @@ idf_component_register(
 		effects/streams.c
 		effects/trail_fireflies.c
 		effects/glass_drops.c
+		effects/magma.c
+		effects/snow.c
+		effects/prismata.c
+		effects/clouds.c
 
 	EMBED_FILES
 		${EMBED}/gifs/heart.gif

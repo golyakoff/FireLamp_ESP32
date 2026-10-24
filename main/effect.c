@@ -47,6 +47,10 @@
 #include "effects/streams.h"
 #include "effects/trail_fireflies.h"
 #include "effects/glass_drops.h"
+#include "effects/magma.h"
+#include "effects/snow.h"
+#include "effects/prismata.h"
+#include "effects/clouds.h"
 
 const effect_descriptor_t effects[] = {
     // similar looking effects next to each other: the app and the sequential demo mode go in this order
@@ -55,6 +59,8 @@ const effect_descriptor_t effects[] = {
     DESCR_EFFECT_PETRICK_FIRE,
     DESCR_EFFECT_WHIRLS,
     DESCR_EFFECT_SOARING_FIRE,
+    DESCR_EFFECT_TOP_FIRE,
+    DESCR_EFFECT_MAGMA,
     DESCR_EFFECT_LAVA,
     DESCR_EFFECT_METABALLS,
     DESCR_EFFECT_SUN,
@@ -63,10 +69,12 @@ const effect_descriptor_t effects[] = {
     DESCR_EFFECT_HOOP,
     DESCR_EFFECT_TWISTER,
     DESCR_EFFECT_DNA,
+    DESCR_EFFECT_PRISMATA,
     DESCR_EFFECT_OCTOPUS,
     DESCR_EFFECT_RAINBOW_SNAKE,
     DESCR_EFFECT_NUCLEAR,
     DESCR_EFFECT_DUNES,
+    DESCR_EFFECT_CLOUDS,
     DESCR_EFFECT_POLAR_LIGHTS,
     DESCR_EFFECT_RAYS,
     DESCR_EFFECT_WHEEL,
@@ -79,6 +87,7 @@ const effect_descriptor_t effects[] = {
     DESCR_EFFECT_MATRIX,
     DESCR_EFFECT_RAIN,
     DESCR_EFFECT_STORM,
+    DESCR_EFFECT_SNOW,
     DESCR_EFFECT_STARFALL,
     DESCR_EFFECT_SPARKLES,
     DESCR_EFFECT_TWINKLES,

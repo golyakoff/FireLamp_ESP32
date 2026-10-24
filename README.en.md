@@ -16,7 +16,7 @@ Based on [EvLamp](https://github.com/UncleRus/EvLamp) by Ruslan V. Uss (effects 
 ESP-IDF), some effects come from [GyverLamp gunner47_v2](https://github.com/nikitakiselev/gunner47_v2),
 the BLE control follows [Matrix_Clock_ESP32](https://github.com/golyakoff/Matrix_Clock_ESP32).
 
-- 40 effects: three kinds of fire, lava, waterfall, matrix, starfall, thunderstorm, fireflies, GIF animations and more
+- 45 effects: Turbin, Gyver and Petrick fire, soaring and top fire, magma, lava, clouds, waterfall, matrix, starfall, snowfall, thunderstorm, fireflies, GIF animations and more
 - Parameters of every effect and a Tempo that slows an effect down smoothly at the same frame rate
 - Demo mode, power on/off schedule, dawn alarm, brightness by the hour
 - Matrices from 8x8 to 32x32: any corner of the input, serpentine or progressive, current limit
@@ -52,38 +52,45 @@ is in [preview/README.md](preview/README.md).
 <td align="center"><img src="preview/soaring_fire.gif" width="112" alt="Soaring fire"><br><sub>Soaring fire</sub></td>
 </tr>
 <tr>
+<td align="center"><img src="preview/top_fire.gif" width="112" alt="Top fire"><br><sub>Top fire</sub></td>
+<td align="center"><img src="preview/magma.gif" width="112" alt="Magma"><br><sub>Magma</sub></td>
 <td align="center"><img src="preview/lava.gif" width="112" alt="Lava"><br><sub>Lava</sub></td>
 <td align="center"><img src="preview/metaballs.gif" width="112" alt="Metaballs"><br><sub>Metaballs</sub></td>
 <td align="center"><img src="preview/sun.gif" width="112" alt="Sun radiation"><br><sub>Sun radiation</sub></td>
-<td align="center"><img src="preview/peacock.gif" width="112" alt="Peacock tail"><br><sub>Peacock tail</sub></td>
-<td align="center"><img src="preview/plasma_waves.gif" width="112" alt="Plasma waves"><br><sub>Plasma waves</sub></td>
 </tr>
 <tr>
+<td align="center"><img src="preview/peacock.gif" width="112" alt="Peacock tail"><br><sub>Peacock tail</sub></td>
+<td align="center"><img src="preview/plasma_waves.gif" width="112" alt="Plasma waves"><br><sub>Plasma waves</sub></td>
 <td align="center"><img src="preview/hoop.gif" width="112" alt="Hoop"><br><sub>Hoop</sub></td>
 <td align="center"><img src="preview/twister.gif" width="112" alt="Twister"><br><sub>Twister</sub></td>
 <td align="center"><img src="preview/dna.gif" width="112" alt="DNA helix"><br><sub>DNA helix</sub></td>
-<td align="center"><img src="preview/octopus.gif" width="112" alt="Octopus"><br><sub>Octopus</sub></td>
-<td align="center"><img src="preview/rainbow_snake.gif" width="112" alt="Rainbow snake"><br><sub>Rainbow snake</sub></td>
 </tr>
 <tr>
+<td align="center"><img src="preview/prismata.gif" width="112" alt="Prismata"><br><sub>Prismata</sub></td>
+<td align="center"><img src="preview/octopus.gif" width="112" alt="Octopus"><br><sub>Octopus</sub></td>
+<td align="center"><img src="preview/rainbow_snake.gif" width="112" alt="Rainbow snake"><br><sub>Rainbow snake</sub></td>
 <td align="center"><img src="preview/nuclear.gif" width="112" alt="Nuclear Noise"><br><sub>Nuclear Noise</sub></td>
 <td align="center"><img src="preview/dunes.gif" width="112" alt="Colored dunes"><br><sub>Colored dunes</sub></td>
+</tr>
+<tr>
+<td align="center"><img src="preview/clouds.gif" width="112" alt="Clouds"><br><sub>Clouds</sub></td>
 <td align="center"><img src="preview/polar_lights.gif" width="112" alt="Polar lights"><br><sub>Polar lights</sub></td>
 <td align="center"><img src="preview/rays.gif" width="112" alt="Rays"><br><sub>Rays</sub></td>
 <td align="center"><img src="preview/wheel.gif" width="112" alt="Radiant wheel"><br><sub>Radiant wheel</sub></td>
+<td align="center"><img src="preview/flower.gif" width="112" alt="Flower"><br><sub>Flower</sub></td>
 </tr>
 <tr>
-<td align="center"><img src="preview/flower.gif" width="112" alt="Flower"><br><sub>Flower</sub></td>
 <td align="center"><img src="preview/tunnel.gif" width="112" alt="Tunnel"><br><sub>Tunnel</sub></td>
 <td align="center"><img src="preview/gif.gif" width="112" alt="Gif image"><br><sub>Gif image</sub></td>
 <td align="center"><img src="preview/water.gif" width="112" alt="Water"><br><sub>Water</sub></td>
 <td align="center"><img src="preview/waterfall.gif" width="112" alt="Waterfall"><br><sub>Waterfall</sub></td>
+<td align="center"><img src="preview/glass_drops.gif" width="112" alt="Drops on glass"><br><sub>Drops on glass</sub></td>
 </tr>
 <tr>
-<td align="center"><img src="preview/glass_drops.gif" width="112" alt="Drops on glass"><br><sub>Drops on glass</sub></td>
 <td align="center"><img src="preview/matrix.gif" width="112" alt="Matrix"><br><sub>Matrix</sub></td>
 <td align="center"><img src="preview/rain.gif" width="112" alt="Rain"><br><sub>Rain</sub></td>
 <td align="center"><img src="preview/storm.gif" width="112" alt="Thunderstorm"><br><sub>Thunderstorm</sub></td>
+<td align="center"><img src="preview/snow.gif" width="112" alt="Snowfall"><br><sub>Snowfall</sub></td>
 <td align="center"><img src="preview/starfall.gif" width="112" alt="Starfall"><br><sub>Starfall</sub></td>
 </tr>
 <tr>
