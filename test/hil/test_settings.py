@@ -152,3 +152,27 @@ def test_device_name(lamp):
     assert lamp.write_error(fl.DEVICE_NAME, b"x" * 21) == fl.ATT_INVALID_LENGTH
     assert lamp.write_error(fl.DEVICE_NAME, b"bad\x01name") == fl.ATT_VALUE_NOT_ALLOWED
     assert lamp.read(fl.DEVICE_NAME) == orig
+
+
+def test_power_status(lamp):
+    if not lamp.has(fl.POWER):
+        pytest.skip("firmware < 0.9.0")
+    p = fl.parse_power(lamp.read(fl.POWER))
+    assert 30 <= p.percent <= 100
+    assert p.brownout in (0, 1)
+    assert p.calib_state in (0, 2, 3), "no calibration runs during the tests"
+    assert p.calib_steps == 10
+
+
+def test_power_rejects(lamp):
+    if not lamp.has(fl.POWER):
+        pytest.skip("firmware < 0.9.0")
+    p = fl.parse_power(lamp.read(fl.POWER))
+    assert lamp.write_error(fl.POWER, b"\x01\x1d") == fl.ATT_VALUE_NOT_ALLOWED  # below 30 %
+    assert lamp.write_error(fl.POWER, b"\x01\x65") == fl.ATT_VALUE_NOT_ALLOWED  # above 100 %
+    assert lamp.write_error(fl.POWER, b"\x01") == fl.ATT_INVALID_LENGTH
+    assert lamp.write_error(fl.POWER, b"\x03") == fl.ATT_VALUE_NOT_ALLOWED  # no calibration runs
+    assert lamp.write_error(fl.POWER, b"\x09") == fl.ATT_VALUE_NOT_ALLOWED
+    # the same value again is accepted
+    lamp.write(fl.POWER, bytes([1, p.percent]))
+    assert fl.parse_power(lamp.read(fl.POWER)).percent == p.percent

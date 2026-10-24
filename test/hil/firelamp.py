@@ -48,8 +48,9 @@ OTA_DATA = 0x0011
 UPDATE_INFO = 0x0012
 HARDWARE = 0x0013
 WIFI_NETWORKS = 0x0014
+POWER = 0x0015  # firmware >= 0.9.0
 
-NOTIFYING = (LAMP_STATE, EFFECT_PARAM, WIFI_STATUS, OTA_CONTROL, UPDATE_INFO, WIFI_NETWORKS)
+NOTIFYING = (LAMP_STATE, EFFECT_PARAM, WIFI_STATUS, OTA_CONTROL, UPDATE_INFO, WIFI_NETWORKS, POWER)
 
 CMD_REBOOT = 0x01
 CMD_RESET_EFFECTS = 0x02
@@ -194,6 +195,23 @@ def parse_device_info(d):
     r = Reader(d)
     v = DeviceInfo(r.u8(), r.u8(), r.u8(), r.u16(), r.u8(), r.u8(), r.u8(), r.u8(),
                    r.str8(), r.str8(), r.str8(), r.str8())
+    r.end()
+    return v
+
+
+@dataclass
+class Power:
+    percent: int
+    brownout: int
+    calib_state: int
+    calib_step: int
+    calib_steps: int
+    calib_limit: int
+
+
+def parse_power(d):
+    r = Reader(d)
+    v = Power(r.u8(), r.u8(), r.u8(), r.u8(), r.u8(), r.u16())
     r.end()
     return v
 

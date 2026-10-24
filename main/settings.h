@@ -96,6 +96,11 @@ typedef struct
         // Takes the former padding byte, zero in the records of older firmware versions.
         uint8_t main_gpio;
     } hw;
+    // power supply (firmware 0.9.0, see power.h)
+    struct {
+        uint8_t percent;    // brightness kept after brownout reboots, POWER_PERCENT_MIN..100
+        uint8_t calib_step; // calibration running: the step being shown, 0 - none
+    } power;
 } system_settings_t;
 
 extern system_settings_t sys_settings;

@@ -4,6 +4,7 @@
 #include <lib8tion.h>
 #include "settings.h"
 #include "effect.h"
+#include "power.h"
 #include <esp_timer.h>
 
 #define FRAME_TICKS (pdMS_TO_TICKS(1000 / vol_settings.fps))
@@ -16,6 +17,8 @@ static uint16_t *led_map = NULL; // framebuffer pixel offset -> LED index in the
 // brightness at which the full white matrix takes the current left for the LEDs, x256 (it can
 // exceed 255); every effect is capped by its own peak: brightness_cap()
 static uint32_t white_brightness = 255 * 256;
+// power calibration: the whole matrix white at this brightness, -1 - the effect
+static volatile int16_t calib_white = -1;
 static size_t num_leds, fb_width, fb_height;
 static framebuffer_t framebuffer;
 static EventGroupHandle_t state;
@@ -114,7 +117,8 @@ static esp_err_t strip_init()
 // Maximal brightness of the effect: its brightest frame takes the current left for the LEDs
 static uint8_t brightness_cap(size_t effect)
 {
-    uint64_t cap = (uint64_t)white_brightness * 100 / effect_peak(effect) / 256;
+    // the brightness kept after brownout reboots applies on top
+    uint64_t cap = (uint64_t)white_brightness * 100 / effect_peak(effect) * sys_settings.power.percent / 100 / 256;
     return cap > 255 ? 255 : cap < 1 ? 1 : cap;
 }
 
@@ -136,10 +140,17 @@ static esp_err_t render_frame(framebuffer_t *fb, void *arg)
         strip_busy = false;
     }
 
+    int16_t white = calib_white;
     if (esp_timer_get_time() < flash_until)
     {
         for (size_t i = 0; i < num_leds; i++)
             CHECK(led_strip_set_pixel(strip, i, flash_color.r, flash_color.g, flash_color.b));
+    }
+    else if (white >= 0)
+    {
+        // the current limit does not apply: the calibration finds it
+        for (size_t i = 0; i < num_leds; i++)
+            CHECK(led_strip_set_pixel(strip, i, white, white, white));
     }
     else
     {
@@ -295,13 +306,7 @@ esp_err_t surface_init()
 
     num_leds = sys_settings.leds.width * sys_settings.leds.height;
 
-    // the current limit is of the whole lamp: the controller and the unlit LEDs take their part
-    int leds_ma = (int)sys_settings.leds.current_limit - CONFIG_FL_CONTROLLER_CURRENT_MA
-            - (int)(num_leds * CONFIG_FL_LED_IDLE_CURRENT_UA / 1000);
-    if (leds_ma < 0)
-        leds_ma = 0;
-    white_brightness = (uint32_t)((float)leds_ma / num_leds / CONFIG_FL_SINGLE_LED_CURRENT_MA * 255.0f * 256.0f);
-    ESP_LOGI(TAG, "Current for the LEDs: %d mA, full white brightness: %lu", leds_ma, white_brightness / 256);
+    surface_update_power();
 
     if (sys_settings.leds.rotation == MATRIX_ROTATION_90 || sys_settings.leds.rotation == MATRIX_ROTATION_270)
     {
@@ -554,6 +559,22 @@ esp_err_t surface_play()
     esp_err_t res = surface_play_unlocked();
     xSemaphoreGiveRecursive(lock);
     return res;
+}
+
+void surface_update_power()
+{
+    white_brightness = power_white_brightness();
+    ESP_LOGI(TAG, "Current limit %lu mA: full white brightness %lu, kept after brownouts %d %%",
+            sys_settings.leds.current_limit, white_brightness / 256, sys_settings.power.percent);
+}
+
+esp_err_t surface_show_white(int16_t brightness)
+{
+    calib_white = brightness;
+    // the frames are rendered only while the animation plays
+    if (brightness >= 0 && !surface_is_playing())
+        return surface_play();
+    return ESP_OK;
 }
 
 esp_err_t surface_hold_for_update(bool hold)

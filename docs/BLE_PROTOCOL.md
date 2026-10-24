@@ -88,6 +88,7 @@ Service: `F1A70000-B390-49C3-8770-A1DFC323D1AF`
 | 0x0012 | [Update info](#0x0012-update-info)               | R, N    |
 | 0x0013 | [Hardware settings](#0x0013-hardware-settings)   | R, W    |
 | 0x0014 | [WiFi networks](#0x0014-wifi-networks) (optional, firmware ≥ 0.1.5) | R, W, N |
+| 0x0015 | [Power](#0x0015-power) (optional, firmware ≥ 0.9.0) | R, W, N |
 
 Optional characteristics may be missing on older firmware: the app checks for them after
 service discovery and hides the feature when one is missing.
@@ -561,3 +562,48 @@ Network:
 
 To get the list: subscribe, write command `0x08`, wait for the notification with state `2`, read;
 while `index + N < T`, write `index + N` and read again.
+
+---
+
+## 0x0015 Power
+
+Optional (firmware ≥ 0.9.0). The power supply: the brightness kept after brownouts and the
+calibration of the current limit.
+
+**Brownout protection.** A reboot caused by a brownout (the supply could not hold the voltage)
+lowers the brightness of all effects by 15 %, down to 30 %, and keeps it. The app shows it and can
+put it back (command `0x01`).
+
+**Calibration.** The whole matrix lights up white in 10 steps of brightness, 5 s each, the current
+limit does not apply. The step is stored before it is shown, with the LEDs dark: a reboot during
+a step (a brownout, but also a crash or the power switched off) means the supply did not hold it,
+and the step before is the result. So does command `0x03` (the user sees the matrix flicker or
+show wrong colors). The [LED settings](#0x0008-led-settings) current limit is set from the
+result with a 15 % margin, at once (no reboot needed), and the brownout brightness goes back to
+100 %. All 10 steps held: the current of the full white matrix at the full brightness. A reboot
+by the lamp itself (Command `0x01`) only cancels.
+
+**Read / notify** (a notification on every change: the calibration started, every step, the end,
+the brightness changed):
+
+| Offset | Type | Field |
+|--------|------|-------|
+| 0      | u8   | Brightness kept after brownouts, percent, `30..100` |
+| 1      | u8   | `1` - this boot was a brownout reboot (the brightness was lowered now) |
+| 2      | u8   | Calibration: `0` - not since boot, `1` - running, `2` - done (since boot), `3` - cancelled |
+| 3      | u8   | Running: the step shown, `1..steps`; done: the steps the supply held, `0..steps` |
+| 4      | u8   | Number of steps, `10` |
+| 5      | u16  | Done: the current limit set, mA |
+
+After a calibration that ended with a reboot the lamp reports state `2` with the result on the
+next connection.
+
+**Write**:
+
+| Command | Arguments | Meaning |
+|---------|-----------|---------|
+| `0x01`  | u8 percent `30..100` | Set the brightness kept after brownouts (`100`: back to full) |
+| `0x02`  | - | Start the calibration (`0x13` while it runs or during a firmware update); turns the lamp on |
+| `0x03`  | - | The matrix flickers at the current step: finish with the step before (`0x13` unless running) |
+| `0x04`  | - | Cancel the calibration, the settings stay (`0x13` unless running) |
+

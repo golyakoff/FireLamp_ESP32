@@ -18,6 +18,7 @@
 #include "demo.h"
 #include "storage.h"
 #include "ota.h"
+#include "power.h"
 #include "bus.h"
 #include "wifi.h"
 #include "updater.h"
@@ -49,6 +50,14 @@ enum {
     CHR_UPDATE_INFO   = 0x0012,
     CHR_HARDWARE      = 0x0013,
     CHR_WIFI_NETWORKS = 0x0014,
+    CHR_POWER         = 0x0015,
+};
+
+enum {
+    POWER_CMD_SET_PERCENT = 0x01,
+    POWER_CMD_CALIB_START = 0x02,
+    POWER_CMD_CALIB_FAIL  = 0x03,
+    POWER_CMD_CALIB_CANCEL = 0x04,
 };
 
 enum {
@@ -81,10 +90,10 @@ enum {
 
 static const ble_uuid128_t service_uuid = FL_UUID(0x0000);
 
-static uint16_t h_state, h_param, h_wifi_status, h_ota_control, h_update, h_networks;
+static uint16_t h_state, h_param, h_wifi_status, h_ota_control, h_update, h_networks, h_power;
 static uint16_t conn = BLE_HS_CONN_HANDLE_NONE;
 static bool authorized = false;
-static bool sub_state, sub_param, sub_ota, sub_wifi, sub_update, sub_networks;
+static bool sub_state, sub_param, sub_ota, sub_wifi, sub_update, sub_networks, sub_power;
 static uint8_t own_addr_type;
 static char device_name[BLE_NAME_MAX_LEN + 1];
 
@@ -851,6 +860,61 @@ static void on_update_info()
     notify(h_update, sub_update, &b);
 }
 
+static void build_power(buf_t *b)
+{
+    power_status_t s;
+    power_get_status(&s);
+    put_u8(b, s.percent);
+    put_u8(b, s.brownout ? 1 : 0);
+    put_u8(b, s.calib_state);
+    put_u8(b, s.calib_step);
+    put_u8(b, POWER_CALIB_STEPS);
+    put_u16(b, s.calib_limit > 0xffff ? 0xffff : s.calib_limit);
+}
+
+static int chr_power(struct ble_gatt_access_ctxt *ctxt, reader_t *r)
+{
+    if (ctxt->op == BLE_GATT_ACCESS_OP_READ_CHR)
+    {
+        buf_t b = { 0 };
+        build_power(&b);
+        return reply(ctxt, &b);
+    }
+
+    uint8_t cmd = get_u8(r);
+    esp_err_t res;
+    switch (cmd)
+    {
+        case POWER_CMD_SET_PERCENT:
+        {
+            uint8_t percent = get_u8(r);
+            if (r->error || r->pos != r->len)
+                return BLE_ATT_ERR_INVALID_ATTR_VALUE_LEN;
+            res = power_set_percent(percent);
+            break;
+        }
+        case POWER_CMD_CALIB_START:
+        case POWER_CMD_CALIB_FAIL:
+        case POWER_CMD_CALIB_CANCEL:
+            if (r->error || r->pos != r->len)
+                return BLE_ATT_ERR_INVALID_ATTR_VALUE_LEN;
+            res = cmd == POWER_CMD_CALIB_START ? power_calib_start()
+                : cmd == POWER_CMD_CALIB_FAIL ? power_calib_fail()
+                : power_calib_cancel();
+            break;
+        default:
+            return BLE_ATT_ERR_VALUE_NOT_ALLOWED;
+    }
+    return res == ESP_OK ? 0 : BLE_ATT_ERR_VALUE_NOT_ALLOWED;
+}
+
+static void on_power()
+{
+    buf_t b = { 0 };
+    build_power(&b);
+    notify(h_power, sub_power, &b);
+}
+
 static void request_ota_conn_params()
 {
     // flash writes stall the radio from time to time: a long supervision timeout keeps the link
@@ -967,6 +1031,7 @@ static int access_cb(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt
         case CHR_UPDATE_INFO:   return chr_update_info(ctxt);
         case CHR_HARDWARE:      return chr_hardware(ctxt, &r);
         case CHR_WIFI_NETWORKS: return chr_wifi_networks(ctxt, &r);
+        case CHR_POWER:         return chr_power(ctxt, &r);
         default:                return BLE_ATT_ERR_UNLIKELY;
     }
 }
@@ -1005,6 +1070,7 @@ static const struct ble_gatt_svc_def services[] = {
             CHR_H(CHR_UPDATE_INFO, R | N, &h_update),
             CHR(CHR_HARDWARE, R | W),
             CHR_H(CHR_WIFI_NETWORKS, R | W | N, &h_networks),
+            CHR_H(CHR_POWER, R | W | N, &h_power),
             { 0 }
         },
     },
@@ -1063,7 +1129,7 @@ static void idle_timer_cb(void *arg)
     if (conn == BLE_HS_CONN_HANDLE_NONE)
         return;
     // an app waiting for notifications is not idle
-    if (sub_state || sub_param || sub_ota || sub_wifi || sub_update || sub_networks)
+    if (sub_state || sub_param || sub_ota || sub_wifi || sub_update || sub_networks || sub_power)
     {
         idle_restart();
         return;
@@ -1121,7 +1187,7 @@ static int gap_event(struct ble_gap_event *event, void *arg)
             }
             conn = event->connect.conn_handle;
             authorized = false;
-            sub_state = sub_param = sub_ota = sub_wifi = sub_update = sub_networks = false;
+            sub_state = sub_param = sub_ota = sub_wifi = sub_update = sub_networks = sub_power = false;
             effect_cursor = 0;
             networks_cursor = 0;
             ESP_LOGI(TAG, "BLE: connected");
@@ -1177,6 +1243,8 @@ static int gap_event(struct ble_gap_event *event, void *arg)
                 sub_update = event->subscribe.cur_notify;
             else if (event->subscribe.attr_handle == h_networks)
                 sub_networks = event->subscribe.cur_notify;
+            else if (event->subscribe.attr_handle == h_power)
+                sub_power = event->subscribe.cur_notify;
             else
                 break; // not ours, e.g. Service Changed subscribed by the phone's system
             idle_restart();
@@ -1323,6 +1391,7 @@ esp_err_t ble_server_init()
     wifi_set_status_cb(on_wifi_status);
     wifi_set_scan_cb(on_wifi_scan);
     updater_set_cb(on_update_info);
+    power_set_cb(on_power);
 
     // new phones can pair right after power on
     ble_server_open_pairing_window();

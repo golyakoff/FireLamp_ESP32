@@ -64,4 +64,15 @@ esp_err_t surface_flash(rgb_t color, uint32_t ms);
  */
 esp_err_t surface_hold_for_update(bool hold);
 
+/**
+ * Power calibration: the whole matrix white at `brightness` (0..255, the current limit does not
+ * apply) instead of the effect, -1 - the effect again. Turns the animation on.
+ */
+esp_err_t surface_show_white(int16_t brightness);
+
+/**
+ * The current limit or the brightness kept after brownouts changed: recalculate the caps
+ */
+void surface_update_power();
+
 #endif /* EVLAMP_SURFACE_H_ */

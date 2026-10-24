@@ -11,6 +11,7 @@
 #include "demo.h"
 #include "ble_server.h"
 #include "ota.h"
+#include "power.h"
 #include <esp_ota_ops.h>
 #include <driver/gpio.h>
 #include <esp_timer.h>
@@ -300,6 +301,8 @@ void app_main()
     ESP_ERROR_CHECK(settings_init());
     // Load system settings from NVS
     ESP_ERROR_CHECK(sys_settings_load());
+    // A calibration finished or a brownout reboot: the current limit and the brightness
+    ESP_ERROR_CHECK(power_init());
     // Load volatile settings
     ESP_ERROR_CHECK(vol_settings_load());
     // Load effect parameters

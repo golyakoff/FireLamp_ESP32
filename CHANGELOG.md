@@ -1,3 +1,9 @@
+Release 0.9.0
+
+- [x] Brownout protection: a reboot caused by a brownout (the power supply could not hold the voltage) lowers the brightness of all effects by 15 %, down to 30 %, and keeps it; the lamp no longer reboots on a bright effect again and again. The new BLE characteristic `0x0015` Power reports it, the app can put the brightness back
+- [x] Power supply calibration (`0x0015` command `0x02`): the whole matrix white in 10 steps of brightness, 5 s each. A step the supply did not hold (a reboot during it, or the app's "the matrix flickers") ends the calibration, the current limit is set from the step before with a 15 % margin, at once without a reboot
+- [x] The current model (controller, unlit LEDs, 33 mA per LED) is in one place, `power.c`, for the brightness caps and the calibration
+
 Release 0.8.1
 
 - [x] 0.8.0 went back to the previous firmware by itself right after the update on the lamps with the default Main button pin and active high buttons: the power on check read GPIO0 (the BOOT button, pulled up on the boards) instead of the default pin. A lamp flashed with 0.8.0 over USB could even stop at boot waiting for that "button" to be released. The check reads the real Main button pin, and the wait for the release is at most 30 s

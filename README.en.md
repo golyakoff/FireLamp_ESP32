@@ -179,7 +179,14 @@ The size, LED type, color order (GRB/RGB), wiring (serpentine or progressive) an
 limit are set there too. The current limit is the current of the power supply: the lamp keeps
 a part for the controller and the unlit LEDs and caps the brightness of every effect by its
 brightest frame, so a dark effect is brighter than a full white one at the same limit. The
-matrix settings apply after a reboot. An easy check is the Turbin fire effect: the flames must rise from the bottom.
+matrix settings apply after a reboot.
+
+**A weak power supply.** When the supply cannot hold the voltage the lamp reboots (brownout).
+After such a reboot it lowers the brightness of all effects by 15 % (not below 30 %), and the app
+shows it. The calibration finds the current limit of your supply (System → matrix): the matrix
+lights up white 10 times for 5 seconds, brighter every time; the step at which the lamp rebooted
+or you pressed "The matrix flickers" is too much, and the limit is set from the step before with
+a 15 % margin. An easy check is the Turbin fire effect: the flames must rise from the bottom.
 
 ## Flashing
 

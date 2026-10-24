@@ -218,6 +218,21 @@ in the "always on" mode, the HTTP API (`http://<lamp ip>/api/...`, see [API.md](
   2.4 GHz only (the lamp cannot use 5 GHz), strongest first; security `3` (enterprise) cannot be
   used by the lamp, show it disabled. Without `0x0014` keep the manual SSID input.
 
+## 8a. Power supply (optional, firmware ≥ 0.9.0)
+
+[Power](BLE_PROTOCOL.md#0x0015-power) `0x0015`, subscribe with the others when present.
+
+- **Brownouts.** Flag `1` at offset 1: the lamp rebooted because the supply could not hold the
+  voltage and lowered the brightness (offset 0, percent). Tell the user once per connection
+  ("The lamp restarted for lack of power, the brightness is lowered to N %") and offer a better
+  supply or the calibration; "Back to 100 %" writes `01 64`.
+- **Calibration** (System tab, next to the current limit). Warn first: the matrix turns white,
+  brighter step by step, for up to a minute, and the lamp may restart several times. Write `02`.
+  Show the step from the notifications (`step / steps`) with two buttons: "The matrix flickers"
+  (`03`) and "Cancel" (`04`). A disconnect while it runs is normal (a brownout reboot): reconnect;
+  state `2` then carries the result. On state `2` show "The supply held N of 10 steps, the
+  current limit is L mA" and read LED settings again (the limit changed).
+
 ## 9. Firmware update
 
 Two ways; both report progress through `0x0010` OTA control notifications:

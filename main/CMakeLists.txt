@@ -16,6 +16,7 @@ idf_component_register(
 		demo_core.c
 		demo.c
 		ota.c
+		power.c
 		ble_server.c
 		updater.c
 		wifi.c

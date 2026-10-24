@@ -1,4 +1,5 @@
 #include "settings.h"
+#include "power.h"
 #include <string.h>
 #include "storage.h"
 #include "surface.h"
@@ -38,6 +39,9 @@ static const system_settings_t sys_defaults = {
         .input_mode = DEFAULT_INPUT_MODE,
         .wiring     = MATRIX_WIRING_SERPENTINE,
         .button_level = CONFIG_FL_BUTTON_LEVEL,
+    },
+    .power = {
+        .percent = 100,
     },
 };
 
@@ -232,6 +236,10 @@ esp_err_t sys_settings_load()
             sys_settings.hw.button_level = CONFIG_FL_BUTTON_LEVEL;
         if (sys_settings.hw.main_gpio && !input_main_gpio_allowed(sys_settings.hw.main_gpio))
             sys_settings.hw.main_gpio = 0;
+        if (sys_settings.power.percent < POWER_PERCENT_MIN || sys_settings.power.percent > 100)
+            sys_settings.power.percent = 100;
+        if (sys_settings.power.calib_step > POWER_CALIB_STEPS)
+            sys_settings.power.calib_step = 0;
         if (size >= sizeof(system_settings_t))
             return ESP_OK;
         ESP_LOGW(TAG, "System settings upgraded from %d to %d bytes", size, sizeof(system_settings_t));
