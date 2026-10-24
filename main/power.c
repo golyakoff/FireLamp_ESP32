@@ -1,6 +1,7 @@
 #include "power.h"
 #include <esp_system.h>
 #include <esp_timer.h>
+#include <hal/brownout_hal.h>
 #include "settings.h"
 #include "surface.h"
 #include "ota.h"
@@ -9,6 +10,14 @@
 #define CALIB_TASK_PRIORITY   5
 #define CALIB_DARK_MS         300 // the LEDs are dark while the step is stored
 
+// The brownout detector resets the chip before the radio and the flash fail: at the lowest
+// threshold a sagging supply left it hung, alive but deaf, with the LEDs lit
+#if CONFIG_IDF_TARGET_ESP32
+#define BROWNOUT_THRESHOLD 7 // 2.80 V
+#else
+#define BROWNOUT_THRESHOLD 5 // ESP32-C3: 2.76 V
+#endif
+
 #define EV_FAIL   BIT(0)
 #define EV_CANCEL BIT(1)
 
@@ -16,6 +25,7 @@ static power_cb_t status_cb = NULL;
 static power_status_t status = { .percent = 100 };
 static volatile bool running = false;
 static EventGroupHandle_t events = NULL;
+static bool save_pending = false;
 
 static size_t num_leds()
 {
@@ -53,7 +63,7 @@ uint32_t power_white_brightness()
 }
 
 // The supply held `held` steps: the current limit from the last of them with a margin, or the full
-// white current when it held all of them. Lower than one step: half of the first one.
+// white current when it held all of them. Lower than one step: half of the first one. Not saved.
 static void apply_result(uint8_t held)
 {
     uint32_t limit;
@@ -67,7 +77,6 @@ static void apply_result(uint8_t held)
     sys_settings.leds.current_limit = limit;
     sys_settings.power.percent = 100;
     sys_settings.power.calib_step = 0;
-    sys_settings_save();
 
     status.percent = 100;
     status.calib_state = POWER_CALIB_DONE;
@@ -95,12 +104,12 @@ esp_err_t power_init()
         if (reason == ESP_RST_SW)
         {
             sys_settings.power.calib_step = 0;
-            sys_settings_save();
             status.calib_state = POWER_CALIB_CANCELLED;
             ESP_LOGW(TAG, "Power calibration cancelled by a reboot");
         }
         else
             apply_result(step - 1);
+        save_pending = true;
         status.brownout = false;
         return ESP_OK;
     }
@@ -109,12 +118,31 @@ esp_err_t power_init()
     {
         int percent = sys_settings.power.percent - POWER_BROWNOUT_STEP;
         sys_settings.power.percent = percent < POWER_PERCENT_MIN ? POWER_PERCENT_MIN : percent;
-        sys_settings_save();
+        save_pending = true;
         status.percent = sys_settings.power.percent;
         ESP_LOGW(TAG, "Rebooted by a brownout: the brightness is lowered to %d %%", status.percent);
     }
 
     return ESP_OK;
+}
+
+void power_start()
+{
+    // the LEDs may still show the frame from before the reset (they keep it while powered): the
+    // flash is written once the surface has darkened them, and the detector watches from now on
+    if (save_pending)
+    {
+        sys_settings_save();
+        save_pending = false;
+    }
+    brownout_hal_config_t cfg = {
+        .threshold = BROWNOUT_THRESHOLD,
+        .enabled = true,
+        .reset_enabled = true,
+        .flash_power_down = true,
+        .rf_power_down = true,
+    };
+    brownout_hal_config(&cfg);
 }
 
 void power_set_cb(power_cb_t cb)
@@ -185,6 +213,7 @@ static void calib_task(void *arg)
     else
     {
         apply_result(held);
+        sys_settings_save();
         surface_update_power();
     }
     running = false;

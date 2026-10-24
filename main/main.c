@@ -301,7 +301,7 @@ void app_main()
     ESP_ERROR_CHECK(settings_init());
     // Load system settings from NVS
     ESP_ERROR_CHECK(sys_settings_load());
-    // A calibration finished or a brownout reboot: the current limit and the brightness
+    // A calibration finished or a brownout reboot: the current limit and the brightness (saved later)
     ESP_ERROR_CHECK(power_init());
     // Load volatile settings
     ESP_ERROR_CHECK(vol_settings_load());
@@ -312,6 +312,8 @@ void app_main()
     ESP_ERROR_CHECK(systime_init());
     // Init surface
     ESP_ERROR_CHECK(surface_init());
+    // The LEDs are dark now: settings saved by power_init(), the brownout detector on
+    power_start();
     if (go_back)
         rollback();
 

@@ -217,6 +217,9 @@ static void surface_task(void *arg)
     ESP_LOGI(TAG, "LED strip: %d LEDs, GPIO %d, type %d, color order %d",
         num_leds, CONFIG_FL_MATRIX_GPIO, sys_settings.leds.type, sys_settings.leds.color_order);
     ESP_ERROR_CHECK(strip_init());
+    // the LEDs keep the last frame across a reset of the controller: a calibration step, a bright
+    // effect that browned the supply out
+    led_strip_clear(strip);
 
     // init framebuffer
     memset(&framebuffer, 0, sizeof(framebuffer_t));

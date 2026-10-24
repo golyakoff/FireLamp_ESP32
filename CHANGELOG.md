@@ -1,3 +1,9 @@
+Release 0.9.1
+
+- [x] A supply sagging during the calibration (or under a bright effect) left the controller hung instead of rebooting: alive but without Bluetooth, the matrix still lit, which kept the supply down. The brownout detector resets earlier (2.80 V on ESP32, 2.76 V on ESP32-C3 instead of the lowest threshold), before the radio and the flash fail
+- [x] The LEDs keep their last frame across a reset of the controller: the firmware darkens the whole matrix right at the start, also when the lamp is off
+- [x] The brownout detector is turned on by the firmware once the matrix is dark (otherwise the old white frame could reset the controller again and again), and the result of a calibration or a brownout reboot is written to the flash after that too
+
 Release 0.9.0
 
 - [x] Brownout protection: a reboot caused by a brownout (the power supply could not hold the voltage) lowers the brightness of all effects by 15 %, down to 30 %, and keeps it; the lamp no longer reboots on a bright effect again and again. The new BLE characteristic `0x0015` Power reports it, the app can put the brightness back

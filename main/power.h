@@ -48,6 +48,13 @@ typedef void (*power_cb_t)();
  */
 esp_err_t power_init();
 
+/**
+ * After the surface has started (the LEDs are dark or within the limit): saves what power_init()
+ * changed and turns on the brownout detector. Until then the detector is off: with the LEDs still
+ * lit by the frame from before a reset it would reset the chip again and again.
+ */
+void power_start();
+
 void power_set_cb(power_cb_t cb);
 
 void power_get_status(power_status_t *s);
