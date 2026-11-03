@@ -1,3 +1,7 @@
+Release 0.11.1
+
+- [x] Gyver fire moves smoothly at a slow tempo: the flame rose a whole row every two effect steps, one frame moving it a quarter and the next three quarters of a row, so the surface had little to blend and the motion pulsed. It now rises half a row per step, and the frames between the steps are blended evenly, like the sub-pixel Metaballs of 0.10.1. The speed is the same
+
 Release 0.11.0
 
 - [x] Five bonded phones instead of four: `BLE_MAX_BONDS`, `CONFIG_BT_NIMBLE_MAX_BONDS`, the app and the docs agree. The old default `CONFIG_BT_NIMBLE_MAX_CCCDS=8` fitted one phone: the second phone's notifications overflowed the CCCD store, and NimBLE unpaired the first phone to make room, so only one bond survived. The lamp now keeps 48 CCCD records (5 phones × 8 + margin); `config.h` stops the build if the numbers drift apart

@@ -60,7 +60,10 @@ static uint8_t line[MASK_W];
 // horizontal swing of the hues and of the brightness, row by row
 static uint8_t shift_hue[MAX_FLAME_H * 2];
 static uint8_t shift_value[MAX_FLAME_H * 2];
-static uint8_t pcnt = 0;
+// How far the flame has risen since the last row was inserted, 1/256 of a row. Two effect
+// steps make a row, each one halfway: the surface blends the frames between the steps, so the
+// flame moves at a constant speed instead of the 1/4 then 3/4 of a row it used to jump by.
+static uint16_t pcnt = 0;
 
 static void generate_line()
 {
@@ -122,11 +125,11 @@ esp_err_t effect_gyver_fire_run(framebuffer_t *fb)
 {
     CHECK(fb_begin(fb));
 
-    if (pcnt >= 30)
+    if (pcnt >= 256)
     {
         shift_up();
         generate_line();
-        pcnt = 0;
+        pcnt -= 256;
     }
 
     size_t h = MIN(fb->height, MAX_FLAME_H * 2);
@@ -138,7 +141,7 @@ esp_err_t effect_gyver_fire_run(framebuffer_t *fb)
     for (size_t x = 0; x < fb->width; x++)
     {
         size_t nx = x % MASK_W;
-        draw_flame_pixel(fb, x, 0, ((100 - pcnt) * matrix_value[0][nx] + pcnt * line[nx]) / 100,
+        draw_flame_pixel(fb, x, 0, blend8(matrix_value[0][nx], line[nx], pcnt),
                 shift_hue[0], shift_value[0]);
     }
 
@@ -156,7 +159,7 @@ esp_err_t effect_gyver_fire_run(framebuffer_t *fb)
             for (size_t x = 0; x < fb->width; x++)
             {
                 size_t nx = x % MASK_W;
-                draw_flame_pixel(fb, x, y, ((100 - pcnt) * matrix_value[y][nx] + pcnt * matrix_value[y - 1][nx]) / 100,
+                draw_flame_pixel(fb, x, y, blend8(matrix_value[y][nx], matrix_value[y - 1][nx], pcnt),
                         hue_shift, value_shift);
             }
             continue;
@@ -187,7 +190,7 @@ esp_err_t effect_gyver_fire_run(framebuffer_t *fb)
         }
     }
 
-    pcnt += 25;
+    pcnt += 128;
 
     return fb_end(fb);
 }
