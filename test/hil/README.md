@@ -51,7 +51,7 @@ The lamp accepts bonded phones only, and a new one only in the pairing window (2
 power on or after 5 clicks). With `--port` the tests reset the lamp first, so the window is open.
 Without `--port`, power the lamp on (or make 5 clicks) right before the first run.
 
-The PC takes one of the 4 bond slots of the lamp. To pair again from scratch:
+The PC takes one of the 5 bond slots of the lamp. To pair again from scratch:
 `bluetoothctl remove <address>`.
 
 ## What the tests change
@@ -81,5 +81,6 @@ Device name, WiFi settings, LED and hardware settings are never changed.
 - `test_control.py` - lamp state, parameters, commands, demo mode;
 - `test_settings.py` - time, schedule, settings: round trips and validation;
 - `test_wifi_scan.py` - WiFi scan (`--wifi`);
+- `test_bonds.py` - the paired phones list and names;
 - `test_reboot.py` - persistence (`--reboot`);
 - `test_ota.py` - firmware upload over BLE (`--firmware`).

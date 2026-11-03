@@ -103,8 +103,20 @@
 #define BLE_PAIRING_WINDOW_S 120
 #define BLE_AUTH_TIMEOUT_S 30      // unknown phone must pair within this time
 #define BLE_IDLE_TIMEOUT_S 300     // no requests and no subscriptions: disconnect to advertise again
-#define BLE_MAX_BONDS 4
+#define BLE_MAX_BONDS 5
+// One bonded phone keeps a CCCD record per notifying characteristic (7) plus Service Changed,
+// 8 in all. Keep CONFIG_BT_NIMBLE_MAX_CCCDS >= BLE_MAX_BONDS * BLE_CCCDS_PER_PHONE: when the
+// CCCD store overflows, NimBLE unpairs the oldest bonded phone to make room.
+#define BLE_CCCDS_PER_PHONE 8
+#define BLE_BOND_NAME_MAX 48       // bytes of UTF-8, sent by the app from BluetoothAdapter.getName()
 #define BLE_STATE_NOTIFY_MS 250    // lamp state notifications are coalesced: max 4 per second
+
+#if CONFIG_BT_NIMBLE_MAX_BONDS != BLE_MAX_BONDS
+    #error "BLE_MAX_BONDS and CONFIG_BT_NIMBLE_MAX_BONDS must match"
+#endif
+#if CONFIG_BT_NIMBLE_MAX_CCCDS < BLE_MAX_BONDS * BLE_CCCDS_PER_PHONE
+    #error "CONFIG_BT_NIMBLE_MAX_CCCDS is too small: a new phone's notifications would unpair a bonded one"
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 /// Bus

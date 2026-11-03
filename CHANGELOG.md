@@ -1,3 +1,9 @@
+Release 0.11.0
+
+- [x] Five bonded phones instead of four: `BLE_MAX_BONDS`, `CONFIG_BT_NIMBLE_MAX_BONDS`, the app and the docs agree. The old default `CONFIG_BT_NIMBLE_MAX_CCCDS=8` fitted one phone: the second phone's notifications overflowed the CCCD store, and NimBLE unpaired the first phone to make room, so only one bond survived. The lamp now keeps 48 CCCD records (5 phones × 8 + margin); `config.h` stops the build if the numbers drift apart
+- [x] Paired phones, characteristic `0x0016`: the phones the lamp remembers with their identity address (MAC), the name, and which one is the current connection. The list comes from the same NimBLE store as the keys, so it cannot disagree with the real bond slots; it is optional for the app (firmware ≥ 0.11.0)
+- [x] Phone names: pairing itself carries no name, so the app reads the Bluetooth name from the phone's settings and sends it with Command `0x0A`. The lamp keeps it in NVS next to the bond (a separate `bonds` namespace, not the settings, so it also works with an EEPROM); names of evicted or forgotten phones are pruned, factory reset clears them
+
 Release 0.10.1
 
 - [x] Metaballs move smoothly: the balls were placed in whole pixels and jumped from one to the next, most visibly at a slow tempo. Their centers and distances are in 1/256 of a pixel now

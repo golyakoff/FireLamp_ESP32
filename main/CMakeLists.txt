@@ -18,6 +18,7 @@ idf_component_register(
 		ota.c
 		power.c
 		ble_server.c
+		bonds.c
 		updater.c
 		wifi.c
 		bus.c

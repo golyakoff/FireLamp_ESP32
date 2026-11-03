@@ -43,8 +43,9 @@ Connections and is allowed only in the **pairing window**:
 - 2 minutes after the pairing gesture: 5 clicks of the main button (or touch pad); the lamp
   confirms it with a short blink.
 
-Already bonded phones can connect at any time. Up to 4 phones are remembered; bonding a 5th one
-forgets the oldest. Factory reset forgets all phones.
+Already bonded phones can connect at any time. Up to 5 phones are remembered; bonding a 6th one
+forgets the oldest. Factory reset forgets all phones. The lamp keeps a name for each phone when
+the app sends one (Command `0x0A`); pairing itself exchanges keys only.
 
 How it works for the app:
 
@@ -89,6 +90,7 @@ Service: `F1A70000-B390-49C3-8770-A1DFC323D1AF`
 | 0x0013 | [Hardware settings](#0x0013-hardware-settings)   | R, W    |
 | 0x0014 | [WiFi networks](#0x0014-wifi-networks) (optional, firmware ≥ 0.1.5) | R, W, N |
 | 0x0015 | [Power](#0x0015-power) (optional, firmware ≥ 0.9.0) | R, W, N |
+| 0x0016 | [Bonded phones](#0x0016-bonded-phones) (optional, firmware ≥ 0.11.0) | R |
 
 Optional characteristics may be missing on older firmware: the app checks for them after
 service discovery and hides the feature when one is missing.
@@ -376,6 +378,7 @@ Write; the first byte is the command:
 | 0x07 | Install the firmware update from the internet, if a newer version is released; progress comes in [OTA control](#0x0010-ota-control) notifications. Needs WiFi configured (otherwise `0x13`) |
 | 0x08 | Scan for WiFi networks, see [WiFi networks](#0x0014-wifi-networks) (firmware ≥ 0.1.5). Works in any WiFi mode. `0x13` during a firmware upload over BLE; a repeated command while scanning is accepted and does nothing |
 | 0x09 | Go back to the previous firmware (the version in [Device info](#0x0001-device-info)) and reboot; the settings stay (firmware ≥ 0.8.0). `0x13` if there is none or during an update. The same without a phone: hold the Main button while powering the lamp on, 5 s |
+| 0x0A | Name the phone of this connection: `str8` UTF-8 name, up to 48 bytes, printable (firmware ≥ 0.11.0). The name is stored with the bond and returned by [Bonded phones](#0x0016-bonded-phones). An empty name removes it. `0x13` without a bonded connection |
 
 ---
 
@@ -607,3 +610,30 @@ next connection.
 | `0x03`  | - | The matrix flickers at the current step: finish with the step before (`0x13` unless running) |
 | `0x04`  | - | Cancel the calibration, the settings stay (`0x13` unless running) |
 
+## 0x0016 Bonded phones
+
+Optional (firmware ≥ 0.11.0), read only. The phones the lamp remembers, in the order they were
+bonded (oldest first), with the name the app has sent (Command `0x0A`).
+
+| Offset | Type | Field |
+|--------|------|-------|
+| 0 | u8 | Number of bonded phones, `0..capacity` |
+| 1 | u8 | Capacity, `5` |
+| 2 + entry | | One entry per phone, `9 + name length` bytes |
+| +0 | u8 | Address type: `0` public, `1` random, `2` public identity, `3` random identity |
+| +1 | u8[6] | Identity address, least significant byte first |
+| +7 | u8 | Flags: bit 0 - the phone of this connection |
+| +8 | str8 | Name, UTF-8, empty when the app has not sent one |
+
+The address is the identity address of the bond (what the phone uses to identify itself), not the
+phone's Wi-Fi MAC. It is printed by reversing the six bytes: `AA:BB:CC:DD:EE:FF`. The app marks the
+entry with bit 0 as "this phone" (it cannot read its own Bluetooth address on modern Android).
+
+A bonded phone can read the list of the other bonded phones: MAC addresses are personal data, so
+show them only in the lamp's settings and do not log them in the app's crash reports.
+
+**Name of the phone.** Pairing (SMP) exchanges keys and addresses only: the name shown in the
+phone's Bluetooth settings is not part of it. The app reads `BluetoothAdapter.getName()` (the same
+name the system settings show) and sends it with Command `0x0A` after pairing; the lamp keeps it in
+NVS next to the bond. The list returns it on every connection. A lamp updated to 0.11.0 gets the
+names of already bonded phones on the next connection, when the app sends them.

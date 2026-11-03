@@ -49,6 +49,7 @@ UPDATE_INFO = 0x0012
 HARDWARE = 0x0013
 WIFI_NETWORKS = 0x0014
 POWER = 0x0015  # firmware >= 0.9.0
+BONDED_PHONES = 0x0016  # firmware >= 0.11.0
 
 NOTIFYING = (LAMP_STATE, EFFECT_PARAM, WIFI_STATUS, OTA_CONTROL, UPDATE_INFO, WIFI_NETWORKS, POWER)
 
@@ -61,6 +62,7 @@ CMD_CHECK_UPDATE = 0x06
 CMD_INSTALL_UPDATE = 0x07
 CMD_WIFI_SCAN = 0x08
 CMD_ROLLBACK = 0x09
+CMD_SET_BOND_NAME = 0x0A
 
 MASK_ON, MASK_EFFECT, MASK_BRIGHTNESS, MASK_FPS, MASK_DEMO = 1, 2, 4, 8, 16
 
@@ -189,6 +191,32 @@ class Network:
     rssi: int
     security: int
     channel: int
+
+
+@dataclass
+class BondedPhone:
+    type: int
+    address: bytes  # six bytes, least significant first
+    current: bool
+    name: str
+
+    @property
+    def mac(self):
+        return ":".join(f"{b:02X}" for b in reversed(self.address))
+
+
+def parse_bonded_phones(d):
+    """(capacity, [BondedPhone]) from 0x0016"""
+    r = Reader(d)
+    count, capacity = r.u8(), r.u8()
+    phones = []
+    for _ in range(count):
+        t = r.u8()
+        address = r.bytes(6)
+        flags = r.u8()
+        phones.append(BondedPhone(t, address, bool(flags & 1), r.str8()))
+    r.end()
+    return capacity, phones
 
 
 def parse_device_info(d):
@@ -471,6 +499,12 @@ class Lamp:
 
     def command(self, cmd):
         self.write(COMMAND, bytes([cmd]))
+
+    def set_bond_name(self, name):
+        self.write(COMMAND, bytes([CMD_SET_BOND_NAME]) + str8(name))
+
+    def bonded_phones(self):
+        return parse_bonded_phones(self.read(BONDED_PHONES))
 
     def networks(self):
         """Whole WiFi networks list, page by page: (state, [Network])"""

@@ -4,7 +4,7 @@ What the Android app needs to know to control FireLamp. The byte-level contract 
 [BLE_PROTOCOL.md](BLE_PROTOCOL.md); this document explains how to use it: the order of
 operations, what to cache, and how FireLamp differs from Matrix Clock (the same app family).
 
-Firmware state: v0.1.0, protocol version 1. The firmware has not been tested on real hardware yet;
+Firmware state: v0.11.0, protocol version 1. The firmware has not been tested on real hardware yet;
 if the lamp behaves differently from these documents, the documents describe the intent.
 
 ## 1. Discovery and connection
@@ -53,7 +53,7 @@ Recommended flow:
    ask the user to "Forget" the lamp in the Bluetooth settings) before retrying.
 3. A phone that does not finish pairing in 30 s is disconnected by the lamp.
 
-The lamp remembers up to 4 phones; a 5th bond forgets the oldest one. Factory reset forgets all.
+The lamp remembers up to 5 phones; a 6th bond forgets the oldest one. Factory reset forgets all. The lamp also keeps a name for each phone when the app sends it (Command `0x0A`); pairing itself carries no name.
 
 ## 3. First reads
 
@@ -198,7 +198,8 @@ Layout: mask, on, brightness, fps, demo, str8 effect code (empty when bit 1 is n
 | Hardware | `0x0013` | controls (one button / four buttons / touch pad - only those in the "supported" mask), buttons type, Main button pin (a dropdown of the pins the lamp lists, firmware ≥ 0.4.3); **reboot to apply** |
 | WiFi | `0x0009`, `0x000A` | mode off / periodic / always on, period, SSID, password (never read back) |
 | Name | `0x000B` | up to 20 bytes, **reboot to apply** |
-| Device | `0x000C` | reboot (`01`), reset effects (`02`), factory reset (`03`, forgets bonds) |
+| Device | `0x000C` | reboot (`01`), reset effects (`02`), factory reset (`03`, forgets bonds), name this phone (`0A`) |
+| Paired phones | `0x0016` | read-only list of the bonded phones with names, MACs and "this phone"; optional, firmware ≥ 0.11.0 |
 
 "Reboot to apply": offer a "Reboot now" button that writes Command `0x01`. After reboot the lamp
 is in the pairing window for 2 minutes and the bonded phone reconnects normally.
@@ -237,6 +238,27 @@ in the "always on" mode, the HTTP API (`http://<lamp ip>/api/...`, see [API.md](
   (`03`) and "Cancel" (`04`). A disconnect while it runs is normal (a brownout reboot): reconnect;
   state `2` then carries the result. On state `2` show "The supply held N of 10 steps, the
   current limit is L mA" and read LED settings again (the limit changed).
+
+## 8b. Paired phones (optional, firmware ≥ 0.11.0)
+
+[Bonded phones](BLE_PROTOCOL.md#0x0016-bonded-phones) `0x0016`, read-only. Read it once after
+connecting (and after another phone pairs); it is not a notification.
+
+- Show a "Paired phones" card on the System tab: `N of 5`, one row per phone. Use the name when
+  the lamp has one, the MAC otherwise, and show the MAC as a secondary line under the name. Mark
+  the entry with flag bit 0 as "This phone"; the app cannot read its own Bluetooth address.
+- **Names.** Pairing does not transmit the name. After connecting to a lamp with `0x0016`, send
+  Command `0x0A` with `BluetoothAdapter.getName()` (the Bluetooth name from the phone's settings,
+  `Build.MODEL` when it is empty) if the name of the current entry is empty or different. Then
+  read `0x0016` again. Send it only when it differs: every write is an NVS write.
+- **Capacity.** Five phones. Pairing a sixth one in the pairing window forgets the oldest bond
+  (the lamp tells nothing; the list simply no longer has it). Outside the window the new keys are
+  rejected and the old bonds stay.
+
+**Why this exists.** NimBLE stores a CCCD record for every notifying characteristic of every
+bonded phone. With the old 8-record default a second phone overflowed the store and NimBLE
+unpaired the first phone, so only one bond survived. The firmware now keeps 48 records
+(5 phones × 8 + margin); `config.h` fails the build if the two numbers drift apart.
 
 ## 9. Firmware update
 

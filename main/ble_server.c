@@ -23,6 +23,7 @@
 #include "wifi.h"
 #include "updater.h"
 #include "input.h"
+#include "bonds.h"
 
 #define PROTOCOL_VERSION 1
 
@@ -51,6 +52,7 @@ enum {
     CHR_HARDWARE      = 0x0013,
     CHR_WIFI_NETWORKS = 0x0014,
     CHR_POWER         = 0x0015,
+    CHR_BONDED_PHONES = 0x0016,
 };
 
 enum {
@@ -78,6 +80,7 @@ enum {
     CMD_INSTALL_UPDATE = 0x07,
     CMD_WIFI_SCAN     = 0x08,
     CMD_ROLLBACK      = 0x09,
+    CMD_SET_BOND_NAME = 0x0a,
 };
 
 enum {
@@ -109,6 +112,9 @@ static esp_timer_handle_t auth_timer, idle_timer, state_timer, reboot_timer;
 
 static void start_advertising();
 static void idle_restart();
+static void load_bonded();
+static bool current_peer(ble_addr_t *out);
+static bool is_bonded(const ble_addr_t *addr);
 
 ////////////////////////////////////////////////////////////////////////////////
 /// Buffer helpers
@@ -304,6 +310,43 @@ static void on_ota_status(ota_state_t state, ota_error_t err, uint32_t received,
 
 ////////////////////////////////////////////////////////////////////////////////
 /// Characteristics
+
+static int chr_bonded_phones(struct ble_gatt_access_ctxt *ctxt)
+{
+    if (ctxt->op != BLE_GATT_ACCESS_OP_READ_CHR)
+        return BLE_ATT_ERR_REQ_NOT_SUPPORTED;
+
+    ble_addr_t peers[BLE_MAX_BONDS];
+    int count = 0;
+    if (ble_store_util_bonded_peers(peers, &count, BLE_MAX_BONDS))
+        return BLE_ATT_ERR_UNLIKELY;
+    if (count < 0)
+        count = 0;
+    if (count > BLE_MAX_BONDS)
+        count = BLE_MAX_BONDS;
+
+    ble_addr_t self = { 0 };
+    bool have_self = current_peer(&self);
+
+    buf_t b = { 0 };
+    put_u8(&b, count);
+    put_u8(&b, BLE_MAX_BONDS);
+    for (int i = 0; i < count; i++)
+    {
+        put_u8(&b, peers[i].type);
+        for (size_t j = 0; j < sizeof(peers[i].val); j++)
+            put_u8(&b, peers[i].val[j]);
+        // the phone this very connection belongs to (the app marks it "this phone")
+        put_u8(&b, have_self && !ble_addr_cmp(&peers[i], &self) ? 1 : 0);
+
+        bond_id_t id = { .type = peers[i].type };
+        memcpy(id.addr, peers[i].val, sizeof(id.addr));
+        char name[BLE_BOND_NAME_MAX + 1];
+        bonds_get_name(&id, name, sizeof(name));
+        put_str8(&b, name);
+    }
+    return reply(ctxt, &b);
+}
 
 static int chr_device_info(struct ble_gatt_access_ctxt *ctxt)
 {
@@ -759,7 +802,32 @@ static void reboot_timer_cb(void *arg)
 static int chr_command(struct ble_gatt_access_ctxt *ctxt, reader_t *r)
 {
     uint8_t cmd = get_u8(r);
-    if (r->error || r->pos != r->len)
+    if (r->error)
+        return BLE_ATT_ERR_INVALID_ATTR_VALUE_LEN;
+
+    // The name shown in the phone's Bluetooth settings; pairing itself carries no name
+    if (cmd == CMD_SET_BOND_NAME)
+    {
+        char name[BLE_BOND_NAME_MAX + 1];
+        get_str8(r, name, BLE_BOND_NAME_MAX);
+        if (r->error || r->pos != r->len)
+            return BLE_ATT_ERR_INVALID_ATTR_VALUE_LEN;
+        for (size_t i = 0; name[i]; i++)
+            if ((uint8_t)name[i] < 0x20 || name[i] == 0x7f)
+                return BLE_ATT_ERR_VALUE_NOT_ALLOWED;
+
+        ble_addr_t peer;
+        if (!authorized || !current_peer(&peer))
+            return BLE_ATT_ERR_VALUE_NOT_ALLOWED;
+
+        bond_id_t id = { .type = peer.type };
+        memcpy(id.addr, peer.val, sizeof(id.addr));
+        esp_err_t res = bonds_set_name(&id, name);
+        ESP_LOGI(TAG, "BLE: this phone is named '%s'", name);
+        return res == ESP_OK ? 0 : BLE_ATT_ERR_UNLIKELY;
+    }
+
+    if (r->pos != r->len)
         return BLE_ATT_ERR_INVALID_ATTR_VALUE_LEN;
 
     switch (cmd)
@@ -1032,6 +1100,7 @@ static int access_cb(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt
         case CHR_HARDWARE:      return chr_hardware(ctxt, &r);
         case CHR_WIFI_NETWORKS: return chr_wifi_networks(ctxt, &r);
         case CHR_POWER:         return chr_power(ctxt, &r);
+        case CHR_BONDED_PHONES: return chr_bonded_phones(ctxt);
         default:                return BLE_ATT_ERR_UNLIKELY;
     }
 }
@@ -1071,6 +1140,7 @@ static const struct ble_gatt_svc_def services[] = {
             CHR(CHR_HARDWARE, R | W),
             CHR_H(CHR_WIFI_NETWORKS, R | W | N, &h_networks),
             CHR_H(CHR_POWER, R | W | N, &h_power),
+            CHR(CHR_BONDED_PHONES, R),
             { 0 }
         },
     },
@@ -1083,8 +1153,31 @@ static const struct ble_gatt_svc_def services[] = {
 static void load_bonded()
 {
     if (ble_store_util_bonded_peers(bonded, &bonded_count, BLE_MAX_BONDS))
+    {
         bonded_count = 0;
-    ESP_LOGI(TAG, "BLE: %d bonded phone(s)", bonded_count);
+        return;
+    }
+
+    // Names of phones that are no longer bonded (a 6th phone evicted one, or it was forgotten)
+    bond_id_t ids[BLE_MAX_BONDS];
+    for (int i = 0; i < bonded_count; i++)
+    {
+        ids[i].type = bonded[i].type;
+        memcpy(ids[i].addr, bonded[i].val, sizeof(ids[i].addr));
+    }
+    bonds_prune(ids, bonded_count);
+
+    ESP_LOGI(TAG, "BLE: %d of %d bonded phone(s)", bonded_count, BLE_MAX_BONDS);
+}
+
+/** The identity address of the phone this connection belongs to. */
+static bool current_peer(ble_addr_t *out)
+{
+    struct ble_gap_conn_desc desc;
+    if (conn == BLE_HS_CONN_HANDLE_NONE || ble_gap_conn_find(conn, &desc))
+        return false;
+    *out = desc.peer_id_addr;
+    return true;
 }
 
 static bool is_bonded(const ble_addr_t *addr)
@@ -1104,6 +1197,9 @@ static bool pairing_open()
 // but only inside the pairing window, so a stranger cannot evict bonded phones
 static int store_status(struct ble_store_status_event *event, void *arg)
 {
+    if (event->event_code == BLE_STORE_EVENT_OVERFLOW)
+        ESP_LOGW(TAG, "BLE: store overflow (object %d)", event->overflow.obj_type);
+
     if ((event->event_code == BLE_STORE_EVENT_OVERFLOW || event->event_code == BLE_STORE_EVENT_FULL)
             && !pairing_open())
     {
@@ -1333,6 +1429,7 @@ void ble_server_open_pairing_window()
 void ble_server_forget_bonds()
 {
     ble_store_clear();
+    bonds_clear();
     bonded_count = 0;
     ESP_LOGW(TAG, "BLE: all bonded phones forgotten");
 }

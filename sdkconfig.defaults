@@ -19,7 +19,11 @@ CONFIG_BT_NIMBLE_ROLE_CENTRAL=n
 CONFIG_BT_NIMBLE_ROLE_OBSERVER=n
 CONFIG_BT_NIMBLE_MAX_CONNECTIONS=1
 CONFIG_BT_NIMBLE_NVS_PERSIST=y
-CONFIG_BT_NIMBLE_MAX_BONDS=4
+CONFIG_BT_NIMBLE_MAX_BONDS=5
+# A bonded phone keeps up to 8 CCCD records (7 notifying characteristics + Service Changed).
+# With the default 8, a second phone overflowed the CCCD store and NimBLE unpaired the first
+# phone, so only one bond survived. 5 phones * 8 = 40, plus a margin for new notifications.
+CONFIG_BT_NIMBLE_MAX_CCCDS=48
 CONFIG_BT_NIMBLE_SM_SC=y
 CONFIG_BT_NIMBLE_ATT_PREFERRED_MTU=517
 CONFIG_BT_NIMBLE_LOG_LEVEL_WARNING=y
