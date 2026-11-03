@@ -130,6 +130,21 @@ size_t bonds_get_name(const bond_id_t *id, char *out, size_t size)
     return strlen(out);
 }
 
+void bonds_forget(const bond_id_t *id)
+{
+    bond_names_t db;
+    if (load(&db) != ESP_OK)
+        return;
+    int idx = find(&db, id);
+    if (idx < 0)
+        return;
+
+    memmove(&db.items[idx], &db.items[idx + 1], (db.count - idx - 1) * sizeof(db.items[0]));
+    db.count--;
+    if (save(&db) != ESP_OK)
+        ESP_LOGW(TAG, "Could not save the bond names");
+}
+
 void bonds_prune(const bond_id_t *ids, size_t count)
 {
     bond_names_t db;

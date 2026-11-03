@@ -379,6 +379,7 @@ Write; the first byte is the command:
 | 0x08 | Scan for WiFi networks, see [WiFi networks](#0x0014-wifi-networks) (firmware ≥ 0.1.5). Works in any WiFi mode. `0x13` during a firmware upload over BLE; a repeated command while scanning is accepted and does nothing |
 | 0x09 | Go back to the previous firmware (the version in [Device info](#0x0001-device-info)) and reboot; the settings stay (firmware ≥ 0.8.0). `0x13` if there is none or during an update. The same without a phone: hold the Main button while powering the lamp on, 5 s |
 | 0x0A | Name the phone of this connection: `str8` UTF-8 name, up to 48 bytes, printable (firmware ≥ 0.11.0). The name is stored with the bond and returned by [Bonded phones](#0x0016-bonded-phones). An empty name removes it. `0x13` without a bonded connection |
+| 0x0B | Forget another bonded phone: `u8` address type, `u8[6]` identity address (firmware ≥ 0.11.0). `0x13` for the phone of this connection (use factory reset or forget it on the phone) or an address that is not bonded. The phone's own bond stays on its side: it has to forget the lamp before pairing again |
 
 ---
 

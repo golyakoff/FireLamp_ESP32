@@ -81,6 +81,7 @@ enum {
     CMD_WIFI_SCAN     = 0x08,
     CMD_ROLLBACK      = 0x09,
     CMD_SET_BOND_NAME = 0x0a,
+    CMD_FORGET_BOND   = 0x0b,
 };
 
 enum {
@@ -825,6 +826,37 @@ static int chr_command(struct ble_gatt_access_ctxt *ctxt, reader_t *r)
         esp_err_t res = bonds_set_name(&id, name);
         ESP_LOGI(TAG, "BLE: this phone is named '%s'", name);
         return res == ESP_OK ? 0 : BLE_ATT_ERR_UNLIKELY;
+    }
+
+    // Forget another bonded phone; the phone this connection belongs to is never dropped here
+    if (cmd == CMD_FORGET_BOND)
+    {
+        uint8_t type = get_u8(r);
+        ble_addr_t peer = { .type = type };
+        for (size_t i = 0; i < sizeof(peer.val); i++)
+            peer.val[i] = get_u8(r);
+        if (r->error || r->pos != r->len)
+            return BLE_ATT_ERR_INVALID_ATTR_VALUE_LEN;
+        if (type > BLE_ADDR_RANDOM_ID || !is_bonded(&peer))
+            return BLE_ATT_ERR_VALUE_NOT_ALLOWED;
+
+        ble_addr_t self;
+        if (current_peer(&self) && !ble_addr_cmp(&self, &peer))
+            return BLE_ATT_ERR_VALUE_NOT_ALLOWED;
+
+        int rc = ble_gap_unpair(&peer);
+        if (rc)
+        {
+            ESP_LOGW(TAG, "BLE: could not forget the phone: %d", rc);
+            return BLE_ATT_ERR_UNLIKELY;
+        }
+
+        bond_id_t id = { .type = peer.type };
+        memcpy(id.addr, peer.val, sizeof(id.addr));
+        bonds_forget(&id);
+        load_bonded();
+        ESP_LOGI(TAG, "BLE: a bonded phone was forgotten");
+        return 0;
     }
 
     if (r->pos != r->len)

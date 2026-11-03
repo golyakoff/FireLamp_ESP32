@@ -28,6 +28,9 @@ esp_err_t bonds_set_name(const bond_id_t *id, const char *name);
 /** Copies the name of a phone into out; returns its length, 0 when there is no name. */
 size_t bonds_get_name(const bond_id_t *id, char *out, size_t size);
 
+/** Drops the name of one phone. */
+void bonds_forget(const bond_id_t *id);
+
 /** Drops the names of phones that are not in the list (a bond was evicted or forgotten). */
 void bonds_prune(const bond_id_t *ids, size_t count);
 

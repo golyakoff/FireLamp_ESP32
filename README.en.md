@@ -307,7 +307,8 @@ new version, and installs it **only on request** from the app. The image (and it
 is verified; if the new firmware does not start, the bootloader rolls back.
 
 **Paired phones.** The app lists the phones the lamp remembers: the name from the phone's
-Bluetooth settings, the MAC address and a "this phone" mark. The lamp remembers up to 5 phones; a new one forgets the oldest.
+Bluetooth settings, the MAC address and a "this phone" mark. A phone can be forgotten from the
+list. The lamp remembers up to 5 phones; a new one forgets the oldest.
 
 **Settings storage.** In the EEPROM when there is one, otherwise in the internal flash (NVS). Every
 record has a magic, size and CRC; in the EEPROM a record has two copies written alternately, so a

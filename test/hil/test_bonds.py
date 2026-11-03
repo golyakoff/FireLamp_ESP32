@@ -36,3 +36,16 @@ def test_set_bond_name_rejects_controls(lamp):
     assert lamp.write_error(fl.COMMAND, bytes([fl.CMD_SET_BOND_NAME]) + fl.str8("a\x01b")) == fl.ATT_VALUE_NOT_ALLOWED
 
 
+def test_forget_current_phone_rejected(lamp):
+    _, phones = lamp.bonded_phones()
+    me = next(p for p in phones if p.current)
+    assert lamp.write_error(fl.COMMAND, bytes([fl.CMD_FORGET_BOND, me.type]) + me.address) == fl.ATT_VALUE_NOT_ALLOWED
+
+
+def test_forget_unknown_phone_rejected(lamp):
+    assert lamp.write_error(fl.COMMAND, bytes([fl.CMD_FORGET_BOND, 0]) + b"\x01\x02\x03\x04\x05\x06") \
+        == fl.ATT_VALUE_NOT_ALLOWED
+
+
+def test_forget_bond_needs_the_address(lamp):
+    assert lamp.write_error(fl.COMMAND, bytes([fl.CMD_FORGET_BOND, 0, 1])) == fl.ATT_INVALID_LENGTH

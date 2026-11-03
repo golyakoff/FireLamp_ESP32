@@ -81,6 +81,6 @@ Device name, WiFi settings, LED and hardware settings are never changed.
 - `test_control.py` - lamp state, parameters, commands, demo mode;
 - `test_settings.py` - time, schedule, settings: round trips and validation;
 - `test_wifi_scan.py` - WiFi scan (`--wifi`);
-- `test_bonds.py` - the paired phones list and names;
+- `test_bonds.py` - the paired phones list, names, forgetting;
 - `test_reboot.py` - persistence (`--reboot`);
 - `test_ota.py` - firmware upload over BLE (`--firmware`).

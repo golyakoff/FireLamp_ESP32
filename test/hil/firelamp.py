@@ -63,6 +63,7 @@ CMD_INSTALL_UPDATE = 0x07
 CMD_WIFI_SCAN = 0x08
 CMD_ROLLBACK = 0x09
 CMD_SET_BOND_NAME = 0x0A
+CMD_FORGET_BOND = 0x0B
 
 MASK_ON, MASK_EFFECT, MASK_BRIGHTNESS, MASK_FPS, MASK_DEMO = 1, 2, 4, 8, 16
 
@@ -505,6 +506,9 @@ class Lamp:
 
     def bonded_phones(self):
         return parse_bonded_phones(self.read(BONDED_PHONES))
+
+    def forget_bond(self, phone):
+        self.write(COMMAND, bytes([CMD_FORGET_BOND, phone.type]) + phone.address)
 
     def networks(self):
         """Whole WiFi networks list, page by page: (state, [Network])"""

@@ -198,7 +198,7 @@ Layout: mask, on, brightness, fps, demo, str8 effect code (empty when bit 1 is n
 | Hardware | `0x0013` | controls (one button / four buttons / touch pad - only those in the "supported" mask), buttons type, Main button pin (a dropdown of the pins the lamp lists, firmware ≥ 0.4.3); **reboot to apply** |
 | WiFi | `0x0009`, `0x000A` | mode off / periodic / always on, period, SSID, password (never read back) |
 | Name | `0x000B` | up to 20 bytes, **reboot to apply** |
-| Device | `0x000C` | reboot (`01`), reset effects (`02`), factory reset (`03`, forgets bonds), name this phone (`0A`) |
+| Device | `0x000C` | reboot (`01`), reset effects (`02`), factory reset (`03`, forgets bonds), name this phone (`0A`), forget another phone (`0B`) |
 | Paired phones | `0x0016` | read-only list of the bonded phones with names, MACs and "this phone"; optional, firmware ≥ 0.11.0 |
 
 "Reboot to apply": offer a "Reboot now" button that writes Command `0x01`. After reboot the lamp
@@ -242,7 +242,7 @@ in the "always on" mode, the HTTP API (`http://<lamp ip>/api/...`, see [API.md](
 ## 8b. Paired phones (optional, firmware ≥ 0.11.0)
 
 [Bonded phones](BLE_PROTOCOL.md#0x0016-bonded-phones) `0x0016`, read-only. Read it once after
-connecting (and after another phone pairs); it is not a notification.
+connecting (and after forgetting a phone); it is not a notification.
 
 - Show a "Paired phones" card on the System tab: `N of 5`, one row per phone. Use the name when
   the lamp has one, the MAC otherwise, and show the MAC as a secondary line under the name. Mark
@@ -251,6 +251,10 @@ connecting (and after another phone pairs); it is not a notification.
   Command `0x0A` with `BluetoothAdapter.getName()` (the Bluetooth name from the phone's settings,
   `Build.MODEL` when it is empty) if the name of the current entry is empty or different. Then
   read `0x0016` again. Send it only when it differs: every write is an NVS write.
+- **Forget** another phone: Command `0x0B` with its address type and six address bytes, then read
+  `0x0016` again. Do not offer it for "This phone": the lamp refuses to drop the current
+  connection (the user can forget the pairing on the phone instead). The forgotten phone keeps
+  its half of the bond and has to forget the lamp before pairing again; say so in the dialog.
 - **Capacity.** Five phones. Pairing a sixth one in the pairing window forgets the oldest bond
   (the lamp tells nothing; the list simply no longer has it). Outside the window the new keys are
   rejected and the old bonds stay.
